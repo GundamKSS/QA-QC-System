@@ -1,0 +1,23 @@
+{
+  "lint": "passed",
+  "typecheck": "passed",
+  "build": "passed",
+  "tests": {
+    "passed": 1100,
+    "skipped_database": 8,
+    "new_docking_boundary_tests": 4
+  },
+  "browser": {
+    "desktop": "Header docking and return to expanded green card verified; one active form.",
+    "drafts": "Query01/statusactive preserved both directions; native typing01x and caret3 preserved without changing scroll position during transfer.",
+    "submit": "Docked form GET q=01/status=active produced one matching mock record.",
+    "keyboard": "Tab from docked query reaches docked status; inert placeholder excluded.",
+    "tablet": "820px viewport: inline Header form, no horizontal overflow.",
+    "mobile": "390px and320px viewports: single glass plane across two Header rows; all controls44px tall, no horizontal overflow.",
+    "return": "At scrollY0, original filter returns and green card radius22px restored.",
+    "errors": "No new browser errors; existing THREE.Clock deprecation warning only.",
+    "data": "Isolated mock auth/API; no real DB writes or credentials used."
+  },
+  "motion": "Scoped React ViewTransition shared morph; focused/composing controls and reduced-motion preference handled.",
+  "rollback": "Temporary restore rehearsal passed; original hashes restored, added files removed, later edits refused."
+}

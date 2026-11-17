@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-23",
+  "lint": "pass",
+  "typecheck": "pass",
+  "productionBuild": "pass",
+  "unitTests": {
+    "passed": 416,
+    "skipped": 8
+  },
+  "undoRehearsal": "original hashes restored; added files removed; later edits rejected",
+  "browser": {
+    "sizes": [
+      [
+        320,
+        640
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        820,
+        1180
+      ],
+      [
+        844,
+        390
+      ],
+      [
+        1024,
+        768
+      ],
+      [
+        1280,
+        720
+      ]
+    ],
+    "horizontalOverflow": false,
+    "mockLoginSuccess": "/home",
+    "mockWrongPassword": "feedback displayed",
+    "reducedMotion": "static assembly and highlighting verified",
+    "staticTier": "no WebGL; credential poster transforms verified"
+  },
+  "preview": "http://localhost:3001/login"
+}

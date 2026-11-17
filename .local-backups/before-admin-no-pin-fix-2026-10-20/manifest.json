@@ -1,0 +1,6 @@
+{
+  "src/lib/auth/local-store.ts": "2d7b309a23a22abfb189876f2fe3385d89a65facb97c727fd8a582bcb7486491",
+  "src/lib/db/local-users.ts": "76d3afa7a2023b8fecc9f7362faeff3b27930a49f760a5639da935504e7e9018",
+  "src/lib/auth/local-admin.ts": "f3c06ecff3caddf1a1e22787e1e903e5d39b154101d56b282fca8c5cb2f67bff",
+  "src/lib/auth/local-admin.test.ts": "e718b6675dbbc75d74a994b424fd9c8bdbc710bacf0005966971a0f2714ecc64"
+}

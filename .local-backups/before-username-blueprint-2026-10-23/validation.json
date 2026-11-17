@@ -1,0 +1,26 @@
+{
+  "lint": "pass",
+  "typecheck": "pass",
+  "build": "pass",
+  "tests": {
+    "passed": 434,
+    "skipped": 8
+  },
+  "browser": {
+    "sizes": [
+      [
+        1280,
+        720
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "rapidFieldSwitches": 3,
+    "inspectionDialog": "pass",
+    "consoleErrors": 0,
+    "horizontalOverflow": false
+  },
+  "undoRehearsal": "original hashes restored and new files removed"
+}

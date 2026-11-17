@@ -1,0 +1,20 @@
+{
+  "lint": "passed",
+  "typecheck": "passed",
+  "production_build": "passed (isolated copy, no real database)",
+  "tests": {
+    "passed": 362,
+    "skipped": 8
+  },
+  "ui_checks": [
+    "Mouse pull observed: x2.48px near button edge",
+    "Hover cleared on leaving; smooth return observed",
+    "Disabled button: no translate, no pointer variables",
+    "Input and parent panel stationary; typing succeeded",
+    "Keyboard card focus: visible2px orange outline, no translate",
+    "Primary CTA navigation to new-plan form succeeded",
+    "Actual Home CTA hovered: x-2.14px, totaly-2.38px",
+    "Fine-pointer and reduced-motion guards reviewed"
+  ],
+  "undo": "Temporary-root rehearsal passed; original2files exact; newcomponent removed"
+}

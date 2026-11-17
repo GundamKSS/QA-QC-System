@@ -1,0 +1,13 @@
+--- a/src/app/(app)/master/[table]/MasterForms.tsx
++++ b/src/app/(app)/master/[table]/MasterForms.tsx
+@@ -12,6 +12,10 @@
+ const idle: MasterFormState = { status: "idle" };
+ 
+ function Control({ field, value, options, invalid, describedBy }: { field: MasterField; value: MasterValues[string]; options: FieldOptions; invalid: boolean; describedBy?: string }) {
++  // Database-generated (e.g. DEF00001): shown for reference, no name so it is never submitted.
++  if (field.generated) {
++    return <input type="text" readOnly value={value === null ? "" : String(value)} placeholder="ออกให้เมื่อบันทึก" aria-describedby={describedBy} className={`${inputClass} cursor-default border-dashed text-ti-300`} />;
++  }
+   const common = { name: field.key, "aria-invalid": invalid || undefined, "aria-describedby": describedBy, required: field.required };
+   switch (field.kind) {
+     case "text":

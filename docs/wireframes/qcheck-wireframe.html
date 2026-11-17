@@ -1,0 +1,1809 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QCheck Wireframe ขาวดำ</title>
+<!--
+  QCheck — Wireframe ขาวดำ (low-fidelity) สำหรับ Workshop Phase 0 / WBS 0.4
+  ไฟล์เดียว ไม่มี dependency ภายนอก · ไม่มีธีม/สี/แบรนด์ — ใช้ยืนยัน flow เท่านั้น
+  อ้างอิงสเปก: docs/02-spec-functional.md §4, §5 · docs/03-spec-business-rules-data.md BR-02..06, BR-11, BR-12
+-->
+<style>
+:root{
+  --ink:#111;--g1:#333;--g2:#555;--g3:#888;--g4:#bbb;--g5:#ddd;--g6:#ececec;--g7:#f6f6f6;--paper:#fff;
+  --font:-apple-system,"Sukhumvit Set","Thonburi","Leelawadee UI","Tahoma","Noto Sans Thai",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#e4e4e4;color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3,h4{margin:0 0 6px;line-height:1.3}
+h2{font-size:18px}h3{font-size:15px;margin-top:14px}
+p{margin:4px 0 8px}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.muted{color:var(--g2)}.small{font-size:12px}.xs{font-size:11px}.b{font-weight:700}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.between{justify-content:space-between}
+.grow{flex:1;min-width:0}.mt{margin-top:10px}.mb{margin-bottom:10px}.center{text-align:center}
+
+/* ---------- Workshop shell (อยู่นอกตัวแอป) ---------- */
+.shell{display:flex;height:100dvh}
+.nav{width:290px;flex:none;background:#fff;border-right:1px solid var(--g4);overflow:auto;padding:14px 14px 40px}
+.nav h1{font-size:16px}
+.nav .grp{margin:14px 0 4px;font-size:11px;letter-spacing:.04em;color:var(--g2);font-weight:700;text-transform:uppercase}
+.nav .scr{display:flex;gap:8px;width:100%;text-align:left;border:1px solid transparent;background:none;padding:7px 8px;border-radius:6px;cursor:pointer}
+.nav .scr:hover{border-color:var(--g4)}
+.nav .scr.on{background:var(--ink);color:#fff}
+.nav .scr code{font-family:inherit;font-weight:700;min-width:30px}
+.nav ol{padding-left:18px;margin:4px 0}.nav li{margin:6px 0}
+.nav .task{border:1px solid var(--g4);background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px;margin-left:4px}
+.nav label.opt{display:flex;align-items:center;gap:8px;margin:6px 0}
+.nav select{border:1px solid var(--g3);border-radius:4px;padding:2px 4px;background:#fff}
+.disclaimer{border:2px dashed var(--ink);padding:8px;border-radius:6px;font-size:12px;margin:10px 0}
+.stage{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:20px 16px}
+.wfbar{display:none}
+
+/* ---------- Spec notes (ปิดได้) ---------- */
+.note{border:1px dashed var(--g2);background:var(--g7);border-radius:6px;padding:6px 8px;font-size:11.5px;color:var(--g1);margin:10px 0;line-height:1.45}
+.note::before{content:"หมายเหตุสเปก · ";font-weight:700}
+body.nonotes .note{display:none}
+
+/* ---------- Mobile frame ---------- */
+.phone{position:relative;width:var(--pw,375px);height:min(812px,calc(100dvh - 40px));background:var(--paper);border:2px solid var(--ink);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;filter:grayscale(1);flex:none}
+.ph-status{height:24px;flex:none;font-size:11px;display:flex;justify-content:space-between;align-items:center;padding:2px 18px 0;color:var(--g2)}
+.ph-status .wm{letter-spacing:.2em;font-weight:700;color:var(--g3)}
+.ph-appbar{min-height:54px;flex:none;display:flex;align-items:center;gap:4px;padding:0 6px;border-bottom:1px solid var(--g4)}
+.ph-appbar .t{flex:1;min-width:0}
+.ph-appbar .t b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-appbar .t small{display:block;color:var(--g2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-body{flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch}
+.ph-foot{flex:none;border-top:1px solid var(--g4);padding:10px 12px 12px;background:var(--paper)}
+.tabbar{flex:none;display:flex;border-top:1px solid var(--g4)}
+.tabbar button{flex:1;min-height:56px;border:0;background:none;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--g2)}
+.tabbar button .ic{width:22px;height:22px;border:1.5px solid currentColor;border-radius:5px}
+.tabbar button.on{color:var(--ink);font-weight:700}
+.tabbar button.on .ic{background:var(--ink)}
+.iconbtn{min-width:44px;height:44px;border:0;background:none;display:grid;place-items:center;font-size:20px;cursor:pointer;border-radius:8px;padding:0 6px}
+.iconbtn.txt{font-size:13px;border:1.5px solid var(--g3);height:36px}
+.sync{font-size:12px;color:var(--g2);white-space:nowrap}
+
+/* ---------- Controls ---------- */
+.btn{min-height:44px;padding:0 14px;border:1.5px solid var(--ink);background:#fff;border-radius:8px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center;line-height:1.25}
+.btn.pri{background:var(--ink);color:#fff}
+.btn.block{width:100%}
+.btn.sm{min-height:34px;padding:0 10px;font-size:13px}
+.btn.lg{min-height:64px;font-size:18px}
+.btn.ghost{border-color:var(--g4)}
+.btn.is-disabled,.btn:disabled{border-color:var(--g4);color:var(--g3);background:var(--g7);cursor:not-allowed}
+.btn.sel{background:var(--ink);color:#fff;box-shadow:inset 0 0 0 2px #fff}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.navrow{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+.seg{display:flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.seg button{flex:1;min-height:40px;border:0;border-right:1px solid var(--ink);background:#fff;cursor:pointer;font-size:13px;padding:0 6px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:#fff;font-weight:700}
+.field{margin-bottom:12px}
+.field>label,.flabel{display:block;font-size:12px;color:var(--g1);margin-bottom:4px;font-weight:600}
+.req::after{content:" *"}
+.inp{width:100%;min-height:44px;border:1.5px solid var(--g3);border-radius:8px;padding:8px 10px;background:#fff;font-size:16px}
+.inp.err{border-color:var(--ink);border-width:2.5px}
+.inp[readonly],.ro{background:var(--g7);border-style:dashed;color:var(--g1)}
+.inrow{display:flex;gap:8px}.inrow .inp{flex:1;min-width:0}
+.msg{font-size:12px;margin-top:4px}
+.msg.bad{font-weight:700}
+.msg.bad::before{content:"✕ "}
+
+/* ---------- Content blocks ---------- */
+.card{border:1.5px solid var(--g3);border-radius:10px;padding:12px;margin-bottom:10px;background:#fff}
+.card.strong{border:2px solid var(--ink)}
+.card.dash{border-style:dashed}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}
+.kv dt{color:var(--g2)}.kv dd{margin:0}
+.tag{display:inline-block;border:1px solid var(--g2);border-radius:4px;padding:0 6px;font-size:11px;line-height:18px;color:var(--g1);white-space:nowrap;background:#fff;vertical-align:middle}
+.tag.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tag.dash{border-style:dashed}
+.bar{height:8px;border:1px solid var(--g2);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--g2)}
+.segs{display:flex;gap:2px;margin:6px 0 10px}
+.segs i{flex:1;height:10px;border:1px solid var(--g3);background:#fff}
+.segs i.ok{background:var(--g3)}
+.segs i.fail{background:repeating-linear-gradient(45deg,var(--ink) 0 2px,#fff 2px 4px);border-color:var(--ink)}
+.segs i.cur{outline:2px solid var(--ink);outline-offset:1px}
+.ph-img{display:grid;place-items:center;border:1px solid var(--g4);background-color:var(--g7);color:var(--g2);font-size:12px;text-align:center;
+  background-image:linear-gradient(to top right,transparent calc(50% - .6px),var(--g4) 50%,transparent calc(50% + .6px)),linear-gradient(to top left,transparent calc(50% - .6px),var(--g4) 50%,transparent calc(50% + .6px))}
+.ph-img span{background:var(--g7);padding:2px 6px}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.thumb{position:relative;width:72px;height:72px;font-size:8px;line-height:1.2;align-content:end;padding:2px;place-items:end start}
+.thumb .wmk{background:rgba(255,255,255,.85);padding:1px 2px;text-align:left}
+.thumb .x{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--ink);background:#fff;font-size:12px;cursor:pointer;display:grid;place-items:center;padding:0}
+.thumb.vid::after{content:"▶";position:absolute;inset:0;display:grid;place-items:center;font-size:20px;color:var(--g1)}
+.alert{border:2px solid var(--ink);border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0;background:#fff}
+.alert::before{content:"! ";font-weight:800}
+.alert.soft{border-width:1px;border-style:dashed}
+.alert.soft::before{content:"i  "}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--ink);border-radius:16px;padding:3px 10px;font-size:13px;background:#fff}
+.result{border:3px solid var(--ink);border-radius:10px;padding:12px;text-align:center;margin-bottom:10px}
+.result .big{font-size:26px;font-weight:800;line-height:1.2}
+.result.np{background:repeating-linear-gradient(45deg,#fff 0 8px,var(--g6) 8px 10px)}
+.choice{display:block;width:100%;text-align:left;border:1.5px solid var(--g3);border-radius:10px;padding:10px 12px;background:#fff;margin-bottom:8px;cursor:pointer;min-height:56px}
+.choice.on{border:3px solid var(--ink)}
+.choice.off{color:var(--g3);border-style:dashed;cursor:not-allowed}
+.choice .r{display:inline-block;width:18px;height:18px;border:2px solid var(--ink);border-radius:50%;vertical-align:-3px;margin-right:6px}
+.choice.on .r{background:radial-gradient(var(--ink) 45%,#fff 50%)}
+.hist{background:var(--g7);border:1px dashed var(--g3);border-radius:8px;padding:8px;margin:8px 0}
+.lines>div{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--g5)}
+.lines>div:last-child{border-bottom:0}
+details>summary{cursor:pointer;font-weight:700;padding:8px 0}
+
+/* ---------- Overlays inside device ---------- */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;z-index:20}
+.sheet{background:#fff;width:100%;max-height:88%;border-radius:16px 16px 0 0;display:flex;flex-direction:column}
+.sheet .grab{width:40px;height:4px;background:var(--g4);border-radius:2px;margin:8px auto 4px;flex:none}
+.sheet .sh-head{padding:4px 14px 8px;border-bottom:1px solid var(--g5);flex:none}
+.sheet .sh-body{overflow:auto;padding:0 14px;flex:1}
+.sheet .sh-foot{padding:10px 14px 14px;border-top:1px solid var(--g5);display:grid;grid-template-columns:1fr 1.6fr;gap:10px;flex:none}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;border:0;border-bottom:1px solid var(--g5);background:none;text-align:left;padding:8px 2px;cursor:pointer}
+.opt .cb{width:24px;height:24px;border:2px solid var(--ink);border-radius:5px;flex:none;display:grid;place-items:center;font-weight:800;font-size:15px}
+.opt.on .cb{background:var(--ink);color:#fff}
+.opt .nm{font-size:15px}
+.cam{position:absolute;inset:0;background:#1d1d1d;color:#fff;z-index:30;display:flex;flex-direction:column}
+.cam .top{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font-size:13px}
+.cam .vf{flex:1;margin:0 12px;border:1px dashed #888;border-radius:8px;display:grid;place-items:center;color:#aaa;text-align:center;font-size:13px;position:relative}
+.cam .vf .target{width:70%;height:30%;border:2px solid #ddd;border-radius:6px}
+.cam .strip{display:flex;gap:6px;padding:8px 12px;min-height:88px;overflow-x:auto}
+.cam .strip .thumb{flex:none}
+.cam .ctrl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:6px 16px 18px}
+.shutter{width:74px;height:74px;border-radius:50%;border:4px solid #fff;background:#9a9a9a;cursor:pointer}
+.shutter.rec{border-radius:16px;background:#ddd}
+.cam .btn{background:transparent;color:#fff;border-color:#fff}
+.cam .btn.pri{background:#fff;color:#111}
+.drawer .opt .cb{border-radius:50%;font-size:12px}
+.toast{position:absolute;left:12px;right:12px;top:84px;pointer-events:none;background:var(--ink);color:#fff;padding:10px 12px;border-radius:8px;z-index:50;font-size:13px;box-shadow:0 2px 0 #000}
+.laptop .toast{left:auto;top:auto;right:24px;bottom:24px;width:440px}
+
+/* ---------- Laptop frame ---------- */
+.lap-wrap{position:relative;flex:none}
+.laptop{position:absolute;top:0;left:0;width:1366px;height:768px;background:#fff;border:2px solid var(--ink);transform-origin:0 0;display:flex;filter:grayscale(1);overflow:hidden}
+.lap-side{width:224px;flex:none;border-right:1px solid var(--g4);background:var(--g7);display:flex;flex-direction:column}
+.lap-side .logo{height:56px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--g4);font-weight:800}
+.lap-side .logo .lg{width:30px;height:30px;font-size:8px}
+.lap-side button{display:flex;justify-content:space-between;width:100%;text-align:left;border:0;background:none;padding:10px 18px;cursor:pointer;font-size:14px}
+.lap-side button.on{background:var(--ink);color:#fff;font-weight:700}
+.lap-side button .xs{color:var(--g3)}
+.lap-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.lap-head{height:56px;flex:none;border-bottom:1px solid var(--g4);display:flex;align-items:center;gap:14px;padding:0 24px}
+.lap-head .search{width:360px;border:1.5px solid var(--g3);border-radius:8px;padding:6px 10px;color:var(--g3)}
+.lap-body{flex:1;overflow:auto;padding:18px 24px 28px}
+.lap-body .inp{min-height:38px;font-size:14px;padding:6px 10px;border-radius:6px}
+.filters{display:flex;gap:10px;align-items:end;margin:12px 0;flex-wrap:wrap}
+.filters .field{margin:0}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{border-bottom:1px solid var(--g5);padding:8px 8px;text-align:left;vertical-align:top}
+.tbl th{background:var(--g6);font-weight:700;white-space:nowrap;position:sticky;top:0;z-index:1}
+.tbl th button{border:0;background:none;font-weight:700;cursor:pointer;padding:0}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:hover td{background:var(--g7)}
+.tbl tr.hl td{background:var(--g6);box-shadow:inset 0 2px 0 var(--ink),inset 0 -2px 0 var(--ink)}
+.tbl .num{text-align:right;white-space:nowrap}
+.tbl td:nth-child(1),.tbl td:nth-child(3),.tbl td:nth-child(9){white-space:nowrap}
+.pg{display:inline-block;padding:0 6px;border:1.5px solid var(--ink);border-radius:4px;font-size:12px;white-space:nowrap}
+.pg.ns{border-style:dashed;border-color:var(--g2)}
+.pg.ip{background:linear-gradient(90deg,var(--g5) 50%,#fff 50%)}
+.pg.ac{border-style:double;border-width:3px}
+.pg.dn{background:var(--g4)}
+.pg.ov{background:var(--ink);color:#fff}
+.pg.un{border-width:3px;font-weight:700}
+.s11{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+.fsec{border:1.5px solid var(--g3);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px}
+.fgrid .span2{grid-column:span 2}.fgrid .span3{grid-column:span 3}
+.calc{border:2px solid var(--ink);border-radius:10px;padding:14px 16px;position:sticky;top:0;background:#fff}
+.calc .big{font-size:38px;font-weight:800;line-height:1.05}
+.calc .blk{border-bottom:1px solid var(--g5);padding:10px 0}
+.calc .blk:last-child{border-bottom:0}
+.lap-foot{display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--g4);padding-top:14px;margin-top:4px}
+
+/* ---------- Narrow screens: workshop users tapping on their own phone ---------- */
+@media (max-width:700px){
+  .shell{flex-direction:column}
+  .wfbar{display:flex;align-items:center;justify-content:space-between;gap:8px;height:34px;flex:none;padding:0 10px;background:var(--ink);color:#fff;font-size:12px}
+  .wfbar button{background:#fff;color:var(--ink);border:0;border-radius:4px;padding:3px 10px;font-weight:700;white-space:nowrap;flex:none}
+  #wfTitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .nav{display:none;position:fixed;inset:34px 0 0 0;width:auto;z-index:100;border:0}
+  body.navopen .nav{display:block}
+  .stage{padding:0}
+  .phone{width:100vw!important;height:calc(100dvh - 34px);border:0;border-radius:0}
+}
+/* ---------- S12–S14 ---------- */
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--ink);margin:12px 0 14px}
+.tabs button{border:1.5px solid var(--g3);border-bottom:0;background:var(--g7);padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;color:var(--g1)}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.s12g{display:grid;grid-template-columns:1fr 330px;gap:20px;align-items:start}
+.tbl.static tbody tr{cursor:default}
+.tbl tr.sub td{background:var(--g7);border-bottom:2px solid var(--ink)}
+.tbl input[type=checkbox]{width:18px;height:18px}
+.tl>div{border-left:2px solid var(--ink);padding:0 0 12px 14px;margin-left:6px;position:relative}
+.tl>div::before{content:"";position:absolute;left:-6px;top:6px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--ink)}
+.tl>div.aqlk::before,.tl>div.corr::before{background:var(--ink)}
+.chk{display:flex;gap:8px;align-items:flex-start;padding:4px 0}
+.chk b{min-width:20px}
+.delta{font-weight:700;white-space:nowrap}
+.lock{border:2px solid var(--ink);background:repeating-linear-gradient(45deg,#fff 0 8px,var(--g6) 8px 10px);border-radius:8px;padding:8px 10px;margin:8px 0}
+@media print{.nav,.wfbar{display:none}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="wfbar"><span id="wfTitle">WIREFRAME</span><button type="button" data-act="toggleNav">หน้าจอ / ภารกิจ ☰</button></div>
+  <nav class="nav" id="nav" aria-label="ตัวเลือกหน้าจอ wireframe"></nav>
+  <main class="stage" id="stage"></main>
+</div>
+<script>
+'use strict';
+/* =====================================================================
+   ข้อมูลตัวอย่าง + กฎคำนวณ (BR-02, BR-03, BR-04, BR-05, BR-11)
+   ทุกชื่อ/เลข เป็นข้อมูลสมมติเพื่อใช้ใน workshop เท่านั้น
+   ===================================================================== */
+const TODAY = new Date(Date.UTC(2026, 9, 16)); // วันที่ของ wireframe = 16/10/2026
+const NOW_TXT = '16/10/2026 10:42';
+const QC_PCT = 10;                             // ⚙️ qc_percent
+const DEADLINE_DAYS = 90;                      // ⚙️ invoice_qc_deadline_days
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const z2 = n => String(n).padStart(2, '0');
+const fmtD = d => z2(d.getUTCDate()) + '/' + z2(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear();
+function parseD(s){
+  const m = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(s || '');
+  if(!m) return null;
+  const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+  return d.getUTCDate() === +m[1] ? d : null;
+}
+const addDays = (d, n) => new Date(d.getTime() + n * 864e5);
+const dayDiff = (a, b) => Math.round((b - a) / 864e5);
+const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase(); // BR-01 normalize
+
+/* BR-02: qc_required = min(lot, max(1, ceil(lot × 10%))) */
+function qcRequired(lot){
+  lot = Math.floor(+lot || 0);
+  if(lot <= 0) return 0;
+  return Math.min(lot, Math.max(1, Math.ceil(lot * QC_PCT / 100)));
+}
+
+/* BR-03: ตาราง AQL ตัวอย่าง = ISO 2859-1 General Inspection Level II (ค่าจริงรอ QA ส่ง ❓ C1)
+   [lot_min, lot_max, code, ปกติ, ผ่อนคลาย, เคร่งครัด] */
+const AQL_ROWS = [
+  [2,8,'A',2,2,2],[9,15,'B',3,2,3],[16,25,'C',5,2,5],[26,50,'D',8,3,8],[51,90,'E',13,5,13],
+  [91,150,'F',20,8,20],[151,280,'G',32,13,32],[281,500,'H',50,20,50],[501,1200,'J',80,32,80],
+  [1201,3200,'K',125,50,125],[3201,10000,'L',200,80,200],[10001,35000,'M',315,125,315]
+];
+const AQL_LV = {REDUCED:'ผ่อนคลาย', NORMAL:'ปกติ', TIGHTENED:'เคร่งครัด'};
+function aqlLookup(level, lot){
+  lot = Math.floor(+lot || 0);
+  if(lot <= 0) return null;
+  if(lot === 1) return {code:'A', n:1};
+  const r = AQL_ROWS.find(r => lot >= r[0] && lot <= r[1]) || AQL_ROWS[AQL_ROWS.length - 1];
+  const n = level === 'NORMAL' ? r[3] : level === 'REDUCED' ? r[4] : r[5];
+  return {code:r[2], n:Math.min(n, lot)}; // qa_required = min(sample_size, lot)
+}
+/* ต้องตรวจ = BR-02 หรือจำนวนที่หัวหน้าขยายตาม BR-02a (นับเป็น "ต้องตรวจ" ไม่ใช่ตรวจเกิน) */
+const reqOf = p => p.reqOverride != null ? p.reqOverride : qcRequired(p.lot);
+const defaultAql = origin => origin === 'DOM' ? 'NORMAL' : 'REDUCED';
+
+/* BR-11 */
+function deadlineInfo(invDate, closed){
+  const d = parseD(invDate);
+  if(!d) return null;
+  const due = addDays(d, DEADLINE_DAYS);
+  const left = dayDiff(TODAY, due);
+  return {due:fmtD(due), left, closed:!!closed};
+}
+
+/* ---------- Checklist ตัวอย่าง: QC-PISTON v3 (12 หัวข้อ) ----------
+   disp = Disposition ของ QC × กลุ่มแบรนด์ "อื่นๆ" (Model ตัวอย่างไม่ใช่แบรนด์ PUMA)
+   vid = defect ตั้ง requires_video · use = จำนวนครั้งที่ใช้ (เรียงตามที่ใช้บ่อย) */
+const DISP = {CONCESSION:'อนุโลม', REWORK:'Rework', REJECT:'Reject', CHOOSE:'ผู้ตรวจเลือก'};
+const ITEMS = [
+  {id:1, title:'สภาพกล่อง / บรรจุภัณฑ์', help:'กล่องไม่บุบ ไม่ฉีก อุปกรณ์ในกล่องครบตามรายการ', defects:[
+    {c:'D101', n:'กล่องบุบ / ฉีกขาด', sev:'Minor', disp:'CONCESSION', use:18},
+    {c:'D102', n:'อุปกรณ์ในกล่องไม่ครบ', sev:'Major', disp:'CHOOSE', use:4}]},
+  {id:2, title:'ป้าย Name plate / สติ๊กเกอร์', help:'ข้อมูลบนป้ายตรงกับ Model และ Serial อ่านออกชัด', defects:[
+    {c:'D111', n:'ป้ายลอก / หลุด', sev:'Minor', disp:'REWORK', use:6},
+    {c:'D112', n:'ข้อมูลบนป้ายไม่ตรงรุ่น', sev:'Major', disp:'CHOOSE', use:2}]},
+  {id:3, title:'สีและผิวถัง', help:'ดูรอบถังทุกด้าน: ไม่มีรอยถลอก สีย้อย หรือฟองอากาศ', defects:[
+    {c:'D121', n:'สีถลอก', sev:'Minor', disp:'CONCESSION', use:25},
+    {c:'D122', n:'สีไม่ผ่าน (ย้อย / ไม่เรียบ)', sev:'Minor', disp:'REWORK', use:11},
+    {c:'D123', n:'ถังบุบ', sev:'Major', disp:'CHOOSE', use:3}]},
+  {id:4, title:'ขาถัง / ล้อ / ยางรองขา', help:'ขาถังไม่บิด ไม่เป็นสนิม ล้อหมุนคล่อง', defects:[
+    {c:'D131', n:'ขาถังเป็นสนิม', sev:'Minor', disp:'REWORK', use:7},
+    {c:'D132', n:'ล้อแตก / หมุนไม่ได้', sev:'Major', disp:'CHOOSE', use:2}]},
+  {id:5, title:'เกจวัดแรงดัน', help:'หน้าปัดไม่แตก เข็มอยู่ที่ 0 ก่อนเดินเครื่อง', defects:[
+    {c:'D141', n:'หน้าปัดเกจแตก', sev:'Major', disp:'REWORK', use:3},
+    {c:'D142', n:'เข็มเกจไม่กลับศูนย์', sev:'Major', disp:'CHOOSE', use:1}]},
+  {id:6, title:'ข้อต่อ / หัวแฟร์ / สายระบาย', help:'ฉีดน้ำสบู่ที่ข้อต่อทุกจุด ต้องไม่มีฟองลม', defects:[
+    {c:'D151', n:'หัวแฟร์รั่ว', sev:'Major', disp:'REWORK', vid:true, use:9},
+    {c:'D152', n:'สายระบายรั่ว', sev:'Major', disp:'REWORK', vid:true, use:5},
+    {c:'D153', n:'ข้อต่อหลวม', sev:'Minor', disp:'REWORK', use:4}]},
+  {id:7, title:'สายพาน / ฝาครอบสายพาน (เดินเครื่อง)', help:'เดินเครื่อง 30 วินาที สายพานไม่หย่อน ไม่มีเสียงเสียดสี', video:'ALWAYS', defects:[
+    {c:'D161', n:'สายพานหย่อน / เสียงดัง', sev:'Major', disp:'REWORK', use:6},
+    {c:'D162', n:'ฝาครอบสายพานแตก', sev:'Minor', disp:'CHOOSE', use:2}]},
+  {id:8, title:'มอเตอร์ / สายไฟ / ปลั๊ก', help:'ฉนวนสายไฟไม่ขาด ปลั๊กไม่แตก มอเตอร์ไม่ร้อนผิดปกติ', defects:[
+    {c:'D172', n:'มอเตอร์เสียงดังผิดปกติ', sev:'Major', disp:'CHOOSE', use:2},
+    {c:'D171', n:'สายไฟชำรุด / ฉนวนขาด', sev:'Critical', disp:'REJECT', use:1},
+    {c:'D173', n:'มอเตอร์ไม่ทำงาน', sev:'Critical', disp:'REJECT', use:1}]},
+  {id:9, title:'Pressure switch ตัด / ต่อ', help:'ตัดที่แรงดันตามป้าย และต่อเมื่อแรงดันลดลง', defects:[
+    {c:'D181', n:'ไม่ตัดตามค่าที่ตั้ง', sev:'Major', disp:'CHOOSE', use:2},
+    {c:'D182', n:'ไม่ต่อเมื่อแรงดันลด', sev:'Major', disp:'CHOOSE', use:1}]},
+  {id:10, title:'ทดสอบรั่ว (อัดลมเต็มถัง 10 นาที)', help:'แรงดันไม่ตก ไม่มีเสียงลมรั่วที่ถังหรือวาล์วกันกลับ', video:'ON_FAIL', defects:[
+    {c:'D192', n:'ลมรั่วที่วาล์วกันกลับ', sev:'Major', disp:'REWORK', vid:true, use:3},
+    {c:'D191', n:'ถังรั่วที่รอยเชื่อม', sev:'Critical', disp:'REJECT', vid:true, use:2}]},
+  {id:11, title:'แรงดันตัดที่อ่านได้', type:'number', unit:'bar', help:'อ่านค่าจากเกจตอน Pressure switch ตัด (ข้อมูลประกอบ)'},
+  {id:12, title:'หมายเหตุเพิ่มเติม', type:'text', required:false, help:'ไม่บังคับ — พิมพ์เมื่อมีข้อสังเกตอื่น'}
+];
+ITEMS.forEach(it => { it.type = it.type || 'okfail'; it.video = it.video || 'NONE'; if(it.required !== false) it.required = true; });
+const itemById = id => ITEMS.find(i => i.id === +id);
+const DEF = {};
+ITEMS.forEach(it => (it.defects || []).forEach(d => { d.item = it.id; DEF[d.c] = d; }));
+const FIX_METHODS = ['เปลี่ยน', 'ซ่อม / ปรับแต่ง', 'พ่นสี', 'อื่นๆ'];
+const VIDEO_TXT = {ALWAYS:'วิดีโอทุกครั้ง', ON_FAIL:'วิดีโอเมื่อไม่ผ่าน'};
+
+/* ---------- Model / Vendor / เอกสารรับเข้า (สำหรับ S10, S11) ---------- */
+const VENDORS = ['Vendor V', 'Vendor W', 'Vendor K'];
+const MODELS = [
+  {code:'XM-2050', desc:'ปั๊มลมลูกสูบ 2 HP ถัง 50 ลิตร', brand:'แบรนด์ X', bg:'อื่นๆ', ptype:'Piston', origin:'IMP', qc:'QC-PISTON v3', qa:'QA-PISTON v1'},
+  {code:'XM-3090', desc:'ปั๊มลมลูกสูบ 3 HP ถัง 90 ลิตร', brand:'แบรนด์ X', bg:'อื่นๆ', ptype:'Piston', origin:'IMP', qc:'QC-PISTON v3', qa:'QA-PISTON v1'},
+  {code:'XM-1525', desc:'ปั๊มลมลูกสูบ 1.5 HP ถัง 25 ลิตร', brand:'แบรนด์ X', bg:'อื่นๆ', ptype:'Piston', origin:'IMP', qc:'QC-PISTON v3', qa:'QA-PISTON v1'},
+  {code:'RT-7510', desc:'ปั๊มลมสกรูโรตารี่ 7.5 kW', brand:'แบรนด์ R', bg:'อื่นๆ', ptype:'Rotary', origin:'IMP', qc:'QC-ROTARY v2', qa:'QA-ROTARY v1'},
+  {code:'RT-5508', desc:'ปั๊มลมสกรูโรตารี่ 5.5 kW', brand:'แบรนด์ R', bg:'อื่นๆ', ptype:'Rotary', origin:'IMP', qc:'QC-ROTARY v2', qa:'QA-ROTARY v1'},
+  {code:'OF-1525', desc:'ปั๊มลม Oil-free 1.5 HP ถัง 25 ลิตร', brand:'แบรนด์ W', bg:'อื่นๆ', ptype:'Oil-free', origin:'IMP', qc:'QC-OILFREE v2', qa:'QA-OILFREE v1'},
+  {code:'OF-2050', desc:'ปั๊มลม Oil-free 2 HP ถัง 50 ลิตร', brand:'แบรนด์ W', bg:'อื่นๆ', ptype:'Oil-free', origin:'IMP', qc:'QC-OILFREE v2', qa:'QA-OILFREE v1'},
+  {code:'PP-35', desc:'ปั๊มลมลูกสูบ 3 HP (ผลิตเอง แผนก 408)', brand:'PUMA', bg:'PUMA', ptype:'408', origin:'DOM', qc:'QC-408 v1', qa:'QA-PISTON v1'},
+  {code:'PS-25', desc:'ปั๊มลมลูกสูบ 2.5 HP (ผลิตเอง แผนก 409)', brand:'PUMA', bg:'PUMA', ptype:'409', origin:'DOM', qc:'QC-409 v1', qa:'QA-PISTON v1'}
+];
+const modelBy = c => MODELS.find(m => m.code === c);
+/* หัวเอกสารที่มีในระบบแล้ว — key = ประเภท|เลข (normalize)|Vendor */
+const DOCS = {
+  'INV|INV-A|Vendor V':{date:'02/10/2026', sku:4},
+  'INV|INV-B|Vendor W':{date:'20/07/2026', sku:2},
+  'INV|INV-C|Vendor W':{date:'25/09/2026', sku:3},
+  'INV|INV-X|Vendor K':{date:'05/07/2026', sku:1},
+  'INV|INV-Y|Vendor K':{date:'10/06/2026', sku:1},
+  'INV|INV-Z|Vendor V':{date:'01/07/2026', sku:1}
+};
+/* สถานะแผน → "สถานะ Checklist" (FR-PLAN-16) — ตาราง 03 §2.1 */
+const ST_TXT = {OPEN:'ยังไม่ตรวจ', ASSIGNED:'ยังไม่ตรวจ', QC_IN_PROGRESS:'กำลังตรวจ', QC_REVIEW:'QC ครบ – รอหัวหน้าตรวจทาน',
+  QA_PENDING:'รอ QA', QA_IN_PROGRESS:'QA กำลังตรวจ', REPORT_REVIEW:'รออนุมัติ Report', COMPLETED:'เสร็จ', CANCELLED:'ยกเลิก'};
+const PLANS_SEED = [
+  {plan:'QP-2610-0012', doc:'INV-A', vendor:'Vendor V', model:'XM-2050', lot:350, qcDone:9, st:'QC_IN_PROGRESS', rw:1, aql:'REDUCED', flags:['sample']},
+  {plan:'QP-2610-0013', doc:'INV-A', vendor:'Vendor V', model:'XM-3090', lot:120, qcDone:12, st:'QC_REVIEW', aql:'REDUCED', flags:['sample']},
+  {plan:'QP-2610-0014', doc:'INV-A', vendor:'Vendor V', model:'RT-7510', lot:30, qcDone:0, st:'OPEN', aql:'REDUCED', flags:['wait']},
+  {plan:'QP-2610-0015', doc:'INV-C', vendor:'Vendor W', model:'OF-1525', lot:80, qcDone:0, st:'ASSIGNED', aql:'REDUCED'},
+  {plan:'QP-2610-0011', doc:'INV-B', vendor:'Vendor W', model:'OF-2050', lot:200, qcDone:20, st:'QA_IN_PROGRESS', rw:1, aql:'NORMAL'},
+  {plan:'QP-2610-0010', doc:'INV-B', vendor:'Vendor W', model:'OF-1525', lot:60, qcDone:6, st:'REPORT_REVIEW', aql:'REDUCED'},
+  {plan:'QP-2610-0009', doc:'PO 408-2610-031', vendor:'PUMA แผนก 408', model:'PP-35', lot:40, qcDone:4, st:'QC_REVIEW', aql:'NORMAL'},
+  {plan:'QP-2609-0031', doc:'INV-Z', vendor:'Vendor V', model:'XM-2050', lot:100, qcDone:11, st:'COMPLETED', aql:'REDUCED'},
+  {plan:'QP-2609-0029', doc:'INV-X', vendor:'Vendor K', model:'RT-5508', lot:25, qcDone:1, st:'QC_IN_PROGRESS', aql:'REDUCED'},
+  {plan:'QP-2609-0027', doc:'INV-Y', vendor:'Vendor K', model:'XM-1525', lot:50, qcDone:4, st:'COMPLETED', forced:true, aql:'REDUCED'}
+];
+function docInfo(p){
+  const m = modelBy(p.model);
+  if(m && m.origin === 'DOM') return null;
+  return DOCS['INV|' + norm(p.doc) + '|' + p.vendor] || null;
+}
+/* BR-12 ความคืบหน้า */
+function progressOf(p){
+  const req = reqOf(p);
+  if(p.st === 'CANCELLED') return {k:'', t:'(ไม่นับ)'};
+  if(p.st === 'COMPLETED'){
+    if(p.forced && p.qcDone < req) return {k:'un', t:'ตรวจขาด'};
+    if(p.qcDone > req) return {k:'ov', t:'ตรวจเกิน'};
+    return {k:'dn', t:'เสร็จ'};
+  }
+  if(p.st === 'QC_IN_PROGRESS' || (p.rw && p.st === 'QC_IN_PROGRESS')) return {k:'ip', t:'กำลังดำเนินการ'};
+  if(p.qcDone === 0) return {k:'ns', t:'ยังไม่เริ่ม'};
+  if(p.qcDone < req) return {k:'ip', t:'กำลังดำเนินการ'};
+  return {k:'ac', t:'ตรวจครบ-รอปิด' + (p.rw ? ' (มี Rework)' : '')};
+}
+
+/* ---------- ข้อมูลสำหรับ S12–S14 (ผู้ตรวจ, ใบงานรายคน, รายเครื่อง, ประวัติ) ---------- */
+const INSPECTORS = ['ผู้ตรวจ ก.', 'ผู้ตรวจ ข.', 'ผู้ตรวจ ค.', 'ผู้ตรวจ ง.', 'ผู้ตรวจ จ.'];
+const JOB_TXT = {WAITING:'รอรับงาน', IN_PROGRESS:'กำลังทำ', SUBMITTED:'ส่งแล้ว', CLOSED:'ส่งแล้ว', RETURNED:'ถูกตีกลับ'};
+const FIN_TXT = {PASS:'ผ่าน', CONCESSION:'อนุโลม (นับผ่าน)', PASS_RW:'ผ่านหลัง Rework', REJECTED:'Reject (คัดออก)', RW_PENDING:'Rework ค้าง'};
+const mkU = (sn, insp, r1, fin, extra) => Object.assign({sn, insp, r1:r1.slice(), r1o:r1.slice(), fin, revs:[], rounds:[], ret:null}, extra || {});
+function seedUnits(){
+  const P = (sn, insp) => mkU(sn, insp, [], 'PASS');
+  const K = 'ผู้ตรวจ ก.', X = 'ผู้ตรวจ ข.', C = 'ผู้ตรวจ ค.';
+  return {
+    'QP-2610-0012':[P('SN-2610-0101', K), P('SN-2610-0120', K), P('SN-2610-0133', K), P('SN-2610-0137', K),
+      mkU('SN-2610-0141', K, ['D122', 'D153'], 'RW_PENDING', {rounds:[{n:2, res:'รอผล Rework', fix:'', at:'15/10/2026 14:20'}]}),
+      P('SN-2610-0108', X), P('SN-2610-0115', X), P('SN-2610-0126', X), P('SN-2610-0112', C), P('SN-2610-0130', C)],
+    'QP-2610-0013':[P('SN-351', K), P('SN-352', K), mkU('SN-353', K, ['D121'], 'CONCESSION'), P('SN-354', K),
+      mkU('SN-355', K, ['D153'], 'PASS_RW', {rounds:[{n:2, res:'ผ่าน', fix:'ซ่อม / ปรับแต่ง', at:'14/10/2026 10:05'}]}), P('SN-356', K),
+      mkU('SN-357', X, ['D131'], 'PASS_RW', {rounds:[{n:2, res:'ผ่าน', fix:'พ่นสี', at:'14/10/2026 11:30'}]}), P('SN-358', X),
+      mkU('SN-359', X, ['D173'], 'REJECTED'), P('SN-360', X), P('SN-361', X), P('SN-362', X)]
+  };
+}
+function seedAssigns(){
+  const mk = (name, qty, done, st) => ({name, qty, done, st});
+  return {
+    'QP-2610-0012':[mk('ผู้ตรวจ ก.', 12, 4, 'IN_PROGRESS'), mk('ผู้ตรวจ ข.', 12, 3, 'IN_PROGRESS'), mk('ผู้ตรวจ ค.', 11, 2, 'IN_PROGRESS')],
+    'QP-2610-0013':[mk('ผู้ตรวจ ก.', 6, 6, 'SUBMITTED'), mk('ผู้ตรวจ ข.', 6, 6, 'SUBMITTED')],
+    'QP-2610-0015':[mk('ผู้ตรวจ ก.', 8, 0, 'WAITING')],
+    'QP-2610-0011':[mk('ผู้ตรวจ ก.', 10, 10, 'CLOSED'), mk('ผู้ตรวจ ข.', 10, 10, 'CLOSED')],
+    'QP-2610-0010':[mk('ผู้ตรวจ ค.', 6, 6, 'CLOSED')],
+    'QP-2610-0009':[mk('ผู้ตรวจ ก.', 4, 4, 'SUBMITTED')],
+    'QP-2609-0031':[mk('ผู้ตรวจ ก.', 11, 11, 'CLOSED')],
+    'QP-2609-0029':[mk('ผู้ตรวจ ข.', 3, 1, 'IN_PROGRESS')],
+    'QP-2609-0027':[mk('ผู้ตรวจ ค.', 5, 4, 'CLOSED')]
+  };
+}
+function seedHist(){
+  const h = (at, who, t, k) => ({at, who, t, k: k || 'st'});
+  return {
+    'QP-2610-0012':[h('12/10/2026 09:15', 'หัวหน้า QC ข.', 'เปิดแผน · ต้องตรวจ 35 · QA ผ่อนคลาย 20'), h('12/10/2026 09:20', 'หัวหน้า QC ข.', 'มอบหมาย ก.12 / ข.12 / ค.11 · สถานะ: เปิดแผน → มอบหมายแล้ว'),
+      h('12/10/2026 13:02', 'ผู้ตรวจ ก.', 'กดรับงาน · สถานะ: → กำลังตรวจ'), h('15/10/2026 14:20', 'ผู้ตรวจ ก.', 'SN-2610-0141 ไม่ผ่าน → Rework RW-2610-0007 · ติดธง "พบปัญหาในตัวอย่าง" (BR-02a)')],
+    'QP-2610-0013':[h('08/10/2026 10:00', 'หัวหน้า QC ข.', 'เปิดแผน · ต้องตรวจ 12 · QA ผ่อนคลาย 8'), h('08/10/2026 10:10', 'หัวหน้า QC ข.', 'มอบหมาย ก.6 / ข.6'),
+      h('14/10/2026 15:40', 'ผู้ตรวจ ข.', 'SN-357 ผ่านหลัง Rework รอบ 2'), h('16/10/2026 08:30', 'ระบบ', 'QC ครบ 12/12 ใบงานส่งครบ · สถานะ: → QC ครบ รอหัวหน้าตรวจทาน · สร้างร่าง Report QC')]
+  };
+}
+
+/* ---------- State ---------- */
+function initialState(){
+  return {
+    screen:'S04', notes:true, offline:false, pw:375, role:'QC_HEAD', lapFit:true, queue:0,
+    me:{name:'ผู้ตรวจ ก.', code:'10234'},
+    jobs:[
+      {id:'J1', plan:'QP-2610-0012', doc:'INV-A', vendor:'Vendor V', model:'XM-2050', desc:'ปั๊มลมลูกสูบ 2 HP ถัง 50 ลิตร', cl:'QC-PISTON v3', lot:350, assigned:12, done:4, status:'IN_PROGRESS',
+        serials:['SN-2610-0101','SN-2610-0120','SN-2610-0133','SN-2610-0141']},
+      {id:'J2', plan:'QP-2610-0015', doc:'INV-C', vendor:'Vendor W', model:'OF-1525', desc:'ปั๊มลม Oil-free 1.5 HP ถัง 25 ลิตร', cl:'QC-OILFREE v2', lot:80, assigned:8, done:0, status:'WAITING', serials:[]},
+      {id:'J3', plan:'QP-2610-0009', doc:'PO 408-2610-031', vendor:'PUMA แผนก 408', model:'PP-35', desc:'ปั๊มลมลูกสูบ 3 HP (ผลิตเอง)', cl:'QC-408 v1', lot:40, assigned:4, done:4, status:'SUBMITTED', serials:[]},
+      {id:'J4', plan:'QP-2610-0011', doc:'INV-B', vendor:'Vendor W', model:'OF-2050', desc:'ปั๊มลม Oil-free 2 HP ถัง 50 ลิตร', cl:'QC-OILFREE v2', lot:200, assigned:10, done:10, status:'CLOSED', serials:['SN-OF-0457']}
+    ],
+    reworks:[
+      {id:'RW-2610-0007', job:'J1', sn:'SN-2610-0141', src:'QC', by:'ผู้ตรวจ ก.', at:'15/10/2026 14:20', round:2,
+        items:[{id:3, defects:['D122'], photos:1}, {id:6, defects:['D153'], photos:2}]},
+      {id:'RW-2610-0009', job:'J4', sn:'SN-OF-0457', src:'QA', by:'QA ค.', at:'16/10/2026 09:05', round:2,
+        items:[{id:10, defects:['D192'], photos:1}]}
+    ],
+    plans:PLANS_SEED.map(p => Object.assign({}, p, {flags:(p.flags || []).slice()})),
+    insp:null, sheet:null, cam:null, drawer:false, scan:null, rw:null,
+    form:blankForm(), hlPlan:null, sort:{k:'plan', dir:-1}, filt:{q:'', st:'', vendor:'', ptype:''},
+    toast:null, nextRw:10, nextPlan:16, nextSn:153,
+    units:seedUnits(), assigns:seedAssigns(), hist:seedHist(), cur:{plan:'QP-2610-0012', tab:'info', ex:null, aplan:'QP-2610-0012', rplan:'QP-2610-0013'}, asg:null, rev:null
+  };
+}
+function blankForm(){
+  return {origin:'IMP', vendor:'', docNo:'', docDate:'', sku:'', dept:'408', model:'', lot:'', recv:'16/10/2026', maker:'', note:'', wait:false,
+    aql:'', aqlReason:'', qr:false};
+}
+let S = initialState();
+const jobBy = id => S.jobs.find(j => j.id === id);
+const rwBy = id => S.reworks.find(r => r.id === id);
+const planBy = no => S.plans.find(p => p.plan === no);
+
+/* =====================================================================
+   มือถือ: กรอบ + S04 งานของฉัน + S05 สแกน/เริ่มเครื่องใหม่
+   ===================================================================== */
+const note = t => `<div class="note">${t}</div>`;
+const dis = (cond, why) => cond ? ` is-disabled" aria-disabled="true" data-why="${esc(why || '')}` : '';
+
+function phoneFrame(s){
+  return `<div class="phone" style="--pw:${S.pw}px">
+    <div class="ph-status"><span>10:42</span><span class="wm">WIREFRAME</span><span>${S.offline ? 'ไม่มีเน็ต' : 'Wi-Fi'} · 82%</span></div>
+    ${s.bar || ''}
+    <div class="ph-body" id="phbody">${s.body}</div>
+    ${s.foot ? `<div class="ph-foot">${s.foot}</div>` : ''}
+    ${s.tabs ? tabbar() : ''}
+    ${s.overlay || ''}
+    ${toastHtml()}
+  </div>`;
+}
+function appbar(title, sub, left, right){
+  return `<div class="ph-appbar">${left || '<span style="width:8px"></span>'}<div class="t"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</div>${right || ''}</div>`;
+}
+const backBtn = (act, extra) => `<button class="iconbtn" data-act="${act}" ${extra || ''} aria-label="ย้อนกลับ">←</button>`;
+function syncLine(){
+  return `<span class="sync">${S.offline ? '○ ออฟไลน์ · บันทึกในเครื่องแล้ว' : '✓ บันทึกแล้ว'}${S.queue ? ` · รอซิงค์ ${S.queue} รายการ` : ''}</span>`;
+}
+function tabbar(){
+  const t = [['S04','งานของฉัน'],['S05','สแกน'],['NTF','แจ้งเตือน (1)'],['MORE','เพิ่มเติม']];
+  const on = S.screen === 'S05' ? 'S05' : 'S04';
+  return `<div class="tabbar">${t.map(([k, l]) => `<button data-act="tab" data-s="${k}" class="${k === on ? 'on' : ''}"><span class="ic"></span>${l}</button>`).join('')}</div>`;
+}
+function toastHtml(){
+  return S.toast ? `<div class="toast" role="status">${S.toast.msg}</div>` : '';
+}
+
+/* ---------- S04 งานของฉัน ---------- */
+const JOB_ST = {WAITING:'รอรับงาน', IN_PROGRESS:'กำลังทำ', SUBMITTED:'ส่งแล้ว', CLOSED:'ส่งแล้ว · แผนอยู่ขั้น QA'};
+function jobCard(j){
+  const pend = S.reworks.filter(r => r.job === j.id);
+  const pct = Math.round(100 * j.done / j.assigned);
+  let act = '';
+  if(j.status === 'WAITING'){
+    act = `<button class="btn pri block mt" data-act="accept" data-id="${j.id}">กดรับงาน</button>`;
+  } else if(j.status === 'IN_PROGRESS'){
+    const why = pend.length ? 'Rework ค้าง: ' + pend.map(r => r.sn).join(', ') : j.done < j.assigned ? `ยังตรวจไม่ครบ ${j.done}/${j.assigned} เครื่อง` : '';
+    act = `<div class="row mt"><button class="btn pri grow" data-act="newUnit" data-id="${j.id}">＋ ตรวจเครื่องถัดไป</button>
+      <button class="btn${dis(why, why)}" data-act="submitJob" data-id="${j.id}">ส่งใบงาน</button></div>
+      ${why ? `<div class="msg">ส่งใบงานยังไม่ได้ — ${esc(why)}</div>` : ''}`;
+  }
+  return `<div class="card${j.status === 'IN_PROGRESS' ? ' strong' : ''}">
+    <div class="row between"><b>${j.plan}</b><span class="tag${j.status === 'IN_PROGRESS' ? ' solid' : j.status === 'WAITING' ? ' dash' : ''}">${JOB_ST[j.status]}</span></div>
+    <div>${j.model} · ${esc(j.desc)}</div>
+    <div class="small muted">${esc(j.doc)} · ${esc(j.vendor)} · ${j.cl}</div>
+    <div class="row between small mt"><span>ทำแล้ว <b>${j.done}</b> / ต้องทำ ${j.assigned} เครื่อง</span>${pend.length ? `<span class="tag">Rework ค้าง ${pend.length}</span>` : ''}</div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    ${act}
+  </div>`;
+}
+function rwCard(r){
+  const j = jobBy(r.job);
+  return `<div class="card">
+    <div class="row between"><b>${r.id}</b><span class="tag${r.src === 'QA' ? ' solid' : ''}">จาก ${r.src}</span></div>
+    <div><b>${r.sn}</b> · รอบ ${r.round}</div>
+    <div class="small muted">${j.plan} · ${j.model} · ${r.items.length} หัวข้อที่ต้องแก้ · ${r.src === 'QA' ? 'QA ไม่รับ' : 'ตรวจ'} ${r.at}</div>
+    <button class="btn block mt" data-act="openRw" data-id="${r.id}">เปิดใบ Rework</button>
+  </div>`;
+}
+function scrS04(){
+  const act = S.jobs.filter(j => j.status === 'WAITING' || j.status === 'IN_PROGRESS');
+  const sent = S.jobs.filter(j => j.status === 'SUBMITTED' || j.status === 'CLOSED');
+  const body = `
+    <div class="row between"><span class="small muted">${S.me.name} (รหัส ${S.me.code}) · QC Inspector</span>${syncLine()}</div>
+    ${draftCard()}
+    <h3>ใบงานของฉัน (${act.length})</h3>
+    ${act.map(jobCard).join('') || '<p class="muted">ไม่มีใบงานค้าง</p>'}
+    <h3>Rework ค้าง (${S.reworks.length})</h3>
+    ${S.reworks.map(rwCard).join('') || '<p class="muted">ไม่มี Rework ค้าง</p>'}
+    <details><summary>ส่งแล้ว (${sent.length})</summary>${sent.map(jobCard).join('')}</details>
+    ${note('FR-JOB-02..05 · กดรับงานก่อนเริ่ม · การ์ดแสดงเลขแผน / Model / Invoice / ทำแล้ว-ต้องทำ / Rework ค้าง · ปุ่ม "ส่งใบงาน" ใช้ได้เมื่อตรวจครบจำนวนที่ได้รับมอบหมายและไม่มี Rework ค้าง (BR-07) · ใบงานนี้ 12 เครื่อง จาก QC 35 ของแผน (หัวหน้ามอบ 12/12/11)')}`;
+  return {bar:appbar('งานของฉัน', 'หน้าแรกผู้ตรวจ QC', '', '<button class="iconbtn txt" data-act="tab" data-s="NTF">กระดิ่ง 1</button>'), body, tabs:true};
+}
+
+/* ---------- S05 สแกน / เริ่มเครื่องใหม่ ---------- */
+function planSerials(j){
+  return j.serials.concat(S.reworks.filter(r => r.job === j.id).map(r => r.sn));
+}
+function scanCheck(){
+  const sc = S.scan, j = jobBy(sc.job);
+  const sn = norm(sc.sn);
+  if(!sn) return {ok:false, msg:''};
+  if(planSerials(j).includes(sn)) return {ok:false, bad:true, msg:`Serial ${sn} ตรวจแล้วในแผนนี้ (QC รอบ 1) — บันทึกซ้ำไม่ได้ · ถ้าจะตรวจซ้ำหลังซ่อมให้เปิดจากใบ Rework`};
+  if(sn.length < 6) return {ok:false, bad:true, msg:'Serial สั้นเกินไป — ตรวจสอบอีกครั้ง'};
+  return {ok:true, msg:''};
+}
+const METHOD_TXT = {SCAN_CAMERA:'สแกนด้วยกล้อง', SCAN_WEDGE:'เครื่องยิง', MANUAL:'พิมพ์เอง'};
+function scrS05(){
+  const sc = S.scan, j = jobBy(sc.job), chk = scanCheck();
+  const body = `
+    <div class="card dash">
+      <dl class="kv"><dt>แผน</dt><dd><b>${j.plan}</b></dd><dt>Model</dt><dd>${j.model} · ${esc(j.desc)}</dd>
+      <dt>Invoice/PO</dt><dd>${esc(j.doc)} · ${esc(j.vendor)}</dd><dt>Checklist</dt><dd>${j.cl} <span class="tag dash">เลือกให้อัตโนมัติตาม Model</span></dd></dl>
+    </div>
+    <div class="field"><span class="flabel">ตรวจในฐานะ</span>
+      <div class="seg"><button data-act="asRole" data-v="QC" class="${sc.role === 'QC' ? 'on' : ''}">QC</button><button data-act="asRole" data-v="QA" class="${sc.role === 'QA' ? 'on' : ''}">QA</button></div>
+    </div>
+    <div class="field"><label class="req" for="f_scan_sn">Serial ปั๊ม</label>
+      <div class="inrow"><input class="inp${chk.bad ? ' err' : ''}" id="f_scan_sn" data-bind="scan.sn" value="${esc(sc.sn)}" placeholder="สแกน หรือ พิมพ์ Serial" autocomplete="off" autocapitalize="characters">
+      <button class="btn" data-act="camScan" data-f="sn">สแกน</button></div>
+      ${chk.msg ? `<div class="msg bad">${esc(chk.msg)}</div>` : sc.sn ? `<div class="msg muted">วิธีกรอก: ${METHOD_TXT[sc.method]}</div>` : ''}
+    </div>
+    <div class="field"><label for="f_scan_motor">Serial มอเตอร์ <span class="muted">(ไม่บังคับ — รอยืนยัน A8)</span></label>
+      <div class="inrow"><input class="inp" id="f_scan_motor" data-bind="scan.motor" value="${esc(sc.motor)}" placeholder="สแกน หรือ พิมพ์" autocomplete="off">
+      <button class="btn" data-act="camScan" data-f="motor">สแกน</button></div>
+    </div>
+    <div class="small muted">ตรวจแล้วในแผนนี้: ${planSerials(j).join(', ') || '—'}</div>
+    ${note('FR-QC-01/02 · BR-18: Serial ไม่ซ้ำภายใน (แผน, บทบาท, cycle) — ลองพิมพ์ SN-2610-0141 · ระบบบันทึกวิธีกรอก (กล้อง / เครื่องยิง / พิมพ์) · ช่อง "ตรวจในฐานะ" แสดงเฉพาะผู้ใช้ที่มีทั้งบทบาท QC และ QA (02 §1) · บน laptop ใช้เครื่องยิง USB เป็นหลัก')}`;
+  const foot = `<button class="btn pri block lg${dis(!chk.ok, chk.msg || 'กรอก Serial ปั๊มก่อน')}" data-act="startInsp">เริ่มตรวจ</button>`;
+  const overlay = S.cam && S.cam.mode === 'scan' ? scanCamHtml() : '';
+  return {bar:appbar('เริ่มเครื่องใหม่', `${j.plan} · ${j.model}`, backBtn('nav', 'data-s="S04"')), body, foot, overlay};
+}
+function scanCamHtml(){
+  return `<div class="cam">
+    <div class="top"><span>สแกน${S.cam.field === 'sn' ? ' Serial ปั๊ม' : ' Serial มอเตอร์'}</span><button class="btn sm" data-act="camClose">ปิด</button></div>
+    <div class="vf"><div><div class="target" style="margin:0 auto 12px;width:220px;height:90px"></div>เล็งกรอบไปที่สติ๊กเกอร์ Barcode / QR<br><span class="xs">(ภาพจากกล้อง — จำลอง)</span></div></div>
+    <div style="padding:16px"><button class="btn pri block lg" data-act="scanHit">จำลอง: อ่านโค้ดสำเร็จ</button>
+    <div class="xs center" style="margin-top:8px;color:#aaa">อ่านไม่ได้? กด "ปิด" แล้วพิมพ์ Serial เอง</div></div>
+  </div>`;
+}
+
+/* =====================================================================
+   มือถือ: S06 ตัวตรวจ Checklist + bottom sheet อาการ + กล้องในแอป
+   ===================================================================== */
+/* BR-05: หลักฐานที่ต้องมีของหัวข้อ */
+function needs(it, a){
+  const fail = a.v === 'fail';
+  const vidDef = fail && (a.defects || []).some(c => DEF[c].vid);
+  return {photo:fail, video:(it.video === 'ALWAYS' && !!a.v) || (fail && it.video === 'ON_FAIL') || vidDef, vidDef};
+}
+function missingOf(it, a){
+  const m = [];
+  if(!a || !a.v) return m;
+  if(a.v === 'fail' && !(a.defects || []).length) m.push('เลือกอาการอย่างน้อย 1 อาการ');
+  const n = needs(it, a);
+  if(n.photo && !(a.photos || []).length) m.push('ถ่ายรูปอย่างน้อย 1 รูป');
+  if(n.video && !a.video) m.push('ถ่ายวิดีโอ');
+  return m;
+}
+function itemDone(it, a){
+  if(it.type === 'okfail') return !!(a && a.v) && !missingOf(it, a).length;
+  if(it.type === 'number') return !!(a && String(a.v || '').trim());
+  return !it.required || !!(a && String(a.v || '').trim());
+}
+const unanswered = I => ITEMS.filter(it => it.required && !itemDone(it, I.ans[it.id]));
+/* ออกจากหัวข้อปัจจุบันได้ไหม — ไม่ผ่านแล้วต้องมีหลักฐานครบก่อน (AC FR-QC-04/05/06) */
+function leaveBlock(I){
+  const it = ITEMS[I.idx], a = I.ans[it.id];
+  if(it.type !== 'okfail' || !a || !a.v) return '';
+  const m = missingOf(it, a);
+  return m.length ? 'หัวข้อ ' + it.id + ': ' + m.join(' และ ') + ' ก่อนไปหัวข้ออื่น' : '';
+}
+function thumbsHtml(list, kind, ctx){
+  return list.map((p, i) => `<div class="thumb ph-img${kind === 'vid' ? ' vid' : ''}"><span class="wmk">${ctx}<br>${p.t}</span>${
+    p.del === false ? '' : `<button class="x" data-act="delShot" data-i="${i}" aria-label="ลบรูป">✕</button>`}</div>`).join('');
+}
+const wmCtx = () => { const I = S.insp; return `${jobBy(I.job).plan}<br>${I.sn}`; };
+
+function evidenceBlock(it, a){
+  const n = needs(it, a), ph = a.photos || [];
+  let h = '';
+  if(n.photo){
+    h += `<div class="field mt"><span class="flabel req">รูปหลักฐาน (${ph.length}/1 ขั้นต่ำ) — ถ่ายจากกล้องในแอปเท่านั้น</span>
+      <div class="thumbs">${ph.map((p) => `<div class="thumb ph-img"><span class="wmk">${wmCtx()}<br>${p.t}</span></div>`).join('')}</div>
+      <button class="btn block${ph.length ? '' : ' pri'}" data-act="cam" data-m="photo">${ph.length ? 'ถ่ายเพิ่ม / ลบรูป' : 'ถ่ายรูป'}</button></div>`;
+  } else if(a.v === 'ok'){
+    h += `<div class="small mt"><button class="btn sm ghost" data-act="cam" data-m="photo">ถ่ายรูป (ไม่บังคับ)${ph.length ? ' · มี ' + ph.length + ' รูป' : ''}</button></div>`;
+  }
+  if(n.video){
+    const why = it.video === 'ALWAYS' ? 'หัวข้อนี้ตั้ง "วิดีโอทุกครั้ง" แม้ผลปกติ' : n.vidDef ? 'มีอาการที่ตั้ง "ต้องมีวิดีโอ"' : 'หัวข้อนี้ตั้ง "วิดีโอเมื่อไม่ผ่าน"';
+    h += `<div class="field mt"><span class="flabel req">วิดีโอสั้น ≤ 20 วินาที</span><div class="small muted">${why}</div>
+      ${a.video ? `<div class="thumbs"><div class="thumb ph-img vid"><span class="wmk">${a.video.dur} วิ</span></div></div>` : ''}
+      <button class="btn block${a.video ? '' : ' pri'}" data-act="cam" data-m="video">${a.video ? 'ถ่ายวิดีโอใหม่' : 'ถ่ายวิดีโอ'}</button></div>`;
+  }
+  return h;
+}
+
+function scrS06(){
+  const I = S.insp, j = jobBy(I.job), it = ITEMS[I.idx], a = I.ans[it.id] || {};
+  const nReq = ITEMS.filter(x => x.required).length, nDone = ITEMS.filter(x => x.required && itemDone(x, I.ans[x.id])).length;
+  const segs = ITEMS.map((x, i) => { const ax = I.ans[x.id]; const c = ax && ax.v === 'fail' ? 'fail' : itemDone(x, ax) && ax && ax.v ? 'ok' : '';
+    return `<i class="${c}${i === I.idx ? ' cur' : ''}" title="หัวข้อ ${x.id}"></i>`; }).join('');
+  const block = leaveBlock(I);
+  let main = '';
+  if(it.type === 'okfail'){
+    if(a.v === 'fail'){
+      main += `<div class="field mt"><span class="flabel req">อาการที่พบ</span>
+        <div class="chips">${(a.defects || []).map(c => `<span class="chip">${DEF[c].n}</span>`).join('') || '<span class="muted small">ยังไม่ได้เลือก</span>'}</div>
+        <button class="btn sm mt" data-act="openSheet">แก้ไขอาการ</button></div>`;
+    }
+    main += evidenceBlock(it, a);
+  } else if(it.type === 'number'){
+    main += `<div class="field mt"><label class="req" for="f_num">ค่าที่อ่านได้ (${it.unit})</label>
+      <input class="inp" id="f_num" inputmode="decimal" data-bind="insp.ans.${it.id}.v" value="${esc(a.v || '')}" placeholder="เช่น 8.0">
+      <div class="msg muted">ข้อมูลประกอบ — ไม่มีผลต่อผลเครื่องใน Phase 1 (B14)</div></div>`;
+  } else {
+    main += `<div class="field mt"><label for="f_txt">ข้อความ</label><textarea class="inp" id="f_txt" rows="3" data-bind="insp.ans.${it.id}.v" placeholder="ไม่บังคับ">${esc(a.v || '')}</textarea></div>`;
+  }
+  const body = `
+    <div class="row between small"><span>หัวข้อ <b>${I.idx + 1}</b>/${ITEMS.length} · ตอบครบ ${nDone}/${nReq}</span>${syncLine()}</div>
+    <div class="segs">${segs}</div>
+    <div class="card">
+      <div class="small muted">หัวข้อ ${it.id} · ${it.required ? 'บังคับตอบ' : 'ไม่บังคับ'}${it.video !== 'NONE' ? ' · ' + VIDEO_TXT[it.video] : ''}</div>
+      <h2>${it.title}</h2>
+      <p class="muted small">${esc(it.help)}</p>
+      ${it.type === 'okfail' ? '<div class="ph-img" style="height:96px"><span>รูปตัวอย่างเกณฑ์ (จาก Template)</span></div>' : ''}
+      ${main}
+    </div>
+    ${block ? `<div class="alert">${esc(block)}</div>` : ''}
+    ${note('FR-QC-04/05/06/15 · B15: ย้อน/ข้ามหัวข้อได้ (ปุ่ม "หัวข้อ" มุมขวาบน) แต่ส่งไม่ได้ถ้ายังมีหัวข้อบังคับที่ไม่ตอบ · "ไม่ผ่าน" → เลือกอาการ ≥ 1 แล้วถ่ายรูป ≥ 1 ด้วยกล้องในแอป (ไม่มีปุ่มเลือกจากคลังรูป) จึงไปหัวข้อถัดไปได้ · กด "ปกติ" แล้วไปหัวข้อถัดไปอัตโนมัติ · Laptop: คีย์ลัด P = ปกติ, F = ไม่ผ่าน, ← → · เนื้อหา 12 หัวข้อเป็นตัวอย่างชุดเดียวกันทุก Checklist ใน wireframe (ของจริงมาจาก Master ที่ QA ส่ง — A13)')}`;
+  const last = I.idx === ITEMS.length - 1;
+  const foot = `
+    ${it.type === 'okfail' ? `<div class="ans">
+      <button class="btn lg${a.v === 'ok' ? ' sel' : ''}" data-act="answer" data-v="ok">✓ ปกติ</button>
+      <button class="btn lg${a.v === 'fail' ? ' sel' : ''}" data-act="answer" data-v="fail">✕ ไม่ผ่าน</button></div>` : ''}
+    <div class="navrow">
+      <button class="btn${dis(I.idx === 0 || block, block || 'หัวข้อแรกแล้ว')}" data-act="go" data-d="-1">← ก่อนหน้า</button>
+      ${last ? `<button class="btn pri${dis(block, block)}" data-act="toSummary">ตรวจทาน & ส่ง</button>`
+             : `<button class="btn pri${dis(block, block)}" data-act="go" data-d="1">ถัดไป →</button>`}
+    </div>`;
+  let overlay = '';
+  if(S.sheet) overlay = sheetHtml();
+  else if(S.cam) overlay = camHtml();
+  else if(S.drawer) overlay = drawerHtml();
+  return {bar:appbar(I.sn, `${j.plan} · ${j.model} · ${j.cl}`, backBtn('backFromInsp'), '<button class="iconbtn txt" data-act="drawer">หัวข้อ ☰</button>'), body, foot, overlay};
+}
+
+/* ---------- Bottom sheet: อาการของหัวข้อนี้ (FR-MD-07, 02 §5.1 ข้อ 4) ---------- */
+function sheetHtml(){
+  const sh = S.sheet, it = itemById(sh.item);
+  const pt = (modelBy(jobBy(S.insp.job).model) || {}).ptype || '';
+  const q = norm(sh.q);
+  const list = it.defects.slice().sort((x, y) => y.use - x.use).filter(d => !q || norm(d.n).includes(q));
+  return `<div class="overlay" data-act="sheetCancel" data-self="1"><div class="sheet" role="dialog" aria-label="เลือกอาการ">
+    <div class="grab"></div>
+    <div class="sh-head"><b>อาการที่พบ — หัวข้อ ${it.id} ${it.title}</b>
+      <div class="small muted">แสดงเฉพาะอาการของหัวข้อนี้ (ประเภท ${pt}) · เลือกได้หลายอาการ · เรียงตามที่ใช้บ่อย</div>
+      <input class="inp mt" id="f_sheet_q" data-bind="sheet.q" value="${esc(sh.q)}" placeholder="ค้นหาอาการ"></div>
+    <div class="sh-body">
+      ${list.map(d => { const on = sh.sel.includes(d.c); return `<button class="opt${on ? ' on' : ''}" data-act="sheetToggle" data-c="${d.c}" role="checkbox" aria-checked="${on}">
+        <span class="cb">${on ? '✓' : ''}</span><span class="grow"><span class="nm">${d.n}</span><br>
+        <span class="tag">${d.sev}</span> <span class="tag${d.disp === 'CONCESSION' ? ' dash' : ''}">${DISP[d.disp]}</span>${d.vid ? ' <span class="tag">ต้องมีวิดีโอ</span>' : ''}</span></button>`; }).join('')
+        || '<p class="muted">ไม่พบอาการที่ค้นหา — ถ้าไม่มีในรายการ แจ้งหัวหน้า (ไม่มีตัวเลือก "อาการอื่นๆ")</p>'}
+      ${note('ไม่มีตัวเลือก "อาการอื่นๆ (รอจัดหมวด)" เพราะปิดเป็นค่าตั้งต้น (B6) · ป้าย Disposition มาจากตาราง QC × กลุ่มแบรนด์ของ Model (FR-MD-08) — ควรแสดงให้ผู้ตรวจเห็นหรือไม่? ถามใน workshop')}
+    </div>
+    <div class="sh-foot"><button class="btn" data-act="sheetCancel">ยกเลิก</button>
+      <button class="btn pri${dis(!sh.sel.length, 'เลือกอาการอย่างน้อย 1 อาการ')}" data-act="sheetOk">ยืนยัน (${sh.sel.length} อาการ)</button></div>
+  </div></div>`;
+}
+
+/* ---------- กล้องในแอป (ถ่ายต่อเนื่อง / ดู / ลบ) ---------- */
+function camHtml(){
+  const c = S.cam;
+  const ctx = c.ctx;
+  if(c.mode === 'video'){
+    return `<div class="cam">
+      <div class="top"><span>วิดีโอ ≤ 20 วินาที · มีเสียง</span><button class="btn sm" data-act="camClose">ยกเลิก</button></div>
+      <div class="vf"><div>${c.rec ? `<b style="font-size:22px">● กำลังบันทึก 00:${z2(c.sec)}</b><br>/ 00:20` : c.dur ? `ได้วิดีโอ ${c.dur} วินาที` : 'ภาพจากกล้องหลัง (จำลอง)'}</div></div>
+      <div class="ctrl"><span></span><button class="shutter${c.rec ? ' rec' : ''}" data-act="recToggle" aria-label="${c.rec ? 'หยุด' : 'เริ่มบันทึก'}"></button>
+        <span style="text-align:right">${c.dur && !c.rec ? '<button class="btn pri sm" data-act="camDone">ใช้วิดีโอนี้</button>' : ''}</span></div>
+    </div>`;
+  }
+  return `<div class="cam">
+    <div class="top"><span>กล้องในแอป · ลายน้ำ เลขแผน / Serial / เวลา</span><button class="btn sm" data-act="camClose">ยกเลิก</button></div>
+    <div class="vf"><div>ภาพจากกล้องหลัง (จำลอง)<br><span class="xs">ไม่มีปุ่มเลือกจากคลังรูป (FR-QC-06)</span></div></div>
+    <div class="strip">${c.shots.length ? thumbsHtml(c.shots, 'img', ctx) : '<span class="xs" style="color:#aaa;align-self:center">ถ่ายได้ต่อเนื่องหลายรูป · แตะ ✕ เพื่อลบ</span>'}</div>
+    <div class="ctrl"><span class="small">${c.shots.length} รูป</span><button class="shutter" data-act="shot" aria-label="ถ่าย"></button>
+      <span style="text-align:right"><button class="btn pri sm${dis(c.min && !c.shots.length, 'ต้องมีอย่างน้อย 1 รูป')}" data-act="camDone">เสร็จ</button></span></div>
+  </div>`;
+}
+
+/* ---------- รายการหัวข้อ (ข้าม/ย้อนได้) ---------- */
+function drawerHtml(){
+  const I = S.insp;
+  const miss = unanswered(I);
+  return `<div class="overlay drawer" data-act="drawer" data-self="1"><div class="sheet" role="dialog" aria-label="รายการหัวข้อ">
+    <div class="grab"></div>
+    <div class="sh-head"><b>หัวข้อทั้งหมด (${ITEMS.length})</b><div class="small muted">แตะเพื่อไปหัวข้อนั้น · ✓ ปกติ · ✕ ไม่ผ่าน · ○ ยังไม่ตอบ</div></div>
+    <div class="sh-body">${ITEMS.map((it, i) => { const a = I.ans[it.id]; const done = itemDone(it, a);
+      const g = a && a.v === 'fail' ? '✕' : done && a && a.v ? '✓' : '○';
+      const sub = a && a.v === 'fail' ? (a.defects || []).map(c => DEF[c].n).join(', ') + (missingOf(it, a).length ? ' · ยังขาดหลักฐาน' : '') : !it.required ? 'ไม่บังคับ' : done ? '' : 'ยังไม่ตอบ';
+      return `<button class="opt${i === I.idx ? ' on' : ''}" data-act="jump" data-i="${i}"><span class="cb">${g}</span><span class="grow"><span class="nm">${it.id}. ${it.title}</span>${sub ? `<br><span class="small muted">${esc(sub)}</span>` : ''}</span></button>`; }).join('')}
+    </div>
+    <div class="sh-foot"><button class="btn" data-act="drawer">ปิด</button>
+      <button class="btn pri" data-act="toSummary">ตรวจทาน & ส่ง${miss.length ? ` (ขาด ${miss.length})` : ''}</button></div>
+  </div></div>`;
+}
+
+/* =====================================================================
+   มือถือ: S07 สรุปผลเครื่อง + Rework/Reject · S08 ตัวตรวจ Rework
+   ===================================================================== */
+/* BR-04 ผลรายเครื่อง */
+function evalResult(ans){
+  const failed = ITEMS.filter(it => it.type === 'okfail' && ans[it.id] && ans[it.id].v === 'fail');
+  const defs = failed.flatMap(it => (ans[it.id].defects || []).map(c => DEF[c]));
+  if(!failed.length) return {res:'PASS', failed, defs};
+  if(defs.every(d => d.disp === 'CONCESSION')) return {res:'CONCESSION', failed, defs};
+  const hasRej = defs.some(d => d.disp === 'REJECT'), hasRw = defs.some(d => d.disp === 'REWORK');
+  const forced = defs.filter(d => d.disp === 'REJECT' && d.sev === 'Critical');
+  return {res:'NOT_PASSED', failed, defs, suggest:hasRej ? 'REJECT' : hasRw ? 'REWORK' : null, forced};
+}
+const RES_TXT = {PASS:'ผ่าน', CONCESSION:'อนุโลม (นับเป็นผ่าน)', NOT_PASSED:'ไม่ผ่าน'};
+
+function scrS07(){
+  const I = S.insp, j = jobBy(I.job), r = evalResult(I.ans), miss = unanswered(I);
+  const sm = I.sum;
+  if(r.res !== 'NOT_PASSED' || (r.forced.length && sm.decision === 'REWORK')) sm.decision = null;
+  let why = '';
+  if(r.res === 'PASS') why = 'ทุกหัวข้อ "ปกติ"';
+  else if(r.res === 'CONCESSION') why = 'อาการที่พบเป็น "อนุโลม" ทั้งหมด (PM/การตลาดอนุมัติไว้ล่วงหน้า) — นับเป็นผ่านในการปิดแผน แต่แสดงแยกใน Report';
+  else why = 'มีอาการที่ Disposition = ' + [...new Set(r.defs.filter(d => d.disp !== 'CONCESSION').map(d => DISP[d.disp]))].join(' / ');
+  const failList = r.failed.map(it => { const a = I.ans[it.id];
+    return `<div><span><b>${it.id}. ${it.title}</b><br>${(a.defects || []).map(c => { const d = DEF[c];
+      return `${d.n} <span class="tag">${d.sev}</span> <span class="tag${d.disp === 'CONCESSION' ? ' dash' : ''}">${DISP[d.disp]}</span>`; }).join('<br>')}</span>
+      <span class="small muted" style="text-align:right">รูป ${(a.photos || []).length}${a.video ? '<br>วิดีโอ 1' : ''}</span></div>`; }).join('');
+  const okCount = ITEMS.filter(it => it.type === 'okfail' && I.ans[it.id] && I.ans[it.id].v === 'ok').length;
+  const num = I.ans[11] && I.ans[11].v;
+  let decide = '';
+  if(r.res === 'NOT_PASSED'){
+    const forced = r.forced.length > 0;
+    const sug = forced ? 'REJECT' : r.suggest;
+    const ch = (k, title, desc) => {
+      const off = forced && k === 'REWORK';
+      return `<button class="choice${sm.decision === k ? ' on' : ''}${off ? ' off' : ''}" data-act="${off ? 'stub' : 'decide'}" data-v="${k}" ${off ? `data-msg="อาการ Critical ต้องคัดออก — เปลี่ยนเป็น Rework ได้เฉพาะ QC Head พร้อมเหตุผล (B5)"` : ''}>
+        <span class="r"></span><b>${title}</b>${sug === k ? ' <span class="tag solid">ระบบเสนอ</span>' : ''}<br><span class="small muted">${desc}</span></button>`; };
+    decide = `<h3>เลือกการจัดการเครื่องนี้</h3>
+      ${ch('REWORK', 'ส่งซ่อม (Rework)', 'แก้ได้ — สร้างใบ Rework เฉพาะหัวข้อที่ไม่ผ่าน')}
+      ${ch('REJECT', 'คัดออก (Reject)', 'แก้ไม่ได้ เช่น ไม่มีอะไหล่ — นับเป็นตรวจแล้ว ไม่มีขั้นตอนต่อ')}
+      ${forced ? `<div class="alert">อาการ Critical: ${r.forced.map(d => d.n).join(', ')} → บังคับคัดออก (เปลี่ยนได้เฉพาะ QC Head + เหตุผล)</div>` : ''}
+      ${!sug ? '<div class="alert soft">อาการทั้งหมดเป็น "ผู้ตรวจเลือก" — ระบบไม่เสนอ ให้ผู้ตรวจตัดสินเอง</div>' : ''}
+      ${sm.decision && sug && sm.decision !== sug ? '<div class="alert soft">เลือกต่างจากที่ระบบเสนอ — ระบบบันทึกไว้ให้หัวหน้าเห็น</div>' : ''}`;
+  }
+  const blockers = [];
+  if(miss.length) blockers.push('ยังตอบไม่ครบ ' + miss.length + ' หัวข้อ');
+  if(r.res === 'NOT_PASSED' && !sm.decision) blockers.push('เลือก Rework หรือ Reject');
+  if(!sm.me) blockers.push('ยืนยันชื่อผู้ตรวจ');
+  const body = `
+    ${miss.length ? `<div class="alert"><b>ยังไม่ตอบ:</b> ${miss.map(it => `<button class="btn sm" data-act="jump" data-i="${ITEMS.indexOf(it)}" style="margin:2px">หัวข้อ ${it.id}</button>`).join('')}<br><span class="small">ปุ่ม "ส่ง" ใช้ได้เมื่อตอบครบทุกหัวข้อบังคับ</span></div>` : ''}
+    <div class="result${r.res === 'NOT_PASSED' ? ' np' : ''}"><div class="small">${miss.length ? 'ผลเบื้องต้น (ยังตอบไม่ครบ)' : 'ผลเครื่อง (คำนวณตาม BR-04)'}</div>
+      <div class="big">${RES_TXT[r.res]}</div><div class="small">${esc(why)}</div></div>
+    <div class="card"><div class="row between"><b>หัวข้อไม่ผ่าน (${r.failed.length})</b><span class="small muted">ปกติ ${okCount} หัวข้อ</span></div>
+      <div class="lines">${failList || '<div class="muted">—</div>'}</div>
+      ${num ? `<div class="small muted mt">แรงดันตัดที่อ่านได้ ${esc(num)} bar (ข้อมูลประกอบ)</div>` : ''}
+      <button class="btn sm mt" data-act="jump" data-i="0">กลับไปแก้คำตอบ</button></div>
+    ${decide}
+    <label class="card row" style="cursor:pointer"><input type="checkbox" id="f_sum_me" data-bind="insp.sum.me" ${sm.me ? 'checked' : ''} style="width:22px;height:22px">
+      <span class="grow">ยืนยันว่าผู้ตรวจคือ <b>${S.me.name}</b> (รหัส ${S.me.code})<br><span class="small muted">แสดงบนเครื่องส่วนกลาง (FR-AUTH-05) · ไม่ต้องลงลายเซ็น</span></span></label>
+    ${note('BR-04: ผลไม่คิดเป็นเปอร์เซ็นต์ — ดูจากชนิด Disposition เท่านั้น · ระบบเสนอ Reject ถ้ามีอาการ Reject, เสนอ Rework ถ้ามีอาการ Rework, ถ้ามีแต่ "ผู้ตรวจเลือก" จะไม่เสนอ · Critical + Reject = บังคับคัดออก (B5 รอยืนยัน) · ส่งแล้วผลล็อกที่ผู้ตรวจ (FR-QC-12)')}`;
+  const foot = `<button class="btn pri block lg${dis(blockers.length, blockers.join(' · '))}" data-act="submitUnit">ส่งผลเครื่องนี้</button>
+    ${blockers.length ? `<div class="msg center">ยังส่งไม่ได้: ${esc(blockers.join(' · '))}</div>` : ''}`;
+  return {bar:appbar('สรุปผล ' + I.sn, `${j.plan} · ${j.model}`, backBtn('jump', `data-i="${I.idx}"`)), body, foot};
+}
+
+/* ---------- S08 ตัวตรวจ Rework (BR-06) ---------- */
+function rwState(r){
+  if(!S.rw || S.rw.id !== r.id){
+    const st = {};
+    r.items.forEach(x => { st[x.id] = {fix:{}, other:{}, photos:[], video:null, re:''}; });
+    S.rw = {id:r.id, st, decision:null};
+  }
+  return S.rw;
+}
+const rwNeedsVideo = (x) => { const it = itemById(x.id); return it.video !== 'NONE' || x.defects.some(c => DEF[c].vid); };
+function rwMissing(r){
+  const R = S.rw, m = [];
+  r.items.forEach(x => { const s = R.st[x.id];
+    if(x.defects.some(c => !s.fix[c] || (s.fix[c] === 'อื่นๆ' && !String(s.other[c] || '').trim()))) m.push(`หัวข้อ ${x.id}: เลือกวิธีแก้`);
+    if(!s.photos.length) m.push(`หัวข้อ ${x.id}: รูปหลังแก้`);
+    if(rwNeedsVideo(x) && !s.video) m.push(`หัวข้อ ${x.id}: วิดีโอ`);
+    if(!s.re) m.push(`หัวข้อ ${x.id}: ประเมินใหม่`);
+  });
+  const anyFail = r.items.some(x => R.st[x.id].re === 'fail');
+  if(anyFail && !R.decision) m.push('เลือก Rework รอบถัดไป หรือ Reject');
+  return m;
+}
+function scrS08(){
+  const r = rwBy(S.rw && S.rw.id) || S.reworks[0];
+  if(!r) return {bar:appbar('ตัวตรวจ Rework', '', backBtn('nav', 'data-s="S04"')), body:'<div class="card dash center"><p>ไม่มี Rework ค้าง</p><p class="small muted">กด "เริ่มใหม่ทั้งหมด" ในแผงซ้ายเพื่อคืนข้อมูลตัวอย่าง</p></div>', tabs:true};
+  const R = rwState(r), j = jobBy(r.job);
+  const anyFail = r.items.some(x => R.st[x.id].re === 'fail');
+  const cards = r.items.map(x => { const it = itemById(x.id), s = R.st[x.id];
+    const fixes = x.defects.map(c => `<div class="field"><span class="flabel req">วิธีแก้ — ${DEF[c].n}</span>
+      <div class="seg">${FIX_METHODS.map(mth => `<button data-act="fix" data-item="${x.id}" data-c="${c}" data-v="${mth}" class="${s.fix[c] === mth ? 'on' : ''}">${mth}</button>`).join('')}</div>
+      ${s.fix[c] === 'อื่นๆ' ? `<input class="inp mt" id="f_oth_${x.id}_${c}" data-bind="rw.st.${x.id}.other.${c}" value="${esc(s.other[c] || '')}" placeholder="ระบุวิธีแก้">` : ''}</div>`).join('');
+    return `<div class="card strong">
+      <h3 style="margin-top:0">หัวข้อ ${it.id}. ${it.title}</h3>
+      <div class="hist"><div class="small"><b>รอบ ${r.round - 1} พบ</b> (${r.src === 'QA' ? 'โดย QA' : 'โดย QC'} · อ่านอย่างเดียว ห้ามแก้)</div>
+        <div class="chips mt">${x.defects.map(c => `<span class="chip">${DEF[c].n}</span>`).join('')}</div>
+        <div class="thumbs">${Array.from({length:x.photos}, (_, i) => `<div class="thumb ph-img"><span class="wmk">รอบ ${r.round - 1}<br>รูป ${i + 1}</span></div>`).join('')}</div></div>
+      ${fixes}
+      <div class="field"><span class="flabel req">รูปหลังแก้ (${s.photos.length}/1 ขั้นต่ำ)</span>
+        <div class="thumbs">${s.photos.map(p => `<div class="thumb ph-img"><span class="wmk">${r.sn}<br>${p.t}</span></div>`).join('')}</div>
+        <button class="btn block${s.photos.length ? '' : ' pri'}" data-act="cam" data-m="photo" data-rw="${x.id}">${s.photos.length ? 'ถ่ายเพิ่ม / ลบรูป' : 'ถ่ายรูปหลังแก้'}</button></div>
+      ${rwNeedsVideo(x) ? `<div class="field"><span class="flabel req">วิดีโอหลังแก้ ≤ 20 วิ</span><div class="small muted">ตามกติกาเดียวกับตอนตรวจ (อาการ/หัวข้อนี้ต้องมีวิดีโอ)</div>
+        ${s.video ? `<div class="thumbs"><div class="thumb ph-img vid"><span class="wmk">${s.video.dur} วิ</span></div></div>` : ''}
+        <button class="btn block${s.video ? '' : ' pri'}" data-act="cam" data-m="video" data-rw="${x.id}">${s.video ? 'ถ่ายวิดีโอใหม่' : 'ถ่ายวิดีโอ'}</button></div>` : ''}
+      <div class="field"><span class="flabel req">ประเมินหัวข้อนี้ใหม่</span>
+        <div class="ans" style="margin:0"><button class="btn${s.re === 'ok' ? ' sel' : ''}" data-act="reEval" data-item="${x.id}" data-v="ok">✓ ปกติ</button>
+        <button class="btn${s.re === 'fail' ? ' sel' : ''}" data-act="reEval" data-item="${x.id}" data-v="fail">✕ ยังไม่ผ่าน</button></div></div>
+    </div>`; }).join('');
+  const dec = anyFail ? `<h3>ยังไม่ผ่าน — เลือกการจัดการ</h3>
+    <button class="choice${R.decision === 'REWORK' ? ' on' : ''}" data-act="rwDecide" data-v="REWORK"><span class="r"></span><b>ส่งซ่อมอีกรอบ (Rework รอบ ${r.round + 1})</b></button>
+    <button class="choice${R.decision === 'REJECT' ? ' on' : ''}" data-act="rwDecide" data-v="REJECT"><span class="r"></span><b>คัดออก (Reject)</b><br><span class="small muted">แก้ไม่ได้${r.src === 'QA' ? ' — ผล QA ของเครื่องนี้ = QA_REPLACED และ QA ต้องสุ่มเครื่องอื่นแทน' : ''}</span></button>` : '';
+  const miss = rwMissing(r);
+  const body = `
+    <div class="card dash"><dl class="kv"><dt>แหล่งที่มา</dt><dd><b>${r.src === 'QA' ? 'QA ไม่รับเครื่องนี้' : 'QC ตรวจไม่ผ่าน'}</b> · ${r.by} · ${r.at}</dd>
+      <dt>แผน</dt><dd>${j.plan} · ${j.model}</dd><dt>รอบนี้</dt><dd>รอบ ${r.round} · ตรวจเฉพาะ ${r.items.length} จาก ${ITEMS.length} หัวข้อที่ไม่ผ่าน</dd></dl>
+      ${r.src === 'QA' ? '<div class="small mt">ส่งแล้วเครื่องนี้กลับเข้าคิว QA "รอตรวจซ้ำ" (ไม่ต้องผ่านหัวหน้าตรวจทานอีก)</div>' : ''}</div>
+    <div class="row between small"><span>${syncLine()}</span></div>
+    ${cards}${dec}
+    ${note('BR-06: ใบ Rework มีเฉพาะหัวข้อที่ไม่ผ่านของรอบล่าสุด (ไม่ใช่ทั้ง Checklist) · ข้อมูลและรูปรอบก่อนห้ามแก้ (FR-RW-03) · ปิดใบ Rework ต้องมีวิธีแก้ต่ออาการ + รูปหลังแก้ ≥ 1 ต่อหัวข้อ (BR-05) · ผ่านแล้วติดธง "ผ่านหลัง Rework" (FR-RW-04) · ไม่มีการจับเวลาซ่อม (FR-RW-09 ไม่ทำ)')}`;
+  const foot = `<button class="btn pri block lg${dis(miss.length, miss.join(' · '))}" data-act="submitRw">ส่งผล Rework</button>
+    ${miss.length ? `<div class="msg center">ยังขาด: ${esc(miss.slice(0, 3).join(' · '))}${miss.length > 3 ? ` และอีก ${miss.length - 3}` : ''}</div>` : ''}`;
+  return {bar:appbar('Rework ' + r.id, `${r.sn} · รอบ ${r.round} · ${j.plan}`, backBtn('nav', 'data-s="S04"')), body, foot, overlay:S.cam ? camHtml() : ''};
+}
+
+/* =====================================================================
+   Laptop 1366 px: S10 รายการแผน · S11 เปิดแผน
+   ===================================================================== */
+let LAP_K = 1;
+function lapFrame(active, title, body){
+  const st = document.getElementById('stage');
+  LAP_K = S.lapFit ? Math.min(1, Math.max(0.2, (st.clientWidth - 32) / 1370)) : 1;
+  const menu = [['S04m','งานของฉัน','มือถือ'],['S10','รายการแผน',''],['S11','เปิดแผน',''],['S12','รายละเอียดแผน',''],['S13','มอบหมายงาน',''],['x28','คิว QA','S28'],
+    ['S14','ตรวจทาน / อนุมัติ',''],['x15','Report','S15'],['x17','Status board','S17'],['x19','Master data','S19']];
+  return `<div class="lap-wrap" style="width:${Math.round(1366 * LAP_K)}px;height:${Math.round(768 * LAP_K)}px">
+   <div class="laptop" style="transform:scale(${LAP_K})">
+    <aside class="lap-side"><div class="logo"><div class="ph-img lg"><span>โลโก้</span></div>QCheck</div>
+      ${menu.map(([k, l, s]) => `<button class="${k === active ? 'on' : ''}" data-act="lapNav" data-s="${k}">${l}${s && k !== active ? `<span class="xs">${s === 'มือถือ' ? '→ มือถือ' : 'ยังไม่ทำ'}</span>` : ''}</button>`).join('')}
+      <div style="flex:1"></div><div class="xs muted" style="padding:12px 16px">WIREFRAME · ไม่ใช่ดีไซน์จริง</div></aside>
+    <div class="lap-main">
+      <header class="lap-head"><b style="font-size:16px">${title}</b><span class="search">ค้นหา แผน / Invoice / Model / Serial</span><span class="grow"></span>
+        <span class="tag">กระดิ่ง 3</span><span>${S.role === 'QA_HEAD' ? 'หัวหน้า QA ค.' : 'หัวหน้า QC ข.'} <span class="tag">${S.role === 'QA_HEAD' ? 'QA Head' : 'QC Head'}</span></span></header>
+      <div class="lap-body" id="lapbody">${body}</div>
+    </div>
+    ${toastHtml()}
+   </div></div>`;
+}
+
+/* ---------- S10 รายการแผน ---------- */
+function planRowData(p){
+  const m = modelBy(p.model) || {};
+  const req = reqOf(p), aq = aqlLookup(p.aql, p.lot), di = docInfo(p);
+  const dl = di ? deadlineInfo(di.date, p.st === 'COMPLETED') : null;
+  let stTxt = ST_TXT[p.st];
+  if(p.st === 'QC_IN_PROGRESS' && p.rw) stTxt += ` / มี Rework ${p.rw}`;
+  if(p.st === 'QA_IN_PROGRESS' && p.rw) stTxt += ' (มี Rework จาก QA)';
+  return {p, m, req, aq, dl, stTxt, pg:progressOf(p)};
+}
+function scrS10(){
+  const f = S.filt, q = norm(f.q);
+  let rows = S.plans.map(planRowData).filter(r =>
+    (!q || norm(r.p.plan + ' ' + r.p.doc + ' ' + r.p.model + ' ' + r.p.vendor).includes(q)) &&
+    (!f.st || r.stTxt.startsWith(f.st)) && (!f.vendor || r.p.vendor === f.vendor) && (!f.ptype || r.m.ptype === f.ptype));
+  const key = {plan:r => r.p.plan, doc:r => r.p.doc, model:r => r.p.model, lot:r => r.p.lot, qc:r => r.p.qcDone / Math.max(1, r.req),
+    st:r => r.stTxt, due:r => r.dl && !r.dl.closed ? r.dl.left : 99999}[S.sort.k];
+  rows.sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * S.sort.dir; });
+  const th = (k, l) => `<th><button data-act="sort" data-k="${k}">${l}${S.sort.k === k ? (S.sort.dir > 0 ? ' ▲' : ' ▼') : ''}</button></th>`;
+  const stOpts = [...new Set(Object.values(ST_TXT))];
+  const sel = (bind, all, opts) => `<select class="inp" id="f_${bind.replace('.', '_')}" data-bind="${bind}"><option value="">${all}</option>${opts.map(o => `<option${S.filt[bind.split('.')[1]] === o ? ' selected' : ''}>${o}</option>`).join('')}</select>`;
+  const tr = rows.map(r => { const p = r.p;
+    const due = !r.dl ? '<span class="muted">— (ผลิตเอง)</span>' : r.dl.closed ? `${r.dl.due}<br><span class="small muted">ปิดแล้ว</span>`
+      : r.dl.left < 0 ? `<b>${r.dl.due}</b><br><b class="small">⚑ เลยกำหนด ${-r.dl.left} วัน</b>` : `${r.dl.due}<br><span class="small${r.dl.left <= 14 ? ' b' : ' muted'}">เหลือ ${r.dl.left} วัน</span>`;
+    const flags = [(p.flags || []).includes('sample') ? '<span class="tag solid">⚑ พบปัญหาในตัวอย่าง</span>' : '', (p.flags || []).includes('wait') ? '<span class="tag dash">รอของ</span>' : '',
+      p.forced ? '<span class="tag">บังคับปิด</span>' : '', p.isNew ? '<span class="tag solid">ใหม่</span>' : ''].join(' ');
+    return `<tr class="${S.hlPlan === p.plan ? 'hl' : ''}" data-act="planRow" data-p="${p.plan}">
+      <td><b>${p.plan}</b></td><td>${esc(p.doc)}<br><span class="small muted">${esc(p.vendor)}</span></td>
+      <td>${p.model}<br><span class="small muted">${r.m.ptype || ''}</span></td><td class="num">${p.lot}</td>
+      <td class="num"><b>${p.qcDone}</b> / ${r.req}</td><td>${stTxt(r)}</td><td><span class="pg ${r.pg.k}">${r.pg.t}</span></td>
+      <td>${AQL_LV[p.aql]} · <b>${r.aq ? r.aq.n : '-'}</b><br><span class="small muted">Code ${r.aq ? r.aq.code : '-'}</span></td><td>${due}</td><td>${flags}</td></tr>`; }).join('');
+  const body = `
+    <div class="row between"><div><h2>รายการแผนตรวจ</h2><span class="small muted">${rows.length} จาก ${S.plans.length} แผน · คลิกหัวคอลัมน์เพื่อเรียง · คลิกแถวเพื่อเปิดรายละเอียด</span></div>
+      <div class="row"><button class="btn" data-act="stub" data-msg="เลือกคอลัมน์ที่แสดง (02 §5.3) — ยังไม่ทำใน wireframe">เลือกคอลัมน์</button>
+      <button class="btn pri" data-act="newPlan">＋ เปิดแผน</button></div></div>
+    <div class="filters">
+      <div class="field" style="width:260px"><label for="f_filt_q">ค้นหา</label><input class="inp" id="f_filt_q" data-bind="filt.q" value="${esc(f.q)}" placeholder="เลขแผน / Invoice / Model / Vendor"></div>
+      <div class="field"><label for="f_filt_st">สถานะ Checklist</label>${sel('filt.st', 'ทั้งหมด', stOpts)}</div>
+      <div class="field"><label for="f_filt_vendor">Vendor / ผู้ผลิต</label>${sel('filt.vendor', 'ทั้งหมด', [...new Set(S.plans.map(p => p.vendor))])}</div>
+      <div class="field"><label for="f_filt_ptype">ประเภทปั๊ม</label>${sel('filt.ptype', 'ทั้งหมด', [...new Set(MODELS.map(m => m.ptype))])}</div>
+      <div class="field"><label>วันที่เปิดแผน</label><input class="inp ro" readonly value="01/09/2026 – 16/10/2026"></div>
+      <button class="btn sm ghost" data-act="clearFilt">ล้างตัวกรอง</button>
+    </div>
+    <table class="tbl"><thead><tr>${th('plan', 'เลขแผน')}${th('doc', 'Invoice / PO')}${th('model', 'Model')}${th('lot', 'ล็อต')}${th('qc', 'QC ตรวจแล้ว / ต้องตรวจ')}${th('st', 'สถานะ Checklist')}<th>ความคืบหน้า</th><th>QA (AQL)</th>${th('due', 'กำหนดตรวจ 90 วัน')}<th>ธง</th></tr></thead>
+      <tbody>${tr || '<tr><td colspan="10" class="center muted">ไม่พบแผนตามตัวกรอง</td></tr>'}</tbody></table>
+    <div class="row small mt"><b>ความคืบหน้า (BR-12):</b> ${['ns:ยังไม่เริ่ม','ip:กำลังดำเนินการ','ac:ตรวจครบ-รอปิด','dn:เสร็จ','ov:ตรวจเกิน','un:ตรวจขาด'].map(x => { const [k, t] = x.split(':'); return `<span class="pg ${k}">${t}</span>`; }).join(' ')}
+      <span class="muted">— แยกด้วยข้อความและเส้นขอบเท่านั้น สีจริงกำหนดตอนคุยธีม</span></div>
+    ${note('FR-PLAN-10/13/16 · "สถานะ Checklist" และ "ความคืบหน้า" ใช้คำเดียวกันทั้งระบบตามตาราง 03 §2.1 · กำหนดตรวจ = วันที่ Invoice + 90 วัน (BR-11) เรียงตามกำหนดได้ · QA (AQL) = ระดับ · จำนวนสุ่ม จากตารางตัวอย่าง · ธง "พบปัญหาในตัวอย่าง" = BR-02a ให้หัวหน้าเลือกขยายการตรวจ · บนมือถือ ตารางนี้จะเปลี่ยนเป็นการ์ด (04 §5.2)')}`;
+  return lapFrame('S10', 'รายการแผน', body);
+}
+const stTxt = r => esc(r.stTxt);
+
+/* ---------- S11 เปิดแผน ---------- */
+function formCalc(){
+  const F = S.form, lot = Math.floor(+String(F.lot).replace(/,/g, '') || 0);
+  const m = modelBy(F.model);
+  const docKey = F.origin === 'IMP' ? 'INV|' + norm(F.docNo) + '|' + F.vendor : 'PO|' + norm(F.docNo) + '|' + F.dept;
+  const doc = F.origin === 'IMP' && F.vendor && norm(F.docNo) ? DOCS[docKey] : null;
+  const docPlans = doc ? S.plans.filter(p => norm(p.doc) === norm(F.docNo) && p.vendor === F.vendor && p.st !== 'CANCELLED') : [];
+  const dup = m && doc ? docPlans.find(p => p.model === m.code) : null;
+  const level = F.aql || defaultAql(F.origin);
+  const aq = aqlLookup(level, lot), aqDef = aqlLookup(defaultAql(F.origin), lot);
+  const invDate = doc ? doc.date : F.docDate;
+  const dl = F.origin === 'IMP' ? deadlineInfo(invDate) : null;
+  const miss = [];
+  if(F.origin === 'IMP'){ if(!F.vendor) miss.push('Vendor'); if(!norm(F.docNo)) miss.push('เลข Invoice');
+    if(!doc && !parseD(F.docDate)) miss.push('วันที่ Invoice'); if(!doc && !(+F.sku > 0)) miss.push('จำนวน SKU'); }
+  else { if(!norm(F.docNo)) miss.push('เลข PO'); }
+  if(!m) miss.push('Model'); if(!(lot > 0)) miss.push('จำนวนตาม Invoice/PO');
+  if(F.aql && F.aql !== defaultAql(F.origin) && !F.aqlReason.trim()) miss.push('เหตุผลที่เปลี่ยนระดับ AQL');
+  if(dup) miss.push('แผนซ้ำ');
+  return {lot, m, doc, docPlans, dup, level, aq, aqDef, dl, miss, qc:qcRequired(lot)};
+}
+function scrS11(){
+  const F = S.form, C = formCalc(), isQA = S.role === 'QA_HEAD';
+  const models = MODELS.filter(m => m.origin === F.origin);
+  const inp = (bind, ph, extra) => `<input class="inp" id="f_${bind.replace(/\./g, '_')}" data-bind="${bind}" value="${esc(F[bind.split('.')[1]])}" placeholder="${ph || ''}" ${extra || ''}>`;
+  const ro = (v) => `<input class="inp" readonly value="${esc(v)}">`;
+  let head;
+  if(F.origin === 'IMP'){
+    head = `<div class="fgrid">
+      <div class="field"><label class="req" for="f_form_vendor">Vendor / ผู้ผลิต</label><select class="inp" id="f_form_vendor" data-bind="form.vendor"><option value="">— เลือก —</option>${VENDORS.map(v => `<option${F.vendor === v ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div class="field"><label class="req" for="f_form_docNo">เลข Invoice</label>${inp('form.docNo', 'เช่น INV-A', 'autocomplete="off"')}</div>
+      <div class="field"><label class="req" for="f_form_docDate">วันที่ Invoice</label>${C.doc ? ro(C.doc.date) : inp('form.docDate', 'วว/ดด/ปปปป', 'inputmode="numeric"')}</div>
+      <div class="field"><label class="req" for="f_form_sku">จำนวน SKU ทั้งหมดใน Invoice</label>${C.doc ? ro(C.doc.sku) : inp('form.sku', 'เช่น 4', 'inputmode="numeric"')}</div>
+      <div class="field span2"><span class="flabel">สถานะเอกสาร</span>${C.doc
+        ? `<div class="alert soft" style="margin:0">พบ Invoice นี้ในระบบแล้ว — ดึงหัวเอกสารเดิมมาแสดงแบบอ่านอย่างเดียว · เปิดแผนแล้ว <b>${C.docPlans.length}</b> จาก ${C.doc.sku} SKU (${C.docPlans.map(p => p.plan + ' ' + p.model).join(', ')})</div>`
+        : F.vendor && norm(F.docNo) ? '<div class="small">เอกสารใหม่ (เลข + Vendor นี้ยังไม่มีในระบบ) — กรอกหัวเอกสาร</div>' : '<div class="small muted">กรอก Vendor + เลข Invoice แล้วระบบตรวจว่ามีเอกสารนี้แล้วหรือไม่</div>'}</div>
+    </div>`;
+  } else {
+    head = `<div class="fgrid">
+      <div class="field"><label class="req" for="f_form_dept">แผนก (ผู้ผลิต)</label><select class="inp" id="f_form_dept" data-bind="form.dept">${['408', '409'].map(d => `<option${F.dept === d ? ' selected' : ''}>${d}</option>`).join('')}</select></div>
+      <div class="field"><label class="req" for="f_form_docNo">เลข PO</label>${inp('form.docNo', 'สแกน QR หรือพิมพ์')}</div>
+      <div class="field"><label for="f_form_docDate">วันที่ PO</label>${inp('form.docDate', 'วว/ดด/ปปปป')}</div>
+      <div class="field span3"><button class="btn" data-act="qrScan">สแกน QR บนสติ๊กเกอร์ (เครื่องยิง USB / webcam)</button>
+        ${F.qr ? `<span class="small"> ✓ อ่าน QR แล้ว: PO ${esc(F.docNo)} · ${esc(F.model)} · ${esc(F.lot)} ตัว — จำนวนใน QR ต้องตรงกับที่กรอก (FR-PLAN-05)</span>` : '<span class="small muted"> ระบบเติม PO / Model / จำนวน ให้อัตโนมัติ</span>'}</div>
+    </div>`;
+  }
+  const m = C.m;
+  const plan = `<div class="fgrid">
+      <div class="field"><label class="req" for="f_form_model">Model</label><select class="inp${C.dup ? ' err' : ''}" id="f_form_model" data-bind="form.model"><option value="">— เลือก Model —</option>${models.map(x => `<option value="${x.code}"${F.model === x.code ? ' selected' : ''}>${x.code} · ${x.desc}</option>`).join('')}</select></div>
+      <div class="field span2"><span class="flabel">Description</span>${ro(m ? m.desc : '— ดึงจาก Model —')}</div>
+      ${C.dup ? `<div class="field span3"><div class="alert" style="margin:0">แผนนี้เปิดแล้ว: <b>${C.dup.plan}</b> (${esc(F.docNo)} + ${m.code}) — 1 Model เปิดได้ 1 แผนต่อเอกสาร
+        <button class="btn sm" data-act="gotoPlan" data-p="${C.dup.plan}" style="margin-left:8px">ไปที่แผนเดิม</button></div></div>` : ''}
+      <div class="field"><span class="flabel">ประเภทปั๊ม</span>${ro(m ? m.ptype : '—')}</div>
+      <div class="field"><span class="flabel">Brand (กลุ่ม Disposition)</span>${ro(m ? m.brand + ' (' + m.bg + ')' : '—')}</div>
+      <div class="field"><span class="flabel">Checklist QC / QA</span>${ro(m ? m.qc + ' / ' + m.qa : '—')}</div>
+      <div class="field"><label class="req" for="f_form_lot">จำนวนตาม ${F.origin === 'IMP' ? 'Invoice' : 'PO'} (ล็อต)</label>${inp('form.lot', 'เช่น 350', 'inputmode="numeric"')}</div>
+      <div class="field"><label for="f_form_recv">วันที่รับสินค้าเข้า</label>${inp('form.recv', 'วว/ดด/ปปปป')}</div>
+      <div class="field"><label for="f_form_maker">ผู้ผลิต (โรงงาน)</label>${inp('form.maker', 'ไม่บังคับ')}</div>
+      <div class="field span2"><label for="f_form_note">หมายเหตุ</label>${inp('form.note', 'ไม่บังคับ')}</div>
+      <div class="field"><span class="flabel">&nbsp;</span><label class="row" style="min-height:38px"><input type="checkbox" id="f_form_wait" data-bind="form.wait" ${F.wait ? 'checked' : ''}> รอของ (ของยังมาไม่ครบ)</label></div>
+    </div>`;
+  const lvSel = `<select class="inp" id="f_form_aql" data-bind="form.aql" ${isQA ? '' : 'disabled'}>${Object.keys(AQL_LV).map(k => `<option value="${k}"${C.level === k ? ' selected' : ''}>${AQL_LV[k]}${k === defaultAql(F.origin) ? ' (ค่าตั้งต้น)' : ''}</option>`).join('')}</select>`;
+  const changed = F.aql && F.aql !== defaultAql(F.origin);
+  const calc = `<div class="calc" aria-live="polite">
+      <div class="small muted">คำนวณทันทีขณะพิมพ์ (ไม่ต้องบันทึกก่อน)</div>
+      <div class="blk"><div class="flabel">QC ต้องตรวจ</div><div class="big" id="cQc">${C.lot ? C.qc : '–'}</div>
+        <div class="small">${C.lot ? `ปัดขึ้น(${C.lot} × ${QC_PCT}%) = ${C.qc} เครื่อง` : 'กรอกจำนวนล็อตก่อน'}</div></div>
+      <div class="blk"><div class="flabel">ระดับ AQL ${isQA ? '' : '<span class="tag dash">อ่านอย่างเดียว</span>'}</div>${lvSel}
+        <div class="small muted">${isQA ? 'QA Head เปลี่ยนได้จนกว่า QA ปิดงาน' : 'แก้ได้เฉพาะ QA Head — สลับบทบาทได้ที่แผงซ้าย'} · ค่าตั้งต้น: ${F.origin === 'IMP' ? 'นำเข้า = ผ่อนคลาย' : 'ผลิตเอง = ปกติ'}</div>
+        ${isQA && changed ? `<div class="field mt"><label class="req" for="f_form_aqlReason">เหตุผลที่เปลี่ยนระดับ</label>${inp('form.aqlReason', 'เช่น พบถังรั่วที่รอยเชื่อม ~12% ของล็อต')}
+          <div class="small">ประวัติที่จะบันทึก: ${AQL_LV[defaultAql(F.origin)]} → ${AQL_LV[C.level]} · ${C.aqDef ? C.aqDef.n : '–'} → ${C.aq ? C.aq.n : '–'} เครื่อง · หัวหน้า QA ค. · ${NOW_TXT}</div></div>` : ''}</div>
+      <div class="blk"><div class="flabel">QA ต้องสุ่มตรวจ</div><div class="big" id="cQa">${C.aq ? C.aq.n : '–'}</div>
+        <div class="small">${C.aq ? `ล็อต ${C.lot} → Code ${C.aq.code} · ${AQL_LV[C.level]} = ${C.aq.n} เครื่อง` : 'กรอกจำนวนล็อตก่อน'}</div></div>
+      <div class="blk"><div class="flabel">กำหนดตรวจ QC ของ Invoice (90 วัน)</div>${C.dl ? `<b>${C.dl.due}</b> <span class="small">${C.dl.left < 0 ? 'เลยกำหนด ' + -C.dl.left + ' วัน' : 'เหลือ ' + C.dl.left + ' วัน'}</span>` : `<span class="muted small">${F.origin === 'IMP' ? 'รอวันที่ Invoice' : 'ไม่ใช้กับปั๊มผลิตเอง'}</span>`}</div>
+      <div class="blk small"><div class="flabel">เลขที่แผน</div>QP-2610-${String(S.nextPlan).padStart(4, '0')} <span class="muted">(ออกอัตโนมัติเมื่อบันทึก)</span><br>วันที่เปิด ${NOW_TXT}</div>
+    </div>`;
+  const body = `<div class="s11"><div>
+      <div class="fsec"><h3 style="margin-top:0">1 · หัวเอกสารรับเข้า</h3>
+        <div class="field" style="max-width:520px"><span class="flabel">แหล่งที่มา</span><div class="seg">
+          <button data-act="origin" data-v="IMP" class="${F.origin === 'IMP' ? 'on' : ''}">ปั๊มนำเข้า (Invoice)</button><button data-act="origin" data-v="DOM" class="${F.origin === 'DOM' ? 'on' : ''}">ปั๊มผลิตเอง (PO แผนก 408/409)</button></div></div>
+        ${head}</div>
+      <div class="fsec"><h3 style="margin-top:0">2 · ส่วนแผน (1 Model ต่อ 1 แผน)</h3>${plan}</div>
+      <div class="lap-foot"><span class="grow small">${C.miss.length ? 'ยังขาด: ' + esc(C.miss.join(', ')) : '✓ พร้อมบันทึก'}</span>
+        <button class="btn" data-act="lapNav" data-s="S10">ยกเลิก</button>
+        <button class="btn${dis(C.miss.length, 'ยังขาด: ' + C.miss.join(', '))}" data-act="savePlan" data-next="assign">บันทึก & ไปมอบหมายงาน</button>
+        <button class="btn pri${dis(C.miss.length, 'ยังขาด: ' + C.miss.join(', '))}" data-act="savePlan">บันทึกแผน</button></div>
+      ${note('BR-01: กันซ้ำด้วย (ประเภทเอกสาร, เลขที่ normalize แล้ว, Vendor) — ลอง INV-A + Vendor V (มีแล้ว ดึงหัวเดิม) และ INV-A + Vendor W (คนละใบ) · เลือก XM-2050 ใน INV-A → ระบบไม่ให้เปิดซ้ำ · BR-02: QC = ปัดขึ้น(ล็อต × 10%) เช่น 350→35, 81→9, 5→1 · BR-03: QA ตามตาราง AQL — ตัวเลขเป็นตัวอย่าง ISO 2859-1 Level II (ค่าจริงรอ QA ❓ C1) · เลือก Model แล้วดึงประเภทปั๊ม/Brand/Checklist อัตโนมัติ แก้เองไม่ได้ (FR-PLAN-03)')}
+    </div>${calc}</div>`;
+  return lapFrame('S11', 'เปิดแผนตรวจ', body);
+}
+
+/* =====================================================================
+   Laptop 1366 px: S12 รายละเอียดแผน · S13 มอบหมาย/โอนงาน · S14 ตรวจทาน + Correction / ตีกลับ / อนุมัติ
+   ===================================================================== */
+const headName = () => S.role === 'QA_HEAD' ? 'หัวหน้า QA ค.' : 'หัวหน้า QC ข.';
+const curPlan = () => planBy(S.cur.plan) || S.plans[0];
+function logH(p, who, t, k){ (S.hist[p.plan] = S.hist[p.plan] || []).push({at:NOW_TXT, who, t, k:k || 'st'}); }
+function histOf(p){ return S.hist[p.plan] || [{at:'—', who:'ระบบ', t:'เปิดแผน ' + p.plan + ' · สถานะปัจจุบัน: ' + ST_TXT[p.st], k:'st'}]; }
+function unitsOf(p){
+  if(!S.units[p.plan]){
+    let i = 1; const out = [];
+    (S.assigns[p.plan] || []).forEach(r => { for(let k = 0; k < r.done; k++) out.push(mkU('SN-' + p.plan.slice(-4) + '-' + String(i++).padStart(3, '0'), r.name, [], 'PASS')); });
+    S.units[p.plan] = out;
+  }
+  return S.units[p.plan];
+}
+function r1Res(codes){
+  if(!codes.length) return 'ผ่าน';
+  return codes.every(c => DEF[c].disp === 'CONCESSION') ? 'อนุโลม' : 'ไม่ผ่าน';
+}
+const defNames = codes => codes.map(c => DEF[c].n).join(', ') || '—';
+const sevTag = c => `<span class="tag">${DEF[c].sev}</span> <span class="tag${DEF[c].disp === 'CONCESSION' ? ' dash' : ''}">${DISP[DEF[c].disp]}</span>`;
+function defectStats(us){
+  const cur = {}, org = {};
+  us.forEach(u => { new Set(u.r1).forEach(c => cur[c] = (cur[c] || 0) + 1); new Set(u.r1o).forEach(c => org[c] = (org[c] || 0) + 1); });
+  return [...new Set([...Object.keys(cur), ...Object.keys(org)])].map(c => ({c, n:cur[c] || 0, o:org[c] || 0})).sort((a, b) => b.n - a.n || a.c.localeCompare(b.c));
+}
+function nextWorkday(d){ let x = addDays(d, 1); while(x.getUTCDay() === 0 || x.getUTCDay() === 6) x = addDays(x, 1); return x; }
+const corrTag = u => u.revs.length ? (r => `<span class="tag solid">แก้โดย ${esc(r.by)} (เดิม: ${esc(defNames([r.from]))})</span>`)(u.revs[u.revs.length - 1]) : '';
+const planTitle = (p, r) => `<div class="row between"><div><div class="small muted"><a href="#" data-act="lapNav" data-s="S10" style="color:inherit">รายการแผน</a> › ${p.plan}</div>
+    <h2 style="margin:2px 0">${p.plan} · ${esc(p.doc)} · ${p.model}</h2>
+    <span class="tag solid">${ST_TXT[p.st]}</span> <span class="pg ${r.pg.k}">${r.pg.t}</span> ${(p.flags || []).includes('sample') ? '<span class="tag solid">⚑ พบปัญหาในตัวอย่าง</span>' : ''} ${p.reqOverride != null ? '<span class="tag">ขยายการตรวจแล้ว</span>' : ''}</div>`;
+
+/* ---------- S12 รายละเอียดแผน ---------- */
+const TABS12 = [['info', 'ข้อมูล'], ['jobs', 'ใบงาน'], ['units', 'รายเครื่อง'], ['rw', 'Rework'], ['qa', 'QA + AQL'], ['rpt', 'Report'], ['hist', 'ประวัติ']];
+function exState(p){
+  const c = S.cur;
+  if(!c.ex || c.ex.plan !== p.plan) c.ex = {plan:p.plan, mode:'ALL', n:'', reason:''};
+  return c.ex;
+}
+function exPanel(p, us){
+  const bad = us.filter(u => r1Res(u.r1) === 'ไม่ผ่าน');
+  if(p.ex){
+    const e = p.ex;
+    return `<div class="fsec"><h3 style="margin-top:0">ตัดสินใจ "พบปัญหาในตัวอย่าง" แล้ว (BR-02a)</h3>
+      <div class="small">${e.mode === 'ALL' ? 'ขยายทั้งล็อต' : e.mode === 'PART' ? 'ขยายบางส่วน' : 'ไม่ขยาย'}${e.mode === 'NONE' ? '' : ` · ต้องตรวจ ${e.from} → <b>${e.to}</b> เครื่อง (นับเป็น "ต้องตรวจ" ไม่ใช่ "ตรวจเกิน")`} · ${esc(e.by)} · ${e.at}${e.reason ? ' · เหตุผล: ' + esc(e.reason) : ''}</div></div>`;
+  }
+  if(!(p.flags || []).includes('sample')) return '';
+  const ex = exState(p), req = reqOf(p);
+  const nw = ex.mode === 'ALL' ? p.lot : ex.mode === 'PART' ? parseInt(ex.n, 10) : req;
+  const partBad = ex.mode === 'PART' && !(nw > req && nw < p.lot);
+  const need = ex.mode === 'NONE' && !ex.reason.trim();
+  const why = partBad ? `ใส่จำนวนระหว่าง ${req + 1} ถึง ${p.lot - 1}` : need ? 'ไม่ขยายต้องใส่เหตุผล' : '';
+  const ch = (k, t, d) => `<button class="choice${ex.mode === k ? ' on' : ''}" data-act="exMode" data-v="${k}" style="min-height:48px"><span class="r"></span><b>${t}</b><br><span class="small muted">${d}</span></button>`;
+  return `<div class="fsec" style="border:2px solid var(--ink)"><h3 style="margin-top:0">⚑ พบปัญหาในตัวอย่าง — ต้องเรียกตรวจส่วนที่เหลือ? (BR-02a / FR-PLAN-09)</h3>
+    <div class="small">พบเครื่อง QC ผล "ไม่ผ่าน" ${bad.length} เครื่อง: ${bad.map(u => `<b>${u.sn}</b> (${esc(defNames(u.r1))})`).join(', ') || '—'} · ตอนนี้ต้องตรวจ ${req} จากล็อต ${p.lot} · แจ้ง QC Head แล้ว (FR-NTF-05)</div>
+    <div class="mt">${ch('ALL', 'ขยายทั้งล็อต (ค่าตั้งต้น)', `ต้องตรวจ = ${p.lot} เครื่อง`)}
+    ${ch('PART', 'ขยายบางส่วน', 'ระบุจำนวนที่ต้องตรวจทั้งหมดใหม่')}
+    ${ex.mode === 'PART' ? `<div class="field" style="max-width:260px"><label for="f_cur_ex_n" class="req">ต้องตรวจทั้งหมด (เครื่อง)</label><input class="inp${partBad ? ' err' : ''}" id="f_cur_ex_n" data-bind="cur.ex.n" inputmode="numeric" value="${esc(ex.n)}" placeholder="เช่น 60"></div>` : ''}
+    ${ch('NONE', 'ไม่ขยาย', 'คงจำนวนเดิม — ต้องใส่เหตุผล')}</div>
+    <div class="field"><label for="f_cur_ex_reason"${ex.mode === 'NONE' ? ' class="req"' : ''}>เหตุผล${ex.mode === 'NONE' ? '' : ' (ไม่บังคับ)'}</label><input class="inp" id="f_cur_ex_reason" data-bind="cur.ex.reason" value="${esc(ex.reason)}" placeholder="เช่น เป็นอาการอนุโลม / เกิดจากการขนส่ง"></div>
+    ${ex.mode !== 'NONE' && !partBad ? `<div class="alert soft">ถ้ายืนยัน: ต้องตรวจ ${req} → <b>${nw}</b> เครื่อง · ตรวจแล้ว ${p.qcDone}${nw > p.qcDone && p.st === 'QC_REVIEW' ? ' → แผนกลับสู่ "กำลังตรวจ" เพราะยังไม่ครบจำนวนใหม่ (BR-07)' : ''} · บันทึกใน plan_qty_overrides</div>` : ''}
+    <button class="btn pri${dis(why, why)}" data-act="exSave">ยืนยันการตัดสินใจ</button></div>`;
+}
+function tabInfo(p, r){
+  const m = r.m, us = unitsOf(p), req = reqOf(p), di = docInfo(p), qaDone = ['QA_PENDING', 'REPORT_REVIEW', 'COMPLETED'].indexOf(p.st) >= 0 ? (p.st === 'QA_PENDING' ? 0 : r.aq ? r.aq.n : 0) : 0;
+  return `<div class="s12g"><div>
+    ${exPanel(p, us)}
+    <div class="fsec"><h3 style="margin-top:0">หัวเอกสารรับเข้า</h3><dl class="kv">
+      <dt>${m.origin === 'DOM' ? 'PO' : 'Invoice'}</dt><dd><b>${esc(p.doc)}</b></dd><dt>Vendor / ผู้ผลิต</dt><dd>${esc(p.vendor)}</dd>
+      <dt>วันที่ Invoice</dt><dd>${di ? di.date : '—'}</dd><dt>SKU ใน Invoice</dt><dd>${di ? di.sku + ' SKU · เปิดแผนแล้ว ' + S.plans.filter(x => norm(x.doc) === norm(p.doc) && x.vendor === p.vendor).length : '—'}</dd></dl></div>
+    <div class="fsec"><h3 style="margin-top:0">ส่วนแผน</h3><dl class="kv">
+      <dt>Model</dt><dd><b>${p.model}</b> · ${esc(m.desc)}</dd><dt>ประเภทปั๊ม / Brand</dt><dd>${m.ptype} · ${m.brand} (${m.bg})</dd>
+      <dt>Checklist</dt><dd>QC ${m.qc} · QA ${m.qa} <span class="tag dash">ผูกเวอร์ชันตอนเปิดแผน (BR-20)</span></dd>
+      <dt>จำนวนล็อต</dt><dd>${p.lot} เครื่อง</dd><dt>วันที่รับเข้า</dt><dd>${p.isNew ? '16/10/2026' : '09/10/2026'}</dd></dl>
+      <div class="row mt"><button class="btn sm" data-act="stub" data-msg="แก้ไขแผน (FR-PLAN-11) — ก่อนมีผล = ผู้เปิดแผน, หลังมีผล = หัวหน้า + เหตุผล · เปลี่ยน Model ไม่ได้ถ้ามีผลตรวจ (BR-13) — ยังไม่ทำใน wireframe">แก้ไขแผน</button>
+      <button class="btn sm" data-act="stub" data-msg="ยกเลิกแผน (BR-13): ก่อนมีผล = ผู้เปิดแผน, หลังมีผล = QC/QA Head + เหตุผล — ยังไม่ทำใน wireframe">ยกเลิกแผน</button></div></div>
+  </div>
+  <div class="calc"><div class="blk"><div class="flabel">QC ตรวจแล้ว / ต้องตรวจ</div><div class="big">${p.qcDone} / ${req}</div>
+      <div class="small">${p.reqOverride != null ? `ขยายจาก ${qcRequired(p.lot)} (BR-02a)` : `ปัดขึ้น(${p.lot} × ${QC_PCT}%)`}</div><div class="bar mt"><i style="width:${Math.min(100, Math.round(100 * p.qcDone / Math.max(1, req)))}%"></i></div></div>
+    <div class="blk"><div class="flabel">QA ต้องสุ่มตรวจ</div><b style="font-size:22px">${r.aq ? r.aq.n : '-'}</b> เครื่อง<div class="small">${AQL_LV[p.aql]} · Code ${r.aq ? r.aq.code : '-'}</div></div>
+    <div class="blk"><div class="flabel">กำหนดตรวจ QC (90 วัน)</div>${r.dl ? `<b>${r.dl.due}</b> <span class="small">${r.dl.closed ? 'ปิดแล้ว' : r.dl.left < 0 ? 'เลยกำหนด ' + -r.dl.left + ' วัน' : 'เหลือ ' + r.dl.left + ' วัน'}</span>` : '<span class="muted small">ไม่ใช้กับปั๊มผลิตเอง</span>'}</div>
+    <div class="blk small"><div class="flabel">สถานะ Checklist</div>${ST_TXT[p.st]}${p.rw ? `<br>มี Rework ค้าง ${p.rw}` : ''}</div></div></div>`;
+}
+function tabJobs(p){
+  const rows = S.assigns[p.plan] || [], req = reqOf(p), sum = rows.reduce((s, r) => s + r.qty, 0);
+  return `<div class="row between"><div class="small">มอบหมายรวม <b>${sum}</b> / ต้องตรวจ <b>${req}</b> เครื่อง${sum > req ? ` · <b>เกินจำนวนที่ต้องตรวจ ${sum - req}</b> (ยืนยันแล้ว)` : sum < req ? ` · ยังไม่ได้มอบ ${req - sum}` : ' · ครบพอดี'}</div>
+    <button class="btn pri" data-act="openAssign" data-p="${p.plan}">มอบหมาย / โอนงาน</button></div>
+  <table class="tbl static mt"><thead><tr><th>ผู้ตรวจ</th><th class="num">ได้รับมอบ</th><th class="num">ทำแล้ว</th><th>สถานะใบงาน</th><th>Rework ค้าง</th></tr></thead><tbody>
+  ${rows.map(r => { const rw = S.reworks.filter(x => x.by === r.name && jobBy(x.job) && jobBy(x.job).plan === p.plan).map(x => x.sn);
+    return `<tr><td><b>${r.name}</b><br><span class="small muted">รหัส ${INSP_CODE[r.name] || '—'}</span></td><td class="num">${r.qty}</td><td class="num">${r.done}</td><td><span class="tag${r.st === 'IN_PROGRESS' ? ' solid' : r.st === 'WAITING' ? ' dash' : ''}">${JOB_TXT[r.st]}</span></td><td>${rw.length ? esc(rw.join(', ')) : '—'}</td></tr>`; }).join('') || '<tr><td colspan="5" class="center muted">ยังไม่ได้มอบหมาย</td></tr>'}
+  </tbody></table>${note('FR-JOB-01..04 · ใบงาน = ผู้ตรวจ 1 คน ต่อ 1 แผน · สถานะ: รอรับงาน → กำลังทำ → ส่งแล้ว (→ ถูกตีกลับ) · ส่งใบงานได้เมื่อตรวจครบจำนวนที่ได้รับและไม่มี Rework ค้าง (BR-07)')}`;
+}
+const INSP_CODE = {'ผู้ตรวจ ก.':'10234', 'ผู้ตรวจ ข.':'10241', 'ผู้ตรวจ ค.':'10255', 'ผู้ตรวจ ง.':'10260', 'ผู้ตรวจ จ.':'10268'};
+function tabUnits(p){
+  const us = unitsOf(p);
+  return `<div class="small muted mb">${us.length} เครื่อง · ผลที่ส่งแล้วล็อกที่ผู้ตรวจ แก้ได้ทาง Rework หรือ Correction เท่านั้น (BR-13)</div>
+  <table class="tbl static"><thead><tr><th>Serial</th><th>ผู้ตรวจ</th><th>ผลรอบ 1</th><th>อาการรอบ 1</th><th>Rework</th><th>ผลสุดท้าย</th></tr></thead><tbody>
+  ${us.map(u => `<tr><td><b>${u.sn}</b></td><td>${u.insp}</td><td>${r1Res(u.r1)}</td><td>${esc(defNames(u.r1))}${u.r1.length ? '<br>' + u.r1.map(sevTag).join(' ') : ''}${u.revs.length ? '<br>' + corrTag(u) : ''}</td>
+    <td>${u.rounds.length ? u.rounds.map(x => 'รอบ ' + x.n + ': ' + x.res).join('<br>') : '—'}</td><td><span class="tag${u.fin === 'PASS' ? '' : ' solid'}">${FIN_TXT[u.fin]}</span></td></tr>`).join('') || '<tr><td colspan="6" class="center muted">ยังไม่มีผลตรวจ</td></tr>'}
+  </tbody></table>${note('FR-RPT-04 drill-down: กด Serial → หน้ารายเครื่องพร้อมรูปทุกรอบ (ยังไม่ทำ) · ป้าย "แก้โดย…" มาจาก Correction (BR-06a) แสดงค่าเดิมเสมอ')}`;
+}
+function tabRw(p){
+  const pend = S.reworks.filter(r => jobBy(r.job) && jobBy(r.job).plan === p.plan), done = unitsOf(p).filter(u => u.rounds.length && u.fin !== 'RW_PENDING');
+  return `<h3 style="margin-top:0">ใบ Rework ค้าง (${pend.length})</h3>
+  <table class="tbl static"><thead><tr><th>ใบ Rework</th><th>Serial</th><th>จาก</th><th>รอบ</th><th>หัวข้อที่ต้องแก้</th><th>ผู้รับ</th><th>เปิดเมื่อ</th></tr></thead><tbody>
+  ${pend.map(r => `<tr><td><b>${r.id}</b></td><td>${r.sn}</td><td>${r.src}</td><td>${r.round}</td><td>${r.items.map(x => 'ข้อ ' + x.id + ': ' + esc(defNames(x.defects))).join('<br>')}</td><td>${r.by}</td><td>${r.at}</td></tr>`).join('') || '<tr><td colspan="7" class="muted center">ไม่มี Rework ค้าง</td></tr>'}</tbody></table>
+  <h3>ปิดแล้ว (${done.length})</h3>
+  <table class="tbl static"><thead><tr><th>Serial</th><th>อาการรอบ 1</th><th>วิธีแก้</th><th>ผลหลังแก้</th><th>เมื่อ</th></tr></thead><tbody>
+  ${done.map(u => { const x = u.rounds[u.rounds.length - 1]; return `<tr><td><b>${u.sn}</b></td><td>${esc(defNames(u.r1))}${u.revs.length ? '<br>' + corrTag(u) : ''}</td><td>${esc(x.fix || '—')}</td><td>${x.res} (รอบ ${x.n})</td><td>${x.at}</td></tr>`; }).join('') || '<tr><td colspan="5" class="muted center">—</td></tr>'}</tbody></table>
+  ${note('BR-06: ใบ Rework มีเฉพาะหัวข้อที่ไม่ผ่านของรอบล่าสุด · ข้อมูลและรูปรอบก่อนห้ามแก้ · Correction ไม่ทำให้ข้อมูลรอบ Rework เปลี่ยน')}`;
+}
+function tabQa(p, r){
+  const isQA = S.role === 'QA_HEAD', c = S.cur;
+  if(!c.aql || c.aql.plan !== p.plan) c.aql = {plan:p.plan, v:p.aql, reason:''};
+  const a = c.aql, changed = a.v !== p.aql, nw = aqlLookup(a.v, p.lot);
+  const locked = ['REPORT_REVIEW', 'COMPLETED', 'CANCELLED'].includes(p.st);
+  const hist = histOf(p).filter(h => h.k === 'aql');
+  const why = !isQA ? 'เฉพาะ QA Head' : locked ? 'QA ปิดงานแล้ว เปลี่ยนไม่ได้' : !changed ? 'ยังไม่ได้เปลี่ยนระดับ' : !a.reason.trim() ? 'ต้องใส่เหตุผล' : '';
+  return `<div class="s12g"><div>
+    <div class="fsec"><h3 style="margin-top:0">ระดับ AQL ของแผนนี้ (BR-03)</h3>
+      <div class="field" style="max-width:320px"><label for="f_cur_aql_v">ระดับ ${isQA ? '' : '<span class="tag dash">อ่านอย่างเดียว — เฉพาะ QA Head แก้ได้</span>'}</label>
+      <select class="inp" id="f_cur_aql_v" data-bind="cur.aql.v" ${isQA && !locked ? '' : 'disabled'}>${Object.keys(AQL_LV).map(k => `<option value="${k}"${a.v === k ? ' selected' : ''}>${AQL_LV[k]}</option>`).join('')}</select></div>
+      ${changed ? `<div class="field"><label class="req" for="f_cur_aql_reason">เหตุผลที่เปลี่ยน</label><input class="inp" id="f_cur_aql_reason" data-bind="cur.aql.reason" value="${esc(a.reason)}" placeholder="เช่น พบถังรั่วที่รอยเชื่อม ~12% ของล็อต">
+        <div class="small">ประวัติที่จะบันทึก: ${AQL_LV[p.aql]} → ${AQL_LV[a.v]} · ${r.aq ? r.aq.n : '–'} → ${nw ? nw.n : '–'} เครื่อง</div></div>` : ''}
+      <button class="btn${dis(why, why)}" data-act="aqlSave">บันทึกการเปลี่ยนระดับ</button>
+      <div class="small muted mt">${isQA ? 'QA Head เปลี่ยนได้จนกว่า QA ปิดงาน → คำนวณใหม่ทันที' : 'สลับเป็น QA Head ที่แผงซ้ายเพื่อลองเปลี่ยน'} · ตรวจเกินจำนวนใหม่ไม่ต้องลบ</div></div>
+    <div class="fsec"><h3 style="margin-top:0">ประวัติการเปลี่ยนระดับ</h3>${hist.length ? `<div class="tl">${hist.map(h => `<div class="aqlk"><b>${h.at}</b> · ${esc(h.who)}<br>${esc(h.t)}</div>`).join('')}</div>` : '<span class="muted small">ยังไม่เคยเปลี่ยน — ใช้ค่าตั้งต้นตามแหล่งที่มา</span>'}</div></div>
+  <div class="calc"><div class="blk"><div class="flabel">QA ต้องสุ่มตรวจ</div><div class="big">${r.aq ? r.aq.n : '-'}</div><div class="small">ล็อต ${p.lot} → Code ${r.aq ? r.aq.code : '-'} · ${AQL_LV[p.aql]}</div></div>
+    <div class="blk"><div class="flabel">QA ตรวจแล้ว</div><b style="font-size:22px">${p.st === 'COMPLETED' || p.st === 'REPORT_REVIEW' ? (r.aq ? r.aq.n : 0) : 0}</b> เครื่อง<div class="small">คิวงาน QA อยู่ที่ S28 (ยังไม่ทำใน wireframe ชุดนี้)</div></div></div></div>`;
+}
+function tabRpt(p){
+  const imp = (modelBy(p.model) || {}).origin !== 'DOM', inRev = p.st === 'QC_REVIEW' || p.st === 'REPORT_REVIEW';
+  if(!imp) return `<div class="card dash"><b>ปั๊มผลิตเอง — ไม่ออก Report / NCP</b><div class="small muted">report_required_by_origin.DOMESTIC = false (FR-RPT-09, ❓ D8) · ผลยังเข้า Status board / Dashboard / KPI</div></div>`;
+  const rp = (t, st, d) => `<div class="card"><div class="row between"><b>${t}</b><span class="tag${st.startsWith('อนุมัติ') ? ' solid' : ' dash'}">${st}</span></div><div class="small muted">${d}</div></div>`;
+  const qcSt = p.st === 'COMPLETED' ? 'อนุมัติแล้ว (ล็อก)' : p.st === 'REPORT_REVIEW' ? 'รออนุมัติ' : p.st === 'QC_REVIEW' ? 'ร่าง — รอหัวหน้าตรวจทาน' : ['QA_PENDING', 'QA_IN_PROGRESS'].includes(p.st) ? 'ตรวจทานแล้ว' : 'ยังไม่สร้าง (สร้างเมื่อ QC ครบ)';
+  const qaSt = p.st === 'COMPLETED' ? 'อนุมัติแล้ว (ล็อก)' : p.st === 'REPORT_REVIEW' ? 'รออนุมัติ' : 'ยังไม่สร้าง (สร้างเมื่อ QA ปิดงาน)';
+  return `${rp('Report QC', qcSt, 'ตาราง Defect ใช้ "ผลที่พบครั้งแรก" (รอบ 1 ฉบับแก้ไขล่าสุด) · รูปตัวอย่างต่ออาการ ≤ 3 รูป')}${rp('Report QA', qaSt, 'สร้างเมื่อ QA ปิดงาน (BR-14)')}
+   <button class="btn pri${dis(!(inRev || p.st === 'COMPLETED'), 'ยังไม่ถึงขั้นตรวจทาน')}" data-act="openReview" data-p="${p.plan}">${p.st === 'COMPLETED' ? 'ดู Report / เปิดใหม่' : 'ไปหน้าตรวจทานผล (S14)'}</button>
+   ${note('FR-RPT-01..06 · Report QC และ QA แยกกัน · ไม่ส่งอัตโนมัติ ต้องผ่านผู้อนุมัติ (S14) · อนุมัติแล้วล็อก + PDF snapshot')}`;
+}
+function tabHist(p){
+  const h = histOf(p);
+  return `<div class="tl">${h.slice().reverse().map(x => `<div class="${x.k === 'corr' ? 'corr' : x.k === 'aql' ? 'aqlk' : ''}"><b>${x.at}</b> · ${esc(x.who)}${x.k !== 'st' ? ` <span class="tag">${x.k === 'corr' ? 'Correction' : x.k === 'aql' ? 'AQL' : 'ตัดสินใจ'}</span>` : ''}<br>${esc(x.t)}</div>`).join('')}</div>
+  ${note('plan_status_history ใช้วัด SLA / KPI · Audit ของ Correction เก็บค่าเดิม → ใหม่ ผู้แก้ เหตุผล เวลา (BR-06a)')}`;
+}
+function scrS12(){
+  const p = curPlan(), r = planRowData(p), tab = S.cur.tab, inRev = p.st === 'QC_REVIEW' || p.st === 'REPORT_REVIEW';
+  const fn = {info:tabInfo, jobs:tabJobs, units:tabUnits, rw:tabRw, qa:tabQa, rpt:tabRpt, hist:tabHist}[tab];
+  const body = `${planTitle(p, r)}<div class="row"><button class="btn" data-act="openAssign" data-p="${p.plan}">มอบหมาย / โอนงาน</button>
+      <button class="btn pri${dis(!inRev, 'ตรวจทานได้เมื่อแผนอยู่ขั้น "รอหัวหน้าตรวจทาน" หรือ "รออนุมัติ Report"')}" data-act="openReview" data-p="${p.plan}">ตรวจทานผล</button></div></div>
+    <div class="tabs" role="tablist">${TABS12.map(([k, l]) => `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" data-act="tab12" data-t="${k}">${l}</button>`).join('')}</div>
+    ${fn(p, r)}
+    ${tab === 'info' ? note('FR-PLAN-12 · หน้ารายละเอียดแบบแท็บ · ธง "พบปัญหาในตัวอย่าง" ขึ้นเมื่อมีเครื่อง QC ผล "ไม่ผ่าน" ≥ 1 เครื่อง (ไม่นับอนุโลม — ❓ B2) → QC Head เลือก ขยายทั้งล็อต / บางส่วน / ไม่ขยาย (ต้องมีเหตุผล) · จำนวนที่ขยายนับเป็น "ต้องตรวจ" ไม่ใช่ "ตรวจเกิน" (BR-02a, AC FR-PLAN-09: ล็อต 40 → ต้องตรวจ 40) · ลองที่ QP-2610-0012') : ''}`;
+  return lapFrame('S12', 'รายละเอียดแผน', body);
+}
+
+/* ---------- S13 มอบหมาย / โอนงาน ---------- */
+function openAssignState(plan){
+  const p = planBy(plan), rows = (S.assigns[plan] || []).map(r => Object.assign({}, r));
+  S.cur.aplan = plan;
+  S.asg = {plan, rows:rows.length ? rows : [{name:'', qty:'', done:0, st:'WAITING'}], confirm:false, reason:'', xfer:null};
+}
+const asgLocked = r => r.st === 'SUBMITTED' || r.st === 'CLOSED';
+function asgCheck(a){
+  const used = {}; const errs = a.rows.map(r => {
+    const q = String(r.qty).trim();
+    if(!r.name) return 'เลือกผู้ตรวจ';
+    if(used[r.name]) return 'ผู้ตรวจซ้ำ — 1 คนมี 1 ใบงานต่อแผน';
+    used[r.name] = 1;
+    if(!/^\d+$/.test(q) || +q < 1) return 'ใส่จำนวนเต็ม ≥ 1';
+    if(+q < r.done) return `ต่ำกว่าที่ทำแล้ว (${r.done}) ไม่ได้ — ใช้ "โอนส่วนที่เหลือ"`;
+    return '';
+  });
+  const sum = a.rows.reduce((s, r) => s + (parseInt(r.qty, 10) || 0), 0);
+  return {errs, sum};
+}
+function scrS13(){
+  const p = planBy(S.cur.aplan) || curPlan();
+  if(!S.asg || S.asg.plan !== p.plan) openAssignState(p.plan);
+  const a = S.asg, r0 = planRowData(p), req = reqOf(p), {errs, sum} = asgCheck(a), over = sum - req;
+  const isQC = S.role === 'QC_HEAD';
+  const blockers = [];
+  if(!isQC) blockers.push('มอบหมายได้เฉพาะ QC Head');
+  if(errs.some(Boolean)) blockers.push('แก้ช่องที่ผิดก่อน');
+  if(over > 0 && !a.confirm) blockers.push('ติ๊กยืนยันการมอบเกิน');
+  if(over > 0 && !a.reason.trim()) blockers.push('ใส่เหตุผลที่มอบเกิน');
+  const used = a.rows.map(r => r.name);
+  const rowsHtml = a.rows.map((r, i) => { const lock = asgLocked(r), e = errs[i], rem = (parseInt(r.qty, 10) || 0) - r.done;
+    return `<tr><td style="width:240px"><select class="inp${e && !r.name ? ' err' : ''}" id="f_asg_rows_${i}_name" data-bind="asg.rows.${i}.name" ${r.done > 0 || lock ? 'disabled' : ''} aria-label="ผู้ตรวจ">
+        <option value="">— เลือกผู้ตรวจ —</option>${INSPECTORS.map(n => `<option${r.name === n ? ' selected' : ''}${used.includes(n) && r.name !== n ? ' disabled' : ''}>${n}</option>`).join('')}</select></td>
+      <td style="width:130px"><input class="inp${e && r.name ? ' err' : ''}" id="f_asg_rows_${i}_qty" data-bind="asg.rows.${i}.qty" inputmode="numeric" value="${esc(r.qty)}" ${lock ? 'readonly' : ''} aria-label="จำนวน"></td>
+      <td class="num">${r.done}</td><td><span class="tag${r.st === 'IN_PROGRESS' ? ' solid' : r.st === 'WAITING' ? ' dash' : ''}">${r.name ? JOB_TXT[r.st] : 'ใหม่'}</span>
+        ${e ? `<div class="msg bad">${esc(e)}</div>` : lock ? '<div class="small muted">ส่งแล้ว แก้ไม่ได้</div>' : ''}</td>
+      <td style="white-space:nowrap">${!lock && r.name && rem > 0 && a.rows.length > 1 ? `<button class="btn sm" data-act="asgXfer" data-i="${i}">โอนส่วนที่เหลือ (${rem})</button> ` : ''}
+        ${r.done === 0 && !lock ? `<button class="btn sm ghost" data-act="asgDel" data-i="${i}" aria-label="เอาออก">✕</button>` : ''}</td></tr>`; }).join('');
+  let xf = '';
+  if(a.xfer){ const f = a.rows[a.xfer.i], rem = (parseInt(f.qty, 10) || 0) - f.done;
+    xf = `<div class="fsec mt"><b>โอนงานที่ยังไม่ได้ตรวจ ${rem} เครื่อง จาก ${f.name}</b> (ส่วนที่ทำแล้ว ${f.done} เครื่องยังเป็นของเดิม)
+      <div class="row mt"><select class="inp" id="f_asg_xfer_to" data-bind="asg.xfer.to" style="width:260px"><option value="">— โอนให้ —</option>${INSPECTORS.filter(n => n !== f.name && !asgLocked(a.rows.find(x => x.name === n) || {st:''})).map(n => `<option${a.xfer.to === n ? ' selected' : ''}>${n}</option>`).join('')}</select>
+      <button class="btn pri${dis(!a.xfer.to, 'เลือกผู้รับโอน')}" data-act="asgXferOk">ยืนยันโอน</button><button class="btn" data-act="asgXferCancel">ยกเลิก</button></div>
+      <div class="small muted mt">ผู้รับโอนจะเห็นใบงานใหม่ในหน้า "งานของฉัน" และต้องกดรับงาน (FR-JOB-06)</div></div>`; }
+  const body = `<div class="row between"><div><div class="small muted"><a href="#" data-act="lapNav" data-s="S10" style="color:inherit">รายการแผน</a> › <a href="#" data-act="gotoDetail" data-p="${p.plan}" style="color:inherit">${p.plan}</a> › มอบหมาย</div>
+      <h2 style="margin:2px 0">มอบหมาย / โอนงาน · ${p.plan}</h2><span class="small muted">${esc(p.doc)} · ${esc(p.vendor)} · ${p.model} · ล็อต ${p.lot}</span></div>
+      <div class="field" style="margin:0;width:260px"><label for="f_cur_aplan">เลือกแผน</label><select class="inp" id="f_cur_aplan" data-bind="cur.aplan">${S.plans.filter(x => !['COMPLETED', 'CANCELLED'].includes(x.st)).map(x => `<option value="${x.plan}"${x.plan === p.plan ? ' selected' : ''}>${x.plan} · ${x.model}</option>`).join('')}</select></div></div>
+    ${!isQC ? '<div class="alert soft">บทบาทปัจจุบันคือ QA Head — ดูได้อย่างเดียว (มอบหมายงาน QC เป็นสิทธิ์ QC Head) · สลับที่แผงซ้าย</div>' : ''}
+    <div class="s12g mt"><div>
+      <table class="tbl static"><thead><tr><th>ผู้ตรวจ</th><th>จำนวนที่ได้รับมอบ</th><th class="num">ทำแล้ว</th><th>สถานะใบงาน</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table>
+      <div class="row mt"><button class="btn${dis(a.rows.length >= INSPECTORS.length, 'ผู้ตรวจครบทุกคนแล้ว')}" data-act="asgAdd">＋ เพิ่มผู้ตรวจ</button><button class="btn" data-act="asgEven">แบ่งเท่าๆ กัน (รวม ${req})</button></div>
+      ${xf}
+      ${over > 0 ? `<div class="alert" style="margin-top:14px"><b>เกินจำนวนที่ต้องตรวจ ${over}</b> — มอบรวม ${sum} แต่ต้องตรวจ ${req} เครื่อง · บันทึกได้เมื่อยืนยันและใส่เหตุผล
+        <label class="row mt" style="cursor:pointer"><input type="checkbox" id="f_asg_confirm" data-bind="asg.confirm" ${a.confirm ? 'checked' : ''} style="width:20px;height:20px"> ยืนยันมอบเกินจำนวนที่ต้องตรวจ ${over} เครื่อง</label>
+        <div class="field mt" style="margin-bottom:0"><label class="req" for="f_asg_reason">เหตุผล</label><input class="inp" id="f_asg_reason" data-bind="asg.reason" value="${esc(a.reason)}" placeholder="เช่น เผื่อเครื่องที่ต้อง Reject / ผู้ตรวจลาครึ่งวัน"></div></div>`
+        : over < 0 && sum > 0 ? `<div class="alert soft" style="margin-top:14px">ยังมอบไม่ครบ — เหลือ ${-over} เครื่อง (บันทึกได้ มอบส่วนที่เหลือภายหลัง)</div>` : ''}
+      <div class="lap-foot"><span class="grow small">${blockers.length ? 'ยังบันทึกไม่ได้: ' + esc(blockers.join(' · ')) : '✓ พร้อมบันทึก'}</span>
+        <button class="btn" data-act="gotoDetail" data-p="${p.plan}">ยกเลิก</button>
+        <button class="btn pri${dis(blockers.length, blockers.join(' · '))}" data-act="asgSave">บันทึกการมอบหมาย</button></div>
+      ${note('FR-JOB-01/06 · มอบหมายผู้ตรวจ 1..n คน พร้อมจำนวนต่อคน · รวมเกินจำนวนที่ต้องตรวจได้เมื่อยืนยัน + เหตุผล (AC: ต้องตรวจ 35 → มอบ 12/12/12 = 36 → เตือน "เกินจำนวนที่ต้องตรวจ 1" ต้องติ๊กยืนยัน + เหตุผลจึงบันทึกได้) · โอน/ปรับจำนวนระหว่างทางได้ แต่ลดต่ำกว่าที่ทำแล้วไม่ได้ · ใบงานที่ส่งแล้วล็อก · ลองที่ QP-2610-0012 (ตอนนี้ 12/12/11: แก้ 11 → 12)')}
+    </div>
+    <div class="calc"><div class="blk"><div class="flabel">QC ต้องตรวจ</div><div class="big">${req}</div><div class="small">${p.reqOverride != null ? `ขยายแล้ว (BR-02a) จาก ${qcRequired(p.lot)}` : `ปัดขึ้น(${p.lot} × ${QC_PCT}%)`}</div></div>
+      <div class="blk"><div class="flabel">มอบหมายรวม</div><div class="big" id="cSum">${sum}</div>
+        <div class="small"><b>${over > 0 ? 'เกินจำนวนที่ต้องตรวจ ' + over : over < 0 ? 'ยังเหลือ ' + -over : 'ครบพอดี'}</b></div></div>
+      <div class="blk small"><div class="flabel">ทำแล้ว (QC)</div>${p.qcDone} เครื่อง · สถานะ: ${ST_TXT[p.st]}</div></div></div>`;
+  return lapFrame('S13', 'มอบหมาย / โอนงาน', body);
+}
+
+/* ---------- S14 ตรวจทานผล + Correction / ตีกลับ / อนุมัติ ---------- */
+function revState(p){
+  if(!S.rev || S.rev.plan !== p.plan) S.rev = {plan:p.plan, sel:{}, edit:null, comment:'', modeAOff:false, reopen:''};
+  return S.rev;
+}
+function scrS14(){
+  const cands = S.plans.filter(x => ['QC_REVIEW', 'REPORT_REVIEW'].includes(x.st) || unitsOf(x).some(u => u.ret && !u.ret.done));
+  let p = planBy(S.cur.rplan);
+  if(!p || !(cands.includes(p) || p.st === 'COMPLETED')) p = cands[0] || curPlan();
+  S.cur.rplan = p.plan;
+  const R = revState(p), us = unitsOf(p), isQA = S.role === 'QA_HEAD', r0 = planRowData(p), req = reqOf(p);
+  const stage = p.st === 'QC_REVIEW' ? 'QC' : p.st === 'REPORT_REVIEW' ? 'RPT' : '';
+  const locked = p.st === 'COMPLETED', ret = us.filter(u => u.ret && !u.ret.done);
+  const imp = (modelBy(p.model) || {}).origin !== 'DOM';
+  const asg = S.assigns[p.plan] || [];
+  const chks = [[p.qcDone >= req, `QC ตรวจแล้ว ${p.qcDone} ≥ ต้องตรวจ ${req}`], [!us.some(u => u.fin === 'RW_PENDING') && !S.reworks.some(r => jobBy(r.job) && jobBy(r.job).plan === p.plan), 'ไม่มีเครื่อง Rework ค้าง'],
+    [asg.length > 0 && asg.every(x => asgLocked(x)), 'ใบงาน QC ทุกใบ "ส่งแล้ว"']];
+  const stats = defectStats(us), inspected = us.length;
+  const sampleOpen = (p.flags || []).includes('sample');
+  const editRow = u => { const e = R.edit;
+    if(!e || e.sn !== u.sn) return '';
+    const to = e.to && DEF[e.to] ? e.to : '', newCodes = to ? u.r1.map(c => c === e.from ? to : c) : u.r1;
+    const why = !to ? 'เลือกอาการที่ถูกต้อง' : !e.reason.trim() ? 'ต้องใส่เหตุผล' : '';
+    return `<tr class="sub"><td colspan="8"><b>Correction ${u.sn}</b> <span class="small muted">แก้ข้อมูลที่บันทึกผิด ≠ Rework · เก็บค่าเดิมเสมอ (BR-06a) · รูปแก้ไม่ได้</span>
+      <div class="row mt" style="align-items:end"><div class="field" style="margin:0;width:240px"><label for="f_rev_edit_from">อาการที่บันทึกผิด (รอบ 1)</label>
+        <select class="inp" id="f_rev_edit_from" data-bind="rev.edit.from">${u.r1.map(c => `<option value="${c}"${e.from === c ? ' selected' : ''}>${DEF[c].n}</option>`).join('')}</select></div>
+        <span style="padding-bottom:8px">→</span>
+        <div class="field" style="margin:0;width:340px"><label class="req" for="f_rev_edit_to">เปลี่ยนเป็น</label>
+        <select class="inp" id="f_rev_edit_to" data-bind="rev.edit.to"><option value="">— เลือกอาการ —</option>${ITEMS.filter(i => i.defects).map(i => `<optgroup label="หัวข้อ ${i.id} ${i.title}">${i.defects.filter(d => d.c !== e.from).map(d => `<option value="${d.c}"${e.to === d.c ? ' selected' : ''}>${d.n}</option>`).join('')}</optgroup>`).join('')}</select></div>
+        <div class="field" style="margin:0;flex:1;min-width:240px"><label class="req" for="f_rev_edit_reason">เหตุผล</label><input class="inp" id="f_rev_edit_reason" data-bind="rev.edit.reason" value="${esc(e.reason)}" placeholder="เช่น ผู้ตรวจเลือกหัวข้อผิด ตรวจจากรูปแล้วเป็นสีไม่ผ่าน"></div></div>
+      ${to ? `<div class="small mt">ผลรอบ 1 ใหม่: <b>${r1Res(newCodes)}</b> (เดิม ${r1Res(u.r1)}) · ตาราง Defect: <span class="delta">${DEF[to].n} +1</span>, <span class="delta">${DEF[e.from].n} −1</span> · ข้อมูล/รูปรอบ Rework ไม่เปลี่ยน · ระบบสร้างร่าง Report ใหม่
+        ${u.rounds.length && !newCodes.some(c => DEF[c].disp === 'REWORK') ? ' · <b>⚑ Rework รอบถัดไปอาจไม่จำเป็น — ติดธงให้หัวหน้าตัดสิน</b>' : ''}</div>` : ''}
+      <div class="row mt"><button class="btn pri${dis(why, why)}" data-act="revSave">บันทึกการแก้ไข (ฉบับที่ ${u.revs.length + 1})</button><button class="btn" data-act="revCancelEdit">ยกเลิก</button></div></td></tr>`; };
+  const tr = us.map(u => `<tr${R.sel[u.sn] ? ' class="hl"' : ''}>
+    <td>${stage ? `<input type="checkbox" ${R.sel[u.sn] ? 'checked' : ''} data-act="revToggle" data-sn="${u.sn}" aria-label="เลือกตีกลับ ${u.sn}">` : ''}</td>
+    <td><b>${u.sn}</b></td><td>${u.insp}</td><td>${r1Res(u.r1)}</td><td>${esc(defNames(u.r1))}${u.r1.length ? '<br>' + u.r1.map(sevTag).join(' ') : ''}${u.revs.length ? '<br>' + corrTag(u) : ''}${u.ret && !u.ret.done ? '<br><span class="tag dash">ตีกลับ — รอผู้ตรวจแก้ (กำหนด ' + u.ret.due + ')</span>' : ''}</td>
+    <td>${u.rounds.length ? u.rounds.map(x => 'รอบ ' + x.n + ': ' + x.res).join('<br>') : '—'}</td><td><span class="tag${u.fin === 'PASS' ? '' : ' solid'}">${FIN_TXT[u.fin]}</span></td>
+    <td>${stage && !R.modeAOff && u.r1.length ? `<button class="btn sm" data-act="revEdit" data-sn="${u.sn}">แก้ไข</button>` : ''}</td></tr>${editRow(u)}`).join('');
+  const nSel = us.filter(u => R.sel[u.sn]).length;
+  const due = fmtD(nextWorkday(TODAY));
+  const retWhy = !stage ? 'ตีกลับได้เฉพาะขั้นตรวจทาน / รออนุมัติ' : !nSel ? 'เลือกเครื่องที่จะตีกลับ' : !R.comment.trim() ? 'ใส่ความเห็นถึงผู้ตรวจ' : '';
+  const sendBlock = !chks.every(c => c[0]) ? 'เงื่อนไข BR-07 ยังไม่ครบ' : S.role !== 'QC_HEAD' ? 'ขั้นนี้เป็นของ QC Head' : '';
+  const apvBlock = !isQA ? 'ผู้อนุมัติ (ตั้งต้น = QA Head) — สลับบทบาทที่แผงซ้าย' : '';
+  const side = locked
+    ? `<div class="lock"><b>อนุมัติแล้ว — ล็อก</b><div class="small">Report QC + QA ถูกล็อก มี PDF snapshot · แก้ไขไม่ได้ (BR-13)</div></div>
+       <div class="field"><label for="f_rev_reopen">เหตุผลที่เปิดใหม่</label><input class="inp" id="f_rev_reopen" data-bind="rev.reopen" value="${esc(R.reopen)}"></div>
+       <button class="btn block${dis(!isQA || !R.reopen.trim(), !isQA ? 'เปิดใหม่ได้เฉพาะ QA Head' : 'ต้องใส่เหตุผล')}" data-act="revReopen">เปิดใหม่ (QA Head + เหตุผล)</button>
+       <div class="small muted mt">แผนกลับเป็น "รออนุมัติ Report" · Report เวอร์ชันใหม่ · ถ้ามี NCP แล้วต้องออก NCP revision</div>`
+    : `<h3 style="margin-top:0">ตีกลับ (โหมด ข)</h3><div class="small muted mb">ให้ผู้ตรวจแก้เฉพาะเครื่องที่ติ๊ก — เปิด Checklist เดิมพร้อมคำตอบเดิม</div>
+       <div class="small">เลือกแล้ว: <b>${nSel}</b> เครื่อง${nSel ? ' (' + us.filter(u => R.sel[u.sn]).map(u => u.sn).join(', ') + ')' : ''}</div>
+       <div class="field mt"><label class="req" for="f_rev_comment">ความเห็นถึงผู้ตรวจ</label><textarea class="inp" id="f_rev_comment" rows="3" data-bind="rev.comment" placeholder="เช่น รูปหัวข้อ 4 ไม่ชัด / เลือกอาการผิดหมวด">${esc(R.comment)}</textarea></div>
+       <div class="small mb">กำหนดแก้ ⚙️ ตั้งต้น 1 วันทำการ → <b>${due}</b> · ระบบแสดงอายุค้างและเตือนเมื่อเลยกำหนด</div>
+       <button class="btn block${dis(retWhy, retWhy)}" data-act="revReturn">ตีกลับให้ผู้ตรวจแก้</button>
+       <hr style="border:0;border-top:1px solid var(--g5);margin:14px 0">
+       ${stage === 'QC' ? `<button class="btn pri block${dis(sendBlock, sendBlock)}" data-act="revSend">ตรวจทานเสร็จ → ส่ง QA</button><div class="small muted mt">${sampleOpen ? '⚑ ยังไม่ได้ตัดสิน "พบปัญหาในตัวอย่าง" (BR-02a) — ตัดสินที่ S12 ก่อนส่ง' : 'สถานะ → รอ QA'}</div>`
+       : stage === 'RPT' ? `<button class="btn pri block${dis(apvBlock, apvBlock)}" data-act="revApprove">อนุมัติ Report QC + QA</button><div class="small muted mt">อนุมัติแล้วล็อก + PDF snapshot → เสร็จ</div>`
+       : ret.length ? `<div class="alert soft">รอผู้ตรวจแก้ ${ret.length} เครื่อง · อายุค้าง 0 วัน · ครบกำหนด ${ret[0].ret.due}</div><button class="btn block" data-act="revSimDone">จำลอง: ผู้ตรวจแก้แล้วส่งกลับ</button>`
+       : `<div class="alert soft">แผนนี้ยังไม่ถึงขั้นตรวจทาน (สถานะ: ${ST_TXT[p.st]})</div>`}`;
+  const body = `<div class="row between"><div><div class="small muted"><a href="#" data-act="lapNav" data-s="S10" style="color:inherit">รายการแผน</a> › <a href="#" data-act="gotoDetail" data-p="${p.plan}" style="color:inherit">${p.plan}</a> › ตรวจทานผล</div>
+      <h2 style="margin:2px 0">ตรวจทานผล · ${p.plan} · ${esc(p.doc)} · ${p.model}</h2><span class="tag solid">${ST_TXT[p.st]}</span> ${sampleOpen ? '<span class="tag solid">⚑ พบปัญหาในตัวอย่าง</span>' : ''} ${imp ? '' : '<span class="tag dash">ผลิตเอง — ไม่ออก Report</span>'}</div>
+      <div class="field" style="margin:0;width:280px"><label for="f_cur_rplan">เลือกแผน</label><select class="inp" id="f_cur_rplan" data-bind="cur.rplan">${[...new Set(cands.concat(p))].map(x => `<option value="${x.plan}"${x.plan === p.plan ? ' selected' : ''}>${x.plan} · ${x.model} · ${ST_TXT[x.st]}</option>`).join('')}</select></div></div>
+    <div class="row mt"><b class="small">เงื่อนไขส่งต่อ (BR-07):</b>${chks.map(c => `<span class="chk small"><b>${c[0] ? '✓' : '✕'}</b>${c[1]}</span>`).join('')}</div>
+    <label class="row small mt" style="cursor:pointer"><input type="checkbox" id="f_rev_modeAOff" data-bind="rev.modeAOff" ${R.modeAOff ? 'checked' : ''}> จำลอง: ปิดโหมด (ก) แก้ไขเอง ในตั้งค่า (เมื่อบังคับกำหนดแก้ได้แล้ว) → เหลือเฉพาะ "ตีกลับ"</label>
+    <div class="s12g mt"><div>
+      <table class="tbl static"><thead><tr><th style="width:44px">ตีกลับ</th><th>Serial</th><th>ผู้ตรวจ</th><th>ผลรอบ 1</th><th>อาการรอบ 1 (ฉบับล่าสุด)</th><th>Rework</th><th>ผลสุดท้าย</th><th>โหมด ก</th></tr></thead><tbody>${tr || '<tr><td colspan="8" class="muted center">ยังไม่มีผลตรวจ</td></tr>'}</tbody></table>
+      <h3>ตาราง Defect ใน Report QC (ผลที่พบครั้งแรก — รอบ 1 ฉบับแก้ไขล่าสุด)</h3>
+      <table class="tbl static"><thead><tr><th>อาการ</th><th>หัวข้อ</th><th>Severity</th><th class="num">จำนวนเครื่อง</th><th class="num">%</th><th>เปลี่ยนจากการแก้ไข</th></tr></thead><tbody>
+      ${stats.map(s => { const d = DEF[s.c], dl = s.n - s.o; return `<tr${dl ? ' class="hl"' : ''}><td>${d.n}</td><td>${d.item}. ${esc(itemById(d.item).title)}</td><td>${d.sev}</td><td class="num"><b>${s.n}</b></td><td class="num">${(100 * s.n / Math.max(1, inspected)).toFixed(1)}%</td><td>${dl ? `<span class="delta">${dl > 0 ? '+' : '−'}${Math.abs(dl)}</span> (เดิม ${s.o})` : '—'}</td></tr>`; }).join('') || '<tr><td colspan="6" class="muted center">ไม่มีอาการ</td></tr>'}</tbody></table>
+      <div class="small muted">% = จำนวนเครื่องที่พบอาการ ÷ เครื่องที่ตรวจ (${inspected}) × 100 (BR-14)</div>
+    </div><div class="calc">${side}</div></div>
+    ${note('FR-RPT-05/06 · ไม่ส่ง Report อัตโนมัติ — ผ่านผู้อนุมัติ 2 โหมด: (ก) หัวหน้าแก้เองเป็น Correction (เก็บค่าเดิม/ผู้แก้/เหตุผล/เวลา คำนวณผลใหม่ แสดงป้าย "แก้โดย…") (ข) ตีกลับให้ผู้ตรวจแก้เฉพาะเครื่องที่ระบุ + กำหนดแก้ · ลำดับ: QC Head ตรวจทาน (QC_REVIEW) → QA Head อนุมัติ (REPORT_REVIEW) → ล็อก · ลองที่ QP-2610-0013: SN-357 ขาถังเป็นสนิม → สีไม่ผ่าน (AC FR-RW-08)')}`;
+  return lapFrame('S14', 'ตรวจทานผล / อนุมัติ', body);
+}
+
+/* =====================================================================
+   แผง workshop + การกด + render
+   ===================================================================== */
+const SCREENS = {
+  S04:{dev:'m', name:'งานของฉัน', fn:scrS04},
+  S05:{dev:'m', name:'สแกน / เริ่มเครื่องใหม่', fn:scrS05},
+  S06:{dev:'m', name:'ตัวตรวจ Checklist', fn:scrS06},
+  S07:{dev:'m', name:'สรุปผลเครื่อง + Rework/Reject', fn:scrS07},
+  S08:{dev:'m', name:'ตัวตรวจ Rework', fn:scrS08},
+  S10:{dev:'l', name:'รายการแผน', fn:scrS10},
+  S11:{dev:'l', name:'เปิดแผน (QC 10% / AQL)', fn:scrS11},
+  S12:{dev:'l', name:'รายละเอียดแผน (7 แท็บ)', fn:scrS12},
+  S13:{dev:'l', name:'มอบหมาย / โอนงาน', fn:scrS13},
+  S14:{dev:'l', name:'ตรวจทาน + Correction / ตีกลับ / อนุมัติ', fn:scrS14}
+};
+const TASKS = [
+  'รับงานใหม่ QP-2610-0015 แล้วสแกน Serial เริ่มเครื่อง',
+  'หัวข้อ 3 กด "ไม่ผ่าน" → เลือกอาการ → ถ่ายรูป → ไปหัวข้อ 4',
+  'ส่งผลเครื่องที่ไม่ผ่าน แล้วเลือก Rework หรือ Reject',
+  'เจออาการ Critical → ระบบบังคับคัดออก',
+  'ปิดใบ Rework RW-2610-0007 (วิธีแก้ + รูปหลังแก้)',
+  'Laptop: เปิดแผน INV-A ล็อต 350 → ดู QC 35 / QA 20',
+  'Laptop: ลองเปิด INV-A + XM-2050 ซ้ำ → ระบบกันซ้ำ',
+  'Laptop: รายการแผน เรียงตามกำหนด 90 วัน',
+  'Laptop: มอบหมาย QP-2610-0012 เป็น 12/12/12 → เตือนเกิน 1 ต้องยืนยัน + เหตุผล',
+  'Laptop: ตรวจทาน QP-2610-0013 → แก้ SN-357 ขาถังเป็นสนิม → สีไม่ผ่าน',
+  'Laptop: QP-2610-0012 พบปัญหาในตัวอย่าง → เลือกขยายการตรวจ',
+  'Laptop: ตรวจทาน QP-2610-0013 → ตีกลับ SN-357 ให้ผู้ตรวจแก้'
+];
+function navHtml(){
+  const b = (k) => `<button class="scr${S.screen === k ? ' on' : ''}" data-act="scr" data-s="${k}"><code>${k}</code><span>${SCREENS[k].name}</span></button>`;
+  return `<h1>QCheck · Wireframe ขาวดำ</h1>
+    <div class="small muted">v0.2 · 19/10/2026 · Workshop Phase 0 (WBS 0.4)</div>
+    <div class="disclaimer"><b>ยังไม่ใช่ดีไซน์จริง</b> — ไม่มีธีม สี ฟอนต์ หรือโลโก้ กล่องเทาทั้งหมดใช้ยืนยันลำดับขั้นตอนและข้อมูลบนจอเท่านั้น ธีมจะคุยแยกภายหลัง · ข้อมูลทั้งหมดเป็นตัวอย่างสมมติ</div>
+    <div class="grp">มือถือ · ผู้ตรวจ QC (${S.pw} px)</div>${['S04', 'S05', 'S06', 'S07', 'S08'].map(b).join('')}
+    <div class="grp">Laptop · หัวหน้า (1366 px)</div>${['S10', 'S11', 'S12', 'S13', 'S14'].map(b).join('')}
+    <div class="grp">ภารกิจให้ลองกด</div>
+    <ol class="small">${TASKS.map((t, i) => `<li>${t}<button class="task" data-act="task" data-t="${i + 1}">เริ่ม</button></li>`).join('')}</ol>
+    <div class="grp">ตัวช่วย workshop</div>
+    <label class="opt small"><input type="checkbox" id="o_notes" data-bind="notes" ${S.notes ? 'checked' : ''}> แสดงหมายเหตุสเปก (กรอบเส้นประ)</label>
+    <label class="opt small"><input type="checkbox" id="o_off" data-bind="offline" ${S.offline ? 'checked' : ''}> จำลองไม่มีเน็ต (ร่าง/รูปค้างในเครื่อง)</label>
+    <label class="opt small">ความกว้างมือถือ <select id="o_pw" data-bind="pw">${[360, 375, 390].map(w => `<option${S.pw === w ? ' selected' : ''}>${w}</option>`).join('')}</select> px</label>
+    <label class="opt small">บทบาทบน laptop <select id="o_role" data-bind="role"><option value="QC_HEAD"${S.role === 'QC_HEAD' ? ' selected' : ''}>QC Head</option><option value="QA_HEAD"${S.role === 'QA_HEAD' ? ' selected' : ''}>QA Head</option></select></label>
+    <label class="opt small"><input type="checkbox" id="o_fit" data-bind="lapFit" ${S.lapFit ? 'checked' : ''}> ย่อจอ laptop ให้พอดีหน้าต่าง</label>
+    <button class="btn sm block mt" data-act="fillOk">ตอบ "ปกติ" ข้อที่เหลือ (ทางลัด workshop — ไม่ใช่ฟีเจอร์)</button>
+    <button class="btn sm block mt" data-act="reset">เริ่มใหม่ทั้งหมด</button>
+    <div class="grp">ยังไม่อยู่ในชุดนี้</div>
+    <div class="small muted">S01–S03, S09, คิว QA และ Report (S15, S28) · Checklist ฝั่ง QA</div>
+    <div class="small muted mt">อ้างอิง: docs/02 §4–5 · docs/03 BR-02…06, BR-11, BR-12</div>`;
+}
+function draftCard(){
+  const I = S.insp;
+  if(!I) return '';
+  const j = jobBy(I.job), n = ITEMS.filter(x => x.required && itemDone(x, I.ans[x.id])).length;
+  return `<div class="card dash"><div class="row between"><b>ร่างค้าง: ${I.sn}</b><span class="small muted">${j.plan}</span></div>
+    <div class="small muted">ตอบแล้ว ${n}/${ITEMS.filter(x => x.required).length} หัวข้อ · บันทึกในเครื่องแล้ว ไม่หายแม้ปิดแอป (FR-QC-13)</div>
+    <button class="btn block mt" data-act="resume">ทำต่อ</button></div>`;
+}
+
+/* ---------- helpers ---------- */
+let toastT = null, syncT = null, recT = null, tick = 0;
+function toast(msg){
+  const id = Date.now() + Math.random();
+  S.toast = {msg, id};
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { if(S.toast && S.toast.id === id){ S.toast = null; render(true); } }, 4500);
+}
+function scheduleSync(){
+  clearTimeout(syncT);
+  if(S.offline || !S.queue) return;
+  syncT = setTimeout(() => { if(!S.offline){ S.queue = 0; render(true); } }, 2500);
+}
+const stamp = () => { tick++; return '10:' + z2(Math.min(59, 43 + Math.floor(tick / 3))) + ':' + z2((tick * 17) % 60); };
+function newInsp(job, sn){ return {job, sn, motor:'', method:'SCAN_CAMERA', idx:0, ans:{}, sum:{decision:null, me:false}}; }
+function startScan(job){ if(!S.scan || S.scan.job !== job) S.scan = {job, sn:'', motor:'', method:'MANUAL', role:'QC'}; }
+const nextSnTxt = () => 'SN-2610-0' + S.nextSn;
+function closeOverlays(){ S.cam = null; S.sheet = null; S.drawer = false; clearInterval(recT); }
+function ensure(scr){
+  if(scr === 'S05') startScan(S.scan ? S.scan.job : 'J1');
+  if((scr === 'S06' || scr === 'S07') && !S.insp) S.insp = newInsp('J1', nextSnTxt());
+}
+function presetInsp(failItem, defect){
+  const I = newInsp('J1', nextSnTxt());
+  ITEMS.forEach(it => {
+    if(it.type === 'okfail') I.ans[it.id] = {v:'ok', photos:[], video:it.video === 'ALWAYS' ? {dur:8} : null};
+    if(it.type === 'number') I.ans[it.id] = {v:'8.0'};
+  });
+  if(failItem) I.ans[failItem] = {v:'fail', defects:[defect], photos:[{t:'10:41:05'}], video:null};
+  return I;
+}
+function fixedRework(id){
+  return initialState().reworks.find(r => r.id === id);
+}
+
+/* ---------- actions ---------- */
+const A = {
+  toggleNav(){ document.body.classList.toggle('navopen'); },
+  scr(d){ closeOverlays(); S.screen = d.s; S._top = true; document.body.classList.remove('navopen'); },
+  nav(d){ closeOverlays(); S.screen = d.s; S._top = true; },
+  tab(d){
+    if(d.s === 'S04') return A.nav(d);
+    if(d.s === 'S05'){ const j = S.jobs.find(x => x.status === 'IN_PROGRESS'); if(!j) return toast('ไม่มีใบงานที่กำลังทำ — กดรับงานก่อน'); startScan(j.id); return A.nav(d); }
+    toast(d.s === 'NTF' ? 'S03 ศูนย์แจ้งเตือน — ยังไม่อยู่ใน wireframe ชุดนี้' : 'เมนูเพิ่มเติม (ประวัติ, ค้นหา, ออกจากระบบ) — ยังไม่อยู่ใน wireframe ชุดนี้');
+  },
+  accept(d){ const j = jobBy(d.id); j.status = 'IN_PROGRESS'; startScan(j.id); S.screen = 'S05'; S._top = true;
+    toast(`รับงาน ${j.plan} แล้ว · ระบบเลือก Checklist ${j.cl} ตาม Model ให้อัตโนมัติ`); },
+  newUnit(d){ startScan(d.id); S.screen = 'S05'; S._top = true; },
+  submitJob(d){ const j = jobBy(d.id); j.status = 'SUBMITTED'; toast(`ส่งใบงาน ${j.plan} แล้ว · แจ้งหัวหน้าให้ตรวจทาน`); },
+  openRw(d){ S.rw = null; rwState(rwBy(d.id)); S.screen = 'S08'; S._top = true; },
+  resume(){ S.screen = 'S06'; S._top = true; },
+  asRole(d){ S.scan.role = d.v; },
+  camScan(d){ S.cam = {mode:'scan', field:d.f}; },
+  scanHit(){ if(S.cam.field === 'sn'){ S.scan.sn = nextSnTxt(); S.scan.method = 'SCAN_CAMERA'; } else S.scan.motor = 'MT-58' + S.nextSn; S.cam = null; },
+  camClose(){ S.cam = null; clearInterval(recT); },
+  startInsp(){
+    const sc = S.scan;
+    if(sc.role === 'QA') return toast('Checklist ฝั่ง QA ยังไม่อยู่ใน wireframe ชุดนี้ — เลือก "QC" เพื่อทดลอง');
+    S.insp = newInsp(sc.job, norm(sc.sn)); S.insp.motor = sc.motor; S.insp.method = sc.method;
+    S.scan = null; S.screen = 'S06'; S._top = true;
+  },
+  backFromInsp(){ closeOverlays(); S.screen = 'S04'; S._top = true; toast(`ร่างของ ${S.insp.sn} บันทึกไว้ในเครื่องแล้ว — กด "ทำต่อ" ได้ทุกเมื่อ`); },
+  drawer(){ S.drawer = !S.drawer; },
+  answer(d){
+    const I = S.insp, it = ITEMS[I.idx];
+    if(it.type !== 'okfail') return;
+    const a = I.ans[it.id] = I.ans[it.id] || {};
+    if(d.v === 'ok'){
+      a.v = 'ok'; a.defects = [];
+      if(!missingOf(it, a).length && I.idx < ITEMS.length - 1){ I.idx++; S._top = true; }
+    } else {
+      S.sheet = {item:it.id, sel:(a.defects || []).slice(), q:'', prev:a.v || null};
+      a.v = 'fail';
+    }
+  },
+  openSheet(){ const it = ITEMS[S.insp.idx], a = S.insp.ans[it.id]; S.sheet = {item:it.id, sel:(a.defects || []).slice(), q:'', prev:'fail'}; },
+  sheetToggle(d){ const s = S.sheet.sel, i = s.indexOf(d.c); if(i < 0) s.push(d.c); else s.splice(i, 1); },
+  sheetOk(){ const a = S.insp.ans[S.sheet.item]; a.defects = S.sheet.sel.slice(); a.photos = a.photos || []; S.sheet = null; },
+  sheetCancel(){
+    const a = S.insp.ans[S.sheet.item];
+    if(!(a.defects || []).length){ if(S.sheet.prev && S.sheet.prev !== 'fail') a.v = S.sheet.prev; else delete a.v; }
+    S.sheet = null;
+  },
+  cam(d){
+    let target, shots, ctx, min;
+    if(d.rw){ const s = S.rw.st[d.rw]; target = {kind:'rw', item:+d.rw}; shots = s.photos.slice(); ctx = rwBy(S.rw.id).sn; min = true; }
+    else { const it = ITEMS[S.insp.idx], a = S.insp.ans[it.id] = S.insp.ans[it.id] || {}; target = {kind:'insp', item:it.id}; shots = (a.photos || []).slice();
+      ctx = jobBy(S.insp.job).plan + '<br>' + S.insp.sn; min = a.v === 'fail'; }
+    S.cam = {mode:d.m, target, shots, ctx, min, rec:false, sec:0, dur:0};
+  },
+  shot(){ S.cam.shots.push({t:stamp()}); },
+  delShot(d){ S.cam.shots.splice(+d.i, 1); },
+  recToggle(){
+    const c = S.cam;
+    if(!c.rec){
+      c.rec = true; c.sec = 0; c.dur = 0; clearInterval(recT);
+      recT = setInterval(() => { const k = S.cam; if(!k || !k.rec){ clearInterval(recT); return; }
+        k.sec++; if(k.sec >= 20){ k.rec = false; k.dur = 20; clearInterval(recT); } render(true); }, 1000);
+    } else { c.rec = false; c.dur = Math.max(1, c.sec); clearInterval(recT); }
+  },
+  camDone(){
+    const c = S.cam, tgt = c.target.kind === 'rw' ? S.rw.st[c.target.item] : S.insp.ans[c.target.item];
+    if(c.mode === 'video'){ tgt.video = {dur:c.dur}; S.queue++; }
+    else { S.queue += Math.max(0, c.shots.length - (tgt.photos || []).length); tgt.photos = c.shots; }
+    S.cam = null; clearInterval(recT); scheduleSync();
+  },
+  go(d){
+    const I = S.insp, b = leaveBlock(I);
+    if(b) return toast(b);
+    const n = I.idx + (+d.d);
+    if(n >= 0 && n < ITEMS.length){ I.idx = n; S._top = true; }
+  },
+  jump(d){
+    const I = S.insp;
+    if(S.screen === 'S06'){ const b = leaveBlock(I); if(b && +d.i !== I.idx){ S.drawer = false; return toast(b); } }
+    I.idx = +d.i; S.drawer = false; S.screen = 'S06'; S._top = true;
+  },
+  toSummary(){ const b = leaveBlock(S.insp); S.drawer = false; if(b) return toast(b); S.screen = 'S07'; S._top = true; },
+  decide(d){ S.insp.sum.decision = d.v; },
+  submitUnit(){
+    const I = S.insp, j = jobBy(I.job), r = evalResult(I.ans), p = planBy(j.plan);
+    j.serials.push(I.sn);
+    if(p && (p.st === 'OPEN' || p.st === 'ASSIGNED')) p.st = 'QC_IN_PROGRESS';
+    let msg = `ส่งแล้ว ${I.sn} · ผล: ${RES_TXT[r.res]}`;
+    if(r.res === 'NOT_PASSED' && I.sum.decision === 'REWORK'){
+      const id = S.offline ? `RW-รอเลข (${S.nextRw++})` : 'RW-2610-' + String(S.nextRw++).padStart(4, '0');
+      const items = r.failed.filter(it => I.ans[it.id].defects.some(c => DEF[c].disp !== 'CONCESSION'))
+        .map(it => ({id:it.id, defects:I.ans[it.id].defects.filter(c => DEF[c].disp !== 'CONCESSION'), photos:(I.ans[it.id].photos || []).length}));
+      S.reworks.unshift({id, job:j.id, sn:I.sn, src:'QC', by:S.me.name, at:NOW_TXT, round:2, items});
+      if(p) p.rw = (p.rw || 0) + 1;
+      msg += ` → สร้างใบ Rework ${id} เฉพาะ ${items.length} หัวข้อที่ไม่ผ่าน`;
+    } else {
+      j.done++; if(p) p.qcDone++;
+      if(r.res === 'NOT_PASSED') msg += ' → คัดออก (Reject) นับเป็นตรวจแล้ว';
+    }
+    if(r.res === 'NOT_PASSED'){ if(p && !p.flags.includes('sample')) p.flags.push('sample'); msg += ' · แจ้ง QC Head: พบปัญหาในตัวอย่าง (BR-02a)'; }
+    msg += ' · ผลล็อกที่ผู้ตรวจแล้ว';
+    S.nextSn++; S.insp = null; S.screen = 'S04'; S._top = true; toast(msg);
+  },
+  fix(d){ S.rw.st[d.item].fix[d.c] = d.v; },
+  reEval(d){ S.rw.st[d.item].re = d.v; const r = rwBy(S.rw.id); if(!r.items.some(x => S.rw.st[x.id].re === 'fail')) S.rw.decision = null; },
+  rwDecide(d){ S.rw.decision = d.v; },
+  submitRw(){
+    const R = S.rw, r = rwBy(R.id), j = jobBy(r.job), p = planBy(j.plan);
+    const anyFail = r.items.some(x => R.st[x.id].re === 'fail');
+    const drop = () => { S.reworks = S.reworks.filter(x => x !== r); if(p) p.rw = Math.max(0, (p.rw || 1) - 1); };
+    let msg;
+    if(!anyFail){
+      drop();
+      if(r.src === 'QC'){ j.done++; if(p) p.qcDone++; msg = `${r.sn} ผล: ผ่าน (ติดธง "ผ่านหลัง Rework") · ข้อมูล/รูปรอบก่อนยังอยู่ในประวัติ`; }
+      else msg = `${r.sn} ซ่อมแล้ว → กลับเข้าคิว QA "รอตรวจซ้ำ" · แจ้ง QA แล้ว`;
+    } else if(R.decision === 'REWORK'){
+      r.items = r.items.filter(x => R.st[x.id].re === 'fail').map(x => Object.assign({}, x, {photos:R.st[x.id].photos.length}));
+      r.round++; r.at = NOW_TXT;
+      msg = `${r.sn} ยังไม่ผ่าน → Rework รอบ ${r.round} (เฉพาะหัวข้อที่ยังไม่ผ่าน)`;
+    } else {
+      drop();
+      if(r.src === 'QC'){ j.done++; if(p) p.qcDone++; msg = `${r.sn} คัดออก (Reject) · นับเป็นตรวจแล้ว`; }
+      else msg = `${r.sn} QC คัดออก → ผล QA = QA_REPLACED · QA ต้องสุ่มเครื่องอื่นแทน`;
+    }
+    S.rw = null; S.screen = 'S04'; S._top = true; toast(msg);
+  },
+  lapNav(d){
+    if(d.s === 'S10' || d.s === 'S11'){ if(d.s === 'S11' && S.screen !== 'S11') S.form = blankForm(); S.screen = d.s; S._top = true; return; }
+    if(d.s === 'S04m'){ S.screen = 'S04'; S._top = true; return; }
+    if(d.s === 'S12'){ S.screen = 'S12'; S._top = true; return; }
+    if(d.s === 'S13'){ A.openAssign({p:S.cur.plan}); return; }
+    if(d.s === 'S14'){ S.screen = 'S14'; S._top = true; return; }
+    toast(`${d.s.replace('x', 'S')} ยังไม่อยู่ใน wireframe ชุดนี้`);
+  },
+  newPlan(){ S.form = blankForm(); S.screen = 'S11'; S._top = true; },
+  sort(d){ if(S.sort.k === d.k) S.sort.dir *= -1; else S.sort = {k:d.k, dir:1}; },
+  clearFilt(){ S.filt = {q:'', st:'', vendor:'', ptype:''}; },
+  planRow(d){ S.hlPlan = d.p; S.cur.plan = d.p; S.cur.tab = 'info'; S.screen = 'S12'; S._top = true; },
+  origin(d){ const F = S.form; F.origin = d.v; F.model = ''; F.docNo = ''; F.docDate = ''; F.aql = ''; F.aqlReason = ''; F.qr = false; },
+  qrScan(){ Object.assign(S.form, {dept:'409', docNo:'409-2610-044', docDate:'14/10/2026', model:'PS-25', lot:'60', qr:true}); },
+  gotoPlan(d){ S.hlPlan = d.p; S.filt = {q:'', st:'', vendor:'', ptype:''}; S.sort = {k:'plan', dir:-1}; S.screen = 'S10'; S._top = true; toast(`ไฮไลต์แผนเดิม ${d.p}`); },
+  savePlan(d){
+    const F = S.form, C = formCalc();
+    const no = 'QP-2610-' + String(S.nextPlan++).padStart(4, '0');
+    const imp = F.origin === 'IMP';
+    if(imp && !C.doc) DOCS['INV|' + norm(F.docNo) + '|' + F.vendor] = {date:F.docDate.trim(), sku:+F.sku};
+    S.plans.unshift({plan:no, doc:imp ? norm(F.docNo) : 'PO ' + norm(F.docNo), vendor:imp ? F.vendor : 'PUMA แผนก ' + F.dept, model:F.model, lot:C.lot,
+      qcDone:0, st:'OPEN', aql:C.level, flags:F.wait ? ['wait'] : [], isNew:true});
+    S.hlPlan = no; S.sort = {k:'plan', dir:-1}; S.filt = {q:'', st:'', vendor:'', ptype:''}; S.screen = 'S10'; S._top = true;
+    toast(`เปิดแผน ${no} แล้ว · QC ต้องตรวจ ${C.qc} · QA ${AQL_LV[C.level]} ${C.aq ? C.aq.n : '-'} เครื่อง${d.next ? '' : ''}`);
+    if(d.next){ S.cur.plan = no; A.openAssign({p:no}); }
+  },
+  stub(d){ toast(d.msg || 'ยังไม่อยู่ใน wireframe ชุดนี้'); },
+  task(d){
+    closeOverlays(); document.body.classList.remove('navopen'); S._top = true;
+    const t = +d.t;
+    if(t === 1){ jobBy('J2').status = 'WAITING'; jobBy('J2').done = 0; S.screen = 'S04'; toast('กด "กดรับงาน" ที่การ์ด QP-2610-0015'); }
+    if(t === 2){ S.insp = newInsp('J1', nextSnTxt()); S.insp.ans = {1:{v:'ok'}, 2:{v:'ok'}}; S.insp.idx = 2; S.screen = 'S06'; toast('กด "✕ ไม่ผ่าน" ที่หัวข้อ 3'); }
+    if(t === 3){ S.insp = presetInsp(3, 'D122'); S.screen = 'S07'; toast('เลือก Rework หรือ Reject แล้วยืนยันชื่อ → ส่ง'); }
+    if(t === 4){ S.insp = presetInsp(8, 'D171'); S.screen = 'S07'; toast('อาการ Critical: ลองกด "ส่งซ่อม (Rework)"'); }
+    if(t === 5){ if(!rwBy('RW-2610-0007')) S.reworks.unshift(fixedRework('RW-2610-0007')); A.openRw({id:'RW-2610-0007'}); }
+    if(t === 6 || t === 7){ S.form = Object.assign(blankForm(), {vendor:'Vendor V', docNo:'INV-A', model:t === 6 ? 'XM-1525' : 'XM-2050', lot:'350'}); S.screen = 'S11';
+      toast(t === 6 ? 'ลองแก้จำนวนล็อต (เช่น 81, 5) แล้วดูตัวเลขด้านขวาเปลี่ยนทันที' : 'ระบบไม่ให้เปิดแผนซ้ำ — กด "ไปที่แผนเดิม"'); }
+    if(t === 8){ S.sort = {k:'due', dir:1}; S.screen = 'S10'; }
+    if(t === 9){ S.role = 'QC_HEAD'; openAssignState('QP-2610-0012'); S.asg.rows.forEach(r => r.qty = '12'); S.screen = 'S13'; toast('มอบ 12/12/12 = 36 จากที่ต้องตรวจ 35 — ดูคำเตือน แล้วลองติ๊กยืนยัน + ใส่เหตุผล'); }
+    if(t === 10){ S.role = 'QC_HEAD'; S.cur.rplan = 'QP-2610-0013'; S.rev = null; S.screen = 'S14'; const R = revState(planBy('QP-2610-0013')), u = unitsOf(planBy('QP-2610-0013')).find(x => x.sn === 'SN-357');
+      if(u.revs.length) toast('SN-357 ถูกแก้ไปแล้ว — กด "เริ่มใหม่ทั้งหมด" เพื่อลองซ้ำ'); else { R.edit = {sn:'SN-357', from:'D131', to:'D122', reason:''}; toast('ใส่เหตุผลแล้วกด "บันทึกการแก้ไข" ดูตาราง Defect และป้าย "แก้โดย…"'); } }
+    if(t === 11){ S.role = 'QC_HEAD'; S.cur.plan = 'QP-2610-0012'; S.cur.tab = 'info'; S.cur.ex = null; S.screen = 'S12'; toast('เลือก ขยายทั้งล็อต / บางส่วน / ไม่ขยาย แล้วกดยืนยัน'); }
+    if(t === 12){ S.role = 'QC_HEAD'; S.cur.rplan = 'QP-2610-0013'; S.rev = null; S.screen = 'S14'; revState(planBy('QP-2610-0013')).sel['SN-357'] = true; toast('ใส่ความเห็นถึงผู้ตรวจ แล้วกด "ตีกลับให้ผู้ตรวจแก้"'); }
+  },
+  fillOk(){
+    if(S.screen === 'S06' && S.insp){
+      ITEMS.forEach(it => { const a = S.insp.ans[it.id];
+        if(it.type === 'okfail' && !(a && a.v)) S.insp.ans[it.id] = {v:'ok', photos:[], video:it.video === 'ALWAYS' ? {dur:8} : null};
+        if(it.type === 'okfail' && a && a.v === 'ok' && it.video === 'ALWAYS' && !a.video) a.video = {dur:8};
+        if(it.type === 'number' && !(a && a.v)) S.insp.ans[it.id] = {v:'8.0'}; });
+      return toast('ตอบ "ปกติ" ข้อที่เหลือแล้ว (ทางลัด workshop)');
+    }
+    if(S.screen === 'S08' && S.rw){
+      const r = rwBy(S.rw.id);
+      r.items.forEach(x => { const s = S.rw.st[x.id]; x.defects.forEach(c => { if(!s.fix[c]) s.fix[c] = 'ซ่อม / ปรับแต่ง'; });
+        if(!s.photos.length) s.photos = [{t:stamp()}]; if(rwNeedsVideo(x) && !s.video) s.video = {dur:9}; if(!s.re) s.re = 'ok'; });
+      return toast('กรอกใบ Rework ให้ครบแล้ว (ทางลัด workshop)');
+    }
+    toast('ทางลัดนี้ใช้ได้ที่ S06 และ S08');
+  },
+  reset(){
+    const keep = {notes:S.notes, pw:S.pw, role:S.role, lapFit:S.lapFit};
+    closeOverlays(); S = Object.assign(initialState(), keep); toast('คืนข้อมูลตัวอย่างทั้งหมดแล้ว');
+  }
+};
+
+
+/* ---------- actions: S12–S14 ---------- */
+Object.assign(A, {
+  tab12(d){ S.cur.tab = d.t; },
+  gotoDetail(d){ S.cur.plan = d.p; S.screen = 'S12'; S._top = true; },
+  openAssign(d){ S.cur.plan = d.p; openAssignState(d.p); S.screen = 'S13'; S._top = true; },
+  openReview(d){ S.cur.rplan = d.p; S.rev = null; S.screen = 'S14'; S._top = true; },
+  exMode(d){ exState(curPlan()).mode = d.v; },
+  exSave(){
+    const p = curPlan(), ex = exState(p), old = reqOf(p);
+    const nw = ex.mode === 'ALL' ? p.lot : ex.mode === 'PART' ? parseInt(ex.n, 10) : old;
+    if(nw !== old) p.reqOverride = nw;
+    p.ex = {mode:ex.mode, from:old, to:nw, reason:ex.reason.trim(), by:headName(), at:NOW_TXT};
+    p.flags = (p.flags || []).filter(f => f !== 'sample');
+    logH(p, headName(), ex.mode === 'NONE' ? `ไม่ขยายการตรวจ · เหตุผล: ${ex.reason.trim()}` : `ขยายการตรวจ ต้องตรวจ ${old} → ${nw} เครื่อง${ex.reason.trim() ? ' · ' + ex.reason.trim() : ''}`, 'dec');
+    let msg = ex.mode === 'NONE' ? 'บันทึกแล้ว: ไม่ขยายการตรวจ (ปิดธงพบปัญหาในตัวอย่าง)' : `ขยายการตรวจ: ต้องตรวจ ${old} → ${nw} เครื่อง (นับเป็น "ต้องตรวจ" ไม่ใช่ "ตรวจเกิน")`;
+    if(nw > p.qcDone && p.st === 'QC_REVIEW'){ p.st = 'QC_IN_PROGRESS'; msg += ' · แผนกลับสู่ "กำลังตรวจ" — ไปมอบหมายเพิ่มที่ S13'; }
+    S.cur.ex = null; toast(msg);
+  },
+  aqlSave(){
+    const p = curPlan(), a = S.cur.aql, o = aqlLookup(p.aql, p.lot), n = aqlLookup(a.v, p.lot);
+    logH(p, headName(), `เปลี่ยนระดับ AQL ${AQL_LV[p.aql]} → ${AQL_LV[a.v]} · QA ${o ? o.n : '-'} → ${n ? n.n : '-'} เครื่อง · เหตุผล: ${a.reason.trim()}`, 'aql');
+    p.aql = a.v; S.cur.aql = null; toast('เปลี่ยนระดับ AQL แล้ว คำนวณจำนวน QA ใหม่ · บันทึกประวัติ');
+  },
+  asgAdd(){ S.asg.rows.push({name:'', qty:'', done:0, st:'WAITING'}); },
+  asgDel(d){ S.asg.rows.splice(+d.i, 1); S.asg.xfer = null; if(!S.asg.rows.length) S.asg.rows.push({name:'', qty:'', done:0, st:'WAITING'}); },
+  asgEven(){
+    const a = S.asg, p = planBy(a.plan), fixed = a.rows.filter(r => asgLocked(r) || !r.name), free = a.rows.filter(r => !asgLocked(r) && r.name);
+    if(!free.length) return toast('เพิ่มผู้ตรวจก่อน');
+    const left = Math.max(0, reqOf(p) - a.rows.filter(asgLocked).reduce((s, r) => s + (parseInt(r.qty, 10) || 0), 0));
+    free.forEach((r, i) => { r.qty = String(Math.max(r.done, Math.floor(left / free.length) + (i < left % free.length ? 1 : 0), 1)); });
+  },
+  asgXfer(d){ S.asg.xfer = {i:+d.i, to:''}; },
+  asgXferCancel(){ S.asg.xfer = null; },
+  asgXferOk(){
+    const a = S.asg, f = a.rows[a.xfer.i], rem = (parseInt(f.qty, 10) || 0) - f.done, to = a.xfer.to;
+    let t = a.rows.find(r => r.name === to);
+    if(t) t.qty = String((parseInt(t.qty, 10) || 0) + rem); else a.rows.push({name:to, qty:String(rem), done:0, st:'WAITING', moved:true});
+    const from = f.name;
+    if(f.done === 0) a.rows.splice(a.xfer.i, 1); else f.qty = String(f.done);
+    a.xfer = null; toast(`โอน ${rem} เครื่องจาก ${from} ไป ${to} แล้ว (ยังไม่บันทึกจนกว่าจะกด "บันทึกการมอบหมาย")`);
+  },
+  asgSave(){
+    const a = S.asg, p = planBy(a.plan), {sum} = asgCheck(a), req = reqOf(p), over = sum - req;
+    const before = (S.assigns[p.plan] || []).map(r => r.name + r.qty).join('/');
+    S.assigns[p.plan] = a.rows.map(r => ({name:r.name, qty:+r.qty, done:r.done, st:r.st}));
+    if(p.st === 'OPEN') p.st = 'ASSIGNED';
+    a.rows.forEach(r => { if(r.name !== S.me.name) return;
+      const j = S.jobs.find(x => x.plan === p.plan);
+      if(j) j.assigned = +r.qty;
+      else { const m = modelBy(p.model) || {}; S.jobs.push({id:'J' + (S.jobs.length + 1), plan:p.plan, doc:p.doc, vendor:p.vendor, model:p.model, desc:m.desc || '', cl:m.qc || '', lot:p.lot, assigned:+r.qty, done:0, status:'WAITING', serials:[]}); } });
+    logH(p, headName(), `มอบหมาย ${a.rows.map(r => r.name.replace('ผู้ตรวจ ', '') + '.' + r.qty).join(' / ')} (รวม ${sum}/${req})${over > 0 ? ` · มอบเกิน ${over}: ${a.reason.trim()}` : ''}${before ? '' : ' · สถานะ: → มอบหมายแล้ว'}`, 'dec');
+    S.asg = null; S.cur.plan = p.plan; S.cur.tab = 'jobs'; S.screen = 'S12'; S._top = true;
+    toast(`บันทึกการมอบหมายแล้ว · รวม ${sum} / ต้องตรวจ ${req}${over > 0 ? ` · มอบเกิน ${over} พร้อมเหตุผล` : ''} · แจ้งผู้ตรวจที่เกี่ยวข้อง`);
+  },
+  revToggle(d){ S.rev.sel[d.sn] = !S.rev.sel[d.sn]; },
+  revEdit(d){ const u = unitsOf(planBy(S.rev.plan)).find(x => x.sn === d.sn); S.rev.edit = {sn:d.sn, from:u.r1[0], to:'', reason:''}; },
+  revCancelEdit(){ S.rev.edit = null; },
+  revSave(){
+    const p = planBy(S.rev.plan), e = S.rev.edit, u = unitsOf(p).find(x => x.sn === e.sn), o = DEF[e.from], n = DEF[e.to];
+    u.r1 = u.r1.map(c => c === e.from ? e.to : c);
+    u.revs.push({n:u.revs.length + 1, by:headName(), at:NOW_TXT, from:e.from, to:e.to, reason:e.reason.trim()});
+    logH(p, headName(), `Correction ${u.sn} ฉบับที่ ${u.revs.length}: "${o.n}" → "${n.n}" · เหตุผล: ${e.reason.trim()}`, 'corr');
+    S.rev.edit = null;
+    toast(`แก้ ${u.sn} แล้ว: ${n.n} +1, ${o.n} −1 · แสดงป้าย "แก้โดย ${headName()} (เดิม: ${o.n})" · ข้อมูลรอบ Rework ไม่เปลี่ยน · Audit เก็บค่าเดิม→ใหม่`);
+  },
+  revReturn(){
+    const p = planBy(S.rev.plan), us = unitsOf(p).filter(u => S.rev.sel[u.sn]), due = fmtD(nextWorkday(TODAY));
+    us.forEach(u => { u.ret = {by:headName(), at:NOW_TXT, comment:S.rev.comment.trim(), due, done:false}; });
+    p.st = 'QC_IN_PROGRESS';
+    logH(p, headName(), `ตีกลับ ${us.map(u => u.sn).join(', ')} ให้ผู้ตรวจแก้ · กำหนดแก้ ${due} · ความเห็น: ${S.rev.comment.trim()} · สถานะ: → กำลังตรวจ`, 'dec');
+    S.rev.sel = {}; S.rev.comment = '';
+    toast(`ตีกลับ ${us.length} เครื่องแล้ว · ผู้ตรวจได้แจ้งเตือน เปิด Checklist เดิมพร้อมคำตอบเดิม แก้ได้เฉพาะเครื่องนั้น · กำหนดแก้ ${due}`);
+  },
+  revSimDone(){
+    const p = planBy(S.rev.plan), us = unitsOf(p).filter(u => u.ret && !u.ret.done);
+    us.forEach(u => { u.ret.done = true; });
+    p.st = 'QC_REVIEW'; logH(p, us[0] ? us[0].insp : 'ผู้ตรวจ', `แก้ ${us.map(u => u.sn).join(', ')} ตามที่ตีกลับแล้ว ส่งใหม่ · สถานะ: → รอหัวหน้าตรวจทาน`);
+    toast('ผู้ตรวจส่งแล้ว — Report กลับเข้า "รอตรวจทาน"');
+  },
+  revSend(){ const p = planBy(S.rev.plan); p.st = 'QA_PENDING'; logH(p, headName(), 'ตรวจทานผล QC เสร็จ ส่ง QA · สถานะ: → รอ QA'); toast(`ส่ง ${p.plan} ให้ QA แล้ว · สถานะ: รอ QA${(modelBy(p.model) || {}).origin === 'DOM' ? '' : ' · ร่าง Report QC พร้อมรออนุมัติ'}`); },
+  revApprove(){ const p = planBy(S.rev.plan); p.st = 'COMPLETED'; logH(p, headName(), 'อนุมัติ Report QC + QA · ล็อก + PDF snapshot · สถานะ: → เสร็จ'); toast('อนุมัติแล้ว — Report ถูกล็อก มี PDF snapshot'); },
+  revReopen(){ const p = planBy(S.rev.plan); p.st = 'REPORT_REVIEW'; logH(p, headName(), 'เปิดใหม่ · เหตุผล: ' + S.rev.reopen.trim() + ' · สถานะ: → รออนุมัติ Report'); S.rev.reopen = ''; toast('เปิด Report ใหม่แล้ว (เวอร์ชันใหม่)'); }
+});
+
+/* ---------- render ---------- */
+let lastScreen = null;
+function render(keepFocus){
+  const ae = document.activeElement;
+  let foc = null;
+  if(keepFocus && ae && ae.id && ae.matches('input,textarea,select')){ foc = {id:ae.id}; try{ foc.s = ae.selectionStart; foc.e = ae.selectionEnd; }catch(e){} }
+  const sc = {};
+  ['phbody', 'lapbody'].forEach(id => { const el = document.getElementById(id); if(el) sc[id] = el.scrollTop; });
+  const sh = document.querySelector('.sh-body'); const shTop = sh ? sh.scrollTop : 0;
+  document.body.classList.toggle('nonotes', !S.notes);
+  ensure(S.screen);
+  const def = SCREENS[S.screen];
+  document.getElementById('nav').innerHTML = navHtml();
+  document.getElementById('wfTitle').textContent = 'WIREFRAME · ' + S.screen + ' ' + def.name;
+  document.getElementById('stage').innerHTML = def.dev === 'm' ? phoneFrame(def.fn()) : def.fn();
+  if(lastScreen === S.screen && !S._top){
+    ['phbody', 'lapbody'].forEach(id => { const el = document.getElementById(id); if(el && sc[id] != null) el.scrollTop = sc[id]; });
+  }
+  const sh2 = document.querySelector('.sh-body'); if(sh2 && sh) sh2.scrollTop = shTop;
+  S._top = false; lastScreen = S.screen;
+  if(foc){ const el = document.getElementById(foc.id); if(el){ el.focus({preventScroll:true}); try{ if(foc.s != null) el.setSelectionRange(foc.s, foc.e); }catch(e){} } }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if(!el) return;
+  if(el.dataset.self && e.target !== el) return;
+  e.preventDefault();
+  if(el.classList.contains('is-disabled')){ toast(el.dataset.why || 'ยังทำไม่ได้'); render(); return; }
+  const f = A[el.dataset.act];
+  if(!f) return;
+  f(el.dataset, el);
+  if(el.dataset.act !== 'toggleNav') render();
+});
+function onBind(e){
+  const el = e.target, path = el.dataset && el.dataset.bind;
+  if(!path) return;
+  let v = el.type === 'checkbox' ? el.checked : el.value;
+  if(path === 'pw') v = +v;
+  const ks = path.split('.');
+  let o = S;
+  for(let i = 0; i < ks.length - 1; i++){ if(o[ks[i]] == null) o[ks[i]] = {}; o = o[ks[i]]; }
+  o[ks[ks.length - 1]] = v;
+  if(path === 'scan.sn') S.scan.method = 'MANUAL';
+  if(path === 'offline' && !v) scheduleSync();
+  if(path === 'form.aql' && v === defaultAql(S.form.origin)) S.form.aql = '';
+  render(true);
+}
+document.addEventListener('input', e => { if(e.target.matches('input[type=text],input:not([type]),textarea')) onBind(e); });
+document.addEventListener('change', e => { if(e.target.matches('select,input[type=checkbox]')) onBind(e); });
+document.addEventListener('keydown', e => {
+  if(S.screen !== 'S06' || S.sheet || S.cam || S.drawer || !S.insp) return;
+  if(e.target.matches('input,textarea,select') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  const act = k === 'p' ? ['answer', {v:'ok'}] : k === 'f' ? ['answer', {v:'fail'}] : e.key === 'ArrowRight' ? ['go', {d:'1'}] : e.key === 'ArrowLeft' ? ['go', {d:'-1'}] : null;
+  if(!act) return;
+  e.preventDefault();
+  A[act[0]](act[1]);
+  render();
+});
+let rsT = null;
+window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => render(true), 120); });
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "components/master/MasterTableView.tsx": "dc5de040caaa8944cd71f699aece34d463dcab640657d6cb58072e854c12f617",
+  "components/master/master-table.css": "032b63b57bf834ee1dcc0e4c99e0fefa14464e45ee5beed9e72798bdf9813962",
+  "components/dom/WorkspaceDrawing.tsx": "0044eef66b3ff23a2901c7e93a7a0a051e88bdfe99bad06ca6799588080b5661",
+  "components/master/MasterHero.tsx": "1f496c82c3b68b7ef4025874574d7a9c53a1b64bf40098a2faf18a050c825e16",
+  "components/dom/expandingSurface.ts": "bb8998c2cd16e6cb6dbcd0cba61a895e35af3b25d44c7e298c905e3c8d120293"
+}

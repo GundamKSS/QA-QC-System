@@ -1,0 +1,6 @@
+{
+  "src/app/(app)/master/[table]/page.tsx": "545dabf3e524960181b575cc1137e6206daaae2509bc6ab575a1664e2c1c7f67",
+  "src/app/(app)/master/[table]/MasterForms.tsx": "321b24e74576c5208fa1b4e673da39a112401e3b9ac57cd246b9b3759427f171",
+  "src/app/(app)/master/[table]/MasterRecords.tsx": "7962137f2e6371a01d4bda677c71a4bfdd455cf95da2de375a533fc4bb638db3",
+  "src/app/(app)/master/[table]/master-table.css": "9c94d9159eb42e0b2b983bc4177b63726d97d3fbf1d7a48a1731292bce26269f"
+}

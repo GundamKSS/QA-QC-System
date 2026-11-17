@@ -1,0 +1,125 @@
+--- a/src/components/canvas/ScanRing.tsx
++++ b/src/components/canvas/ScanRing.tsx
+@@ -5,7 +5,7 @@
+ import { AdditiveBlending, DoubleSide, Quaternion, RingGeometry, Shape, ShapeGeometry, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+ import { palette, stage } from "@/config/experience";
+ import type { ScanFrame, ScanPhase } from "./scanTimeline";
+-import { advanceScanOrbit, scanOrbitActive } from "./scanOrbit";
++import { advanceScanOrbit, focusOrbitEnvelope, scanOrbitActive } from "./scanOrbit";
+ 
+ /** The scan plane becomes a face-on green seal during the existing success hold. */
+ export function ScanRing({ inspecting, frameRef, phase, still, typing, inputFocused }: { inspecting: boolean; frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
+@@ -47,6 +47,8 @@
+     const raw = Math.max(0, Math.min(1, (time - stage.interaction.sealStartSeconds) / (stage.interaction.sealEndSeconds - stage.interaction.sealStartSeconds)));
+     const seal = success ? still ? 1 : raw * raw * (3 - 2 * raw) : 0;
+     const orbitActive = scanOrbitActive(phase, inputFocused);
++    const damping = still ? 1 : 1 - Math.exp(-4 * Math.min(delta, 0.05));
++    orbitAmountRef.current += ((orbitActive ? 1 : 0) - orbitAmountRef.current) * damping;
+     if (group.current) {
+       group.current.visible = !inspecting;
+       group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY;
+@@ -55,14 +57,15 @@
+       orientation.yaw.setFromAxisAngle(orientation.up, yaw);
+       group.current.quaternion.copy(orientation.yaw).multiply(flat).slerp(camera.quaternion, seal);
+       const shrink = 1 - 0.3 * seal;
+-      group.current.scale.set(shrink, shrink * (0.52 + 0.48 * seal), shrink);
++      const focus = orbitAmountRef.current * (1 - seal);
++      const widthScale = 1 + (focusOrbitEnvelope.radiusX / stage.scan.ringRadius - 1) * focus;
++      const depthScale = 0.52 + (focusOrbitEnvelope.radiusZ / stage.scan.ringRadius - 0.52) * focus;
++      group.current.scale.set(shrink * widthScale, shrink * (depthScale + (1 - depthScale) * seal), shrink);
+     }
+     if (core.current) core.current.opacity = success ? (1 - seal) * 0.8 : sample.ringOpacity;
+     if (glow.current) glow.current.opacity = (success ? (1 - seal) * 0.8 : sample.ringOpacity) * 0.13;
+     if (tickRef.current) { tickRef.current.visible = success; tickRef.current.scale.setScalar(0.75 + seal * 0.25); }
+     if (tickMaterialRef.current) tickMaterialRef.current.opacity = seal;
+-    const damping = still ? 1 : 1 - Math.exp(-4 * Math.min(delta, 0.05));
+-    orbitAmountRef.current += ((orbitActive ? 1 : 0) - orbitAmountRef.current) * damping;
+     if (orbitRef.current) {
+       orbitRef.current.visible = phase !== "success" && phase !== "locked" && orbitAmountRef.current > 0.001;
+       orbitRef.current.rotation.z = advanceScanOrbit(orbitRef.current.rotation.z, delta, orbitActive && !still);
+@@ -73,18 +76,20 @@
+   }, -0.25);
+ 
+   return (
+-    <group ref={group} name="inspection-laser" rotation-x={-Math.PI / 2}>
++    // Draw translucent laser surfaces after the machine has populated the depth buffer.
++    // Depth testing then hides the rear arc instead of blending it over painted parts.
++    <group ref={group} name="inspection-laser" rotation-x={-Math.PI / 2} renderOrder={1}>
+       <mesh>
+         <torusGeometry args={[stage.scan.ringRadius, 0.008, 8, 128]} />
+-        <meshBasicMaterial ref={core} color={color} transparent depthWrite={false} toneMapped={false} />
++        <meshBasicMaterial ref={core} color={color} transparent depthTest depthWrite={false} toneMapped={false} />
+       </mesh>
+-      <group ref={orbitRef} name="inspection-focus-orbit" visible={false}>
++      <group ref={orbitRef} name="inspection-focus-orbit" visible={false} renderOrder={1}>
+         <mesh geometry={geometry.orbit}>
+-          <meshBasicMaterial ref={orbitMaterialRef} color={palette.ember400} transparent opacity={0} side={DoubleSide} depthWrite={false} toneMapped={false} />
++          <meshBasicMaterial ref={orbitMaterialRef} color={palette.ember400} transparent opacity={0} side={DoubleSide} depthTest depthWrite={false} toneMapped={false} />
+         </mesh>
+         <mesh name="inspection-focus-head" position={[stage.scan.ringRadius, 0, 0]}>
+           <sphereGeometry args={[0.026, 12, 8]} />
+-          <meshBasicMaterial ref={headMaterialRef} color={palette.ember400} transparent opacity={0} depthWrite={false} toneMapped={false} />
++          <meshBasicMaterial ref={headMaterialRef} color={palette.ember400} transparent opacity={0} depthTest depthWrite={false} toneMapped={false} />
+         </mesh>
+       </group>
+       <mesh ref={tickRef} name="inspection-success-seal" geometry={geometry.tick} visible={false} renderOrder={20}>
+@@ -92,7 +97,7 @@
+       </mesh>
+       <mesh>
+         <torusGeometry args={[stage.scan.ringRadius, 0.045, 8, 96]} />
+-        <meshBasicMaterial ref={glow} color={color} transparent opacity={0.13} depthWrite={false} toneMapped={false} blending={AdditiveBlending} />
++        <meshBasicMaterial ref={glow} color={color} transparent opacity={0.13} depthTest depthWrite={false} toneMapped={false} blending={AdditiveBlending} />
+       </mesh>
+     </group>
+   );
+--- a/src/components/canvas/scanOrbit.ts
++++ b/src/components/canvas/scanOrbit.ts
+@@ -2,6 +2,13 @@
+ import type { ScanPhase } from "./scanTimeline";
+ 
+ const turn = Math.PI * 2;
++
++/** Focus clearance around the wide tank, handles and service fittings; local X/Z radii. */
++export const focusOrbitEnvelope = {
++  radiusX: stage.scan.ringRadius * 1.1,
++  radiusZ: stage.scan.ringRadius * 0.62,
++  clearance: 0.06,
++} as const;
+ 
+ /** Field activity never overrides the authentication result or a pending request. */
+ export function scanOrbitActive(phase: ScanPhase, inputFocused: boolean): boolean {
+--- a/src/components/canvas/scanOrbit.test.ts
++++ b/src/components/canvas/scanOrbit.test.ts
+@@ -1,6 +1,7 @@
+ import { describe, expect, it } from "vitest";
+ import { stage } from "@/config/experience";
+-import { advanceScanOrbit, scanOrbitActive } from "./scanOrbit";
++import { advanceScanOrbit, focusOrbitEnvelope, scanOrbitActive } from "./scanOrbit";
++import { buildCompressorGeometry, disposeCompressorGeometry } from "./compressorGeometry";
+ import type { ScanPhase } from "./scanTimeline";
+ 
+ const turn = Math.PI * 2;
+@@ -56,3 +57,23 @@
+     }
+   });
+ });
++
++
++describe("focused scanner clearance", () => {
++  it("keeps the entire machine inside the inner edge of the orbit, including handles and fittings", () => {
++    const parts = buildCompressorGeometry();
++    const radiusX = focusOrbitEnvelope.radiusX - focusOrbitEnvelope.clearance;
++    const radiusZ = focusOrbitEnvelope.radiusZ - focusOrbitEnvelope.clearance;
++    let outermost = 0;
++    try {
++      for (const geometry of Object.values(parts)) {
++        const points = geometry.getAttribute("position");
++        for (let i = 0; i < points.count; i++) {
++          outermost = Math.max(outermost, (points.getX(i) / radiusX) ** 2 + (points.getZ(i) / radiusZ) ** 2);
++        }
++      }
++      // The orbit shares the model's yaw, so this clearance holds for every camera angle.
++      expect(outermost).toBeLessThan(1);
++    } finally { disposeCompressorGeometry(parts); }
++  });
++});

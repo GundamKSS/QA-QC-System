@@ -1,0 +1,33 @@
+{
+  "lint": "pass",
+  "typecheck": "pass",
+  "build": "pass",
+  "tests": {
+    "passed": 440,
+    "skipped": 8
+  },
+  "glass": {
+    "header": "blur(18px) saturate(1.6)",
+    "railSurface": "blur(18px) saturate(1.6)",
+    "expandedLabel": "blur(18px) saturate(1.6)",
+    "accountCard": "blur(18px) saturate(1.6)",
+    "background": "rgba(255, 249, 237, 0.62)",
+    "railContainer": "none"
+  },
+  "sizes": [
+    [
+      1280,
+      720
+    ],
+    [
+      820,
+      1180
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "horizontalOverflow": false,
+  "undo": "rehearsed"
+}

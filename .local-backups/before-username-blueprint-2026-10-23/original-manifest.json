@@ -1,0 +1,6 @@
+{
+  "src/components/canvas/Scene.tsx": "98e70862d978eef57d6dfd00d5ca825616492c0eb66022a7d390b086969bc68f",
+  "src/components/canvas/AirCompressor.tsx": "99b7b21867b6452dc1d5645b78a4d64b544b1f4ee0edc8fa6d7d6ec2f7b75561",
+  "src/components/canvas/ExplodedPart.tsx": "4ff9972f13e6c32f683b58f049aa259fd3c9e6c68b4a039792b27f85e4bd3547",
+  "src/components/canvas/ScanRing.tsx": "4ac69a8341ed51a908fa8bf78245cd01b044310583b791e675d5099e4ed624ad"
+}

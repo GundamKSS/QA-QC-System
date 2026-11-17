@@ -1,0 +1,20 @@
+{
+  "lint": "passed",
+  "typecheck": "passed",
+  "build": "passed",
+  "tests": {
+    "passed": 1096,
+    "skipped_database": 8
+  },
+  "visual": {
+    "desktop": "Green heading and filters, cream controls,22px corners; scroll progress0→1→0 verified",
+    "mobile": "390x844,44px controls,10px control corners,22px surface, no horizontal overflow",
+    "tablet": "820x1180, no horizontal overflow",
+    "filter": "q=01/status=active returns1matching row in isolated mock API",
+    "back": "Existing page/header docking preserved and visible after scrolling",
+    "home": "Shared effect still expands Home mat and compressor drawing"
+  },
+  "motion": "Expand/reverse,reduced motion,listener/style cleanup verified in isolated harness",
+  "rollback": "Temporary rehearsal passed;later edits refused",
+  "screenshots": "Mock data only"
+}

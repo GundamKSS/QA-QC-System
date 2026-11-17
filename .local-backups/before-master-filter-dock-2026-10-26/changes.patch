@@ -1,0 +1,299 @@
+--- before/components/master/MasterTableView.tsx
++++ after/components/master/MasterTableView.tsx
+@@ -9,6 +9,7 @@
+ import { masterTableHref, type MasterTableValues } from "@/lib/master/table-query";
+ import { MasterBack } from "./MasterBack";
+ import { MasterHero } from "./MasterHero";
++import { MasterFilters } from "./MasterFilters";
+ import { MasterForm } from "./MasterForms";
+ import { MasterRecords } from "./MasterRecords";
+ import { useMasterTable } from "./useMasterTable";
+@@ -62,25 +63,7 @@
+           )}
+         </header>
+ 
+-        {/* Keyed by the address values: the fields are uncontrolled, so a new `q` / `status` (a link, "ล้างตัวกรอง") remounts them with the right value. */}
+-        <form method="get" action={path} className="master-filters" role="search" aria-label={`ค้นหา${def.singular}`}>
+-          <label className="master-filter-label master-search-field">
+-            <span>ค้นหา{def.singular}</span>
+-            <span className="master-input-wrap">
+-              <svg className="master-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
+-              <input key={`q:${q}`} name="q" type="search" defaultValue={q} maxLength={100} placeholder="ค้นหาจากรหัสหรือชื่อ…" className="master-input" />
+-            </span>
+-          </label>
+-          <label className="master-filter-label">
+-            <span>สถานะ</span>
+-            <select key={`status:${status}`} name="status" defaultValue={status === "all" ? "" : status} className="master-select">
+-              <option value="">ทั้งหมด</option>
+-              <option value="active">ใช้งาน</option>
+-              <option value="inactive">ปิดใช้งาน</option>
+-            </select>
+-          </label>
+-          <button type="submit" className="master-filter-button">ค้นหา</button>
+-        </form>
++        <MasterFilters key={JSON.stringify([def.slug, q, status])} slug={def.slug} singular={def.singular} q={q} status={status} />
+       </MasterHero>
+ 
+       {saved !== null && <p role="status" className="rounded-control border border-green-500/40 bg-carbon-800 px-3 py-2 text-sm text-green-300">บันทึกแล้ว{savedRow ? ` — ${displayValue(def.fields[0], savedRow.values[def.fields[0].key])}` : ""}</p>}
+--- before/components/master/master-table.css
++++ after/components/master/master-table.css
+@@ -224,6 +224,81 @@
+ }
+ @media (max-width: 767px) { .app-theme-sand .master-hero { padding: 24px 20px; gap: 20px; } }
+ 
++/* The live filter row docks into the header; the card keeps its original geometry. */
++.master-filter-anchor { min-width: 0; }
++.master-filters--placeholder { visibility: hidden; pointer-events: none; }
++.topbar-filter-slot:empty { display: none; }
++.topbar-filter-slot { flex: 1; min-width: 0; margin-left: auto; }
++.app-theme-sand .master-filters--docked {
++  display: grid;
++  grid-template-columns: minmax(80px, 1fr) clamp(96px, 12vw, 128px) auto;
++  align-items: center;
++  width: 100%;
++  gap: 8px;
++  padding: 0;
++  border: 0;
++  border-radius: 0;
++  background: transparent;
++  box-shadow: none;
++  color-scheme: light;
++}
++.master-filters--docked .master-search-field { grid-column: auto; }
++.master-filters--docked .master-filter-label { gap: 0; }
++.app-theme-sand .master-filters--docked :is(.master-input, .master-select) { height: 44px; background-color: #fff9ed; color: #263c2e; font-size: 13px; }
++.master-filters--docked .master-select { padding-inline: 8px; }
++.app-theme-sand .master-filters--docked .master-filter-button { min-height: 44px; padding-inline: 12px; border-color: #385c40; background-color: #294635; color: #fff4dd; }
++.master-filters--docked .master-filter-button:hover { background-color: #385c40; }
++.app-topbar:has(.master-filters--docked) .app-location > span { display: none; }
++.app-topbar:has(.master-filters--docked) .app-location > p { margin-top: 0; }
++@media (min-width: 768px) and (max-width: 1000px) {
++  .app-topbar:has(.master-filters--docked) .app-location { display: none; }
++}
++@media (max-width: 767px) {
++  /* One glass plane covers both rows; nested backdrop roots would leave text unblurred. */
++  .app-theme-sand .app-topbar:has(.master-filters--docked) {
++    isolation: isolate;
++    border-color: transparent;
++    background: transparent;
++    -webkit-backdrop-filter: none;
++    backdrop-filter: none;
++    box-shadow: none;
++  }
++  .app-topbar:has(.master-filters--docked)::before {
++    content: "";
++    position: absolute;
++    z-index: -1;
++    inset: 0 0 -66px;
++    border-bottom: 1px solid #d5d5c5;
++    background-color: var(--app-glass-background);
++    -webkit-backdrop-filter: var(--app-glass-filter);
++    backdrop-filter: var(--app-glass-filter);
++    box-shadow: 0 6px 16px -12px rgb(35 60 48 / .3);
++    pointer-events: none;
++  }
++  .topbar-filter-slot:has(.master-filters--docked) {
++    position: absolute;
++    inset: 100% 0 auto;
++    padding: 10px 16px;
++    border-top: 1px solid #d5d5c5;
++  }
++  .master-page:has(.master-filters--placeholder) .master-content :where(a, input, select, textarea, button, summary, [tabindex]) { scroll-margin-block-start: 144px; }
++}
++
++/* Only this shared form morphs; the rest of the page stays live while scrolling. */
++html:active-view-transition-type(master-filter-dock)::view-transition { pointer-events: none; }
++html:active-view-transition-type(master-filter-dock)::view-transition-group(root),
++html:active-view-transition-type(master-filter-dock)::view-transition-new(root) { animation: none; }
++html:active-view-transition-type(master-filter-dock)::view-transition-old(root) { display: none; }
++::view-transition-group(.master-filter-move) { animation-duration: 320ms; animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
++::view-transition-old(.master-filter-move) { animation: master-filter-fade 110ms ease reverse both; }
++::view-transition-new(.master-filter-move) { animation: master-filter-fade 180ms ease 80ms both; object-fit: none; object-position: left top; }
++@keyframes master-filter-fade { from { opacity: 0; } to { opacity: 1; } }
++@media (prefers-reduced-motion: reduce) {
++  ::view-transition-group(.master-filter-move),
++  ::view-transition-old(.master-filter-move),
++  ::view-transition-new(.master-filter-move) { animation-duration: 0s !important; animation-delay: 0s !important; }
++}
++
+ @media (min-width: 640px) { .master-page { padding: 28px 24px; } }
+ @media (min-width: 1280px) { .master-page { padding: 32px; } }
+ @container (min-width: 36rem) {
+--- before/components/shell/TopAppBar.tsx
++++ after/components/shell/TopAppBar.tsx
+@@ -75,6 +75,7 @@
+         </Link>
+       )}
+       <div className="app-location"><span lang="en">QCHECK / WORKSPACE</span><p className="text-base font-medium text-ti-50 truncate">{pageTitle(pathname, roles)}</p></div>
++      {isMasterTable && <div id="master-filter-dock" className="topbar-filter-slot" />}
+       <Link href="/alerts" className="relative ml-auto flex size-11 shrink-0 items-center justify-center rounded-full text-ti-200 hover:bg-carbon-700">
+         <span className="sr-only">แจ้งเตือน</span>
+         <NotificationBell />
+--- /dev/null
++++ after/components/master/MasterFilters.tsx
+@@ -0,0 +1,129 @@
++"use client";
++
++import { addTransitionType, startTransition, useEffect, useLayoutEffect, useRef, useState, ViewTransition } from "react";
++import { createPortal } from "react-dom";
++import type { MasterStatusFilter } from "@/lib/master/table-query";
++import { shouldDockMasterFilters } from "./filterDock";
++
++type Props = { slug: string; singular: string; q: string; status: MasterStatusFilter };
++type FieldFocus = { name: string; start: number | null; end: number | null };
++
++/** One active search form moves between the card and header; its draft survives either location. */
++export function MasterFilters({ slug, singular, q, status }: Props) {
++  const [query, setQuery] = useState(q);
++  const [pickedStatus, setPickedStatus] = useState(status === "all" ? "" : status);
++  const [host, setHost] = useState<HTMLElement | null>(null);
++  const [docked, setDocked] = useState(false);
++  const anchor = useRef<HTMLDivElement>(null);
++  const form = useRef<HTMLFormElement>(null);
++  const mode = useRef(false);
++  const composing = useRef(false);
++  const focus = useRef<FieldFocus | null>(null);
++  const check = useRef<() => void>(() => {});
++
++  useEffect(() => {
++    const frame = requestAnimationFrame(() => setHost(document.getElementById("master-filter-dock")));
++    return () => cancelAnimationFrame(frame);
++  }, []);
++
++  useEffect(() => {
++    const slot = anchor.current;
++    const header = host?.closest<HTMLElement>(".app-topbar");
++    if (!slot || !header) return;
++    const controller = new AbortController();
++    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
++    let frame = 0;
++    const measure = () => {
++      frame = 0;
++      if (composing.current) return;
++      const next = shouldDockMasterFilters(mode.current, slot.getBoundingClientRect().top, header.getBoundingClientRect().bottom);
++      if (next === mode.current) return;
++      const active = document.activeElement;
++      const editing = form.current?.contains(active) && (active instanceof HTMLInputElement || active instanceof HTMLSelectElement);
++      focus.current = editing ? {
++        name: active.name,
++        start: active instanceof HTMLInputElement ? active.selectionStart : null,
++        end: active instanceof HTMLInputElement ? active.selectionEnd : null,
++      } : null;
++      mode.current = next;
++      // Keep typing and IME live. Only an unfocused form uses the snapshot morph.
++      if (editing || reduce.matches) setDocked(next);
++      else startTransition(() => {
++        addTransitionType("master-filter-dock");
++        setDocked(next);
++      });
++    };
++    const wake = () => {
++      if (!frame) frame = requestAnimationFrame(measure);
++    };
++    check.current = wake;
++    const observer = new ResizeObserver(wake);
++    observer.observe(slot);
++    observer.observe(header);
++    window.addEventListener("scroll", wake, { passive: true, signal: controller.signal });
++    window.addEventListener("resize", wake, { passive: true, signal: controller.signal });
++    wake();
++    return () => {
++      controller.abort();
++      observer.disconnect();
++      cancelAnimationFrame(frame);
++      check.current = () => {};
++    };
++  }, [host]);
++
++  useLayoutEffect(() => {
++    const saved = focus.current;
++    if (!saved) return;
++    const field = form.current?.elements.namedItem(saved.name);
++    if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
++      field.focus({ preventScroll: true });
++      if (field instanceof HTMLInputElement && saved.start !== null && saved.end !== null) field.setSelectionRange(saved.start, saved.end);
++    }
++    focus.current = null;
++  }, [docked]);
++
++  const renderForm = (compact: boolean, inactive = false) => (
++    <form
++      ref={inactive ? undefined : form}
++      method="get"
++      action={`/master/${slug}`}
++      className={`master-filters${compact ? " master-filters--docked" : ""}${inactive ? " master-filters--placeholder" : ""}`}
++      role="search"
++      aria-label={`ค้นหา${singular}`}
++      aria-hidden={inactive || undefined}
++      inert={inactive}
++      onCompositionStart={() => { composing.current = true; }}
++      onCompositionEnd={() => { composing.current = false; check.current(); }}
++    >
++      <label className="master-filter-label master-search-field">
++        <span className={compact ? "sr-only" : undefined}>ค้นหา{singular}</span>
++        <span className="master-input-wrap">
++          <svg className="master-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
++          <input name="q" type="search" value={query} onChange={event => setQuery(event.target.value)} maxLength={100} placeholder={compact ? `ค้นหา${singular}…` : "ค้นหาจากรหัสหรือชื่อ…"} className="master-input" />
++        </span>
++      </label>
++      <label className="master-filter-label">
++        <span className={compact ? "sr-only" : undefined}>สถานะ</span>
++        <select name="status" value={pickedStatus} onChange={event => setPickedStatus(event.target.value)} className="master-select">
++          <option value="">ทั้งหมด</option>
++          <option value="active">ใช้งาน</option>
++          <option value="inactive">ปิดใช้งาน</option>
++        </select>
++      </label>
++      <button type="submit" className="master-filter-button">ค้นหา</button>
++    </form>
++  );
++  const activeForm = (compact: boolean) => (
++    <ViewTransition name={`master-filters-${slug}`} default="none" share="master-filter-move" enter="none" exit="none">
++      {renderForm(compact)}
++    </ViewTransition>
++  );
++
++  return <>
++    {/* The inert placeholder preserves the card's size, including after a responsive resize. */}
++    <div ref={anchor} className="master-filter-anchor">
++      {docked ? renderForm(false, true) : activeForm(false)}
++    </div>
++    {docked && host && createPortal(activeForm(true), host)}
++  </>;
++}
+--- /dev/null
++++ after/components/master/filterDock.ts
+@@ -0,0 +1,6 @@
++/** Different entry/exit gaps keep the filter row steady at the header boundary. */
++export function shouldDockMasterFilters(docked: boolean, anchorTop: number, headerBottom: number): boolean {
++  if (!Number.isFinite(anchorTop) || !Number.isFinite(headerBottom)) return docked;
++  const gap = anchorTop - headerBottom;
++  return docked ? gap < 28 : gap <= 8;
++}
+--- /dev/null
++++ after/tests/master-filter-dock.test.ts
+@@ -0,0 +1,24 @@
++import { describe, expect, it } from "vitest";
++import { shouldDockMasterFilters } from "@/components/master/filterDock";
++
++describe("Master filter docking boundary", () => {
++  it("waits until the filter row reaches the header", () => {
++    expect(shouldDockMasterFilters(false, 200, 72)).toBe(false);
++    expect(shouldDockMasterFilters(false, 81, 72)).toBe(false);
++    expect(shouldDockMasterFilters(false, 80, 72)).toBe(true);
++  });
++  it("stays docked through small reversals so the row does not flicker", () => {
++    expect(shouldDockMasterFilters(true, 81, 72)).toBe(true);
++    expect(shouldDockMasterFilters(true, 99, 72)).toBe(true);
++    expect(shouldDockMasterFilters(true, 100, 72)).toBe(false);
++  });
++  it("uses the measured header height on phones and resized screens", () => {
++    expect(shouldDockMasterFilters(false, 72, 64)).toBe(true);
++    expect(shouldDockMasterFilters(true, 92, 64)).toBe(false);
++    expect(shouldDockMasterFilters(false, 104, 96)).toBe(true);
++  });
++  it("keeps the current location when a transient measurement is invalid", () => {
++    expect(shouldDockMasterFilters(true, Number.NaN, 72)).toBe(true);
++    expect(shouldDockMasterFilters(false, 80, Infinity)).toBe(false);
++  });
++});

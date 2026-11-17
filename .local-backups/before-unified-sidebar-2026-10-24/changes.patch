@@ -1,0 +1,434 @@
+--- a/src/app/app-theme.css
++++ b/src/app/app-theme.css
+@@ -133,12 +133,9 @@
+ .app-theme-sand .master-table thead { background-color: #eae8da; }
+ .app-theme-sand .master-edit, .app-theme-sand .master-toggle { background-color: #fffdf6; }
+ 
+-/*
+-  Laptop navigation: a floating icon rail on frosted glass like the top bar; the page runs full width
+-  underneath. Hover/focus zooms an icon and slides out a frosted label (icon + name).
+-*/
++/* One clipped glass surface grows out of the rail; labels have no separate panel. */
+ .app-theme-sand .app-rail {
+-  --rail-glass: var(--app-glass-background);
++  --rail-surface-width: 68px;
+   position: fixed;
+   z-index: 40;
+   inset: 12px auto 12px 12px;
+@@ -147,89 +144,65 @@
+   align-items: center;
+   gap: 10px;
+   padding: 14px 0;
+-  border: 1px solid transparent;
+   border-radius: 22px;
+   background: transparent;
+-  /* Keep the rail itself out of the backdrop-root chain. Otherwise its expanding
+-     descendants cannot sample and blur the page outside this narrow rail. */
+-  -webkit-backdrop-filter: none;
+-  backdrop-filter: none;
+-}
+-.app-theme-sand .app-rail::before {
+-  content: "";
+-  position: absolute;
+-  inset: -1px;
+-  z-index: -1;
+-  pointer-events: none;
+-  border: 1px solid #d5d5c5;
+-  border-radius: inherit;
++}
++.app-theme-sand .app-rail-clip { position: absolute; pointer-events: none; }
++.app-theme-sand .app-rail-glass,
++.app-theme-sand .app-rail-outline { position: absolute; inset: 0 auto 0 0; width: var(--rail-surface-width); height: 100%; pointer-events: none; }
++.app-theme-sand .app-rail-glass {
++  z-index: -2;
+   background-color: var(--app-glass-background);
+   -webkit-backdrop-filter: var(--app-glass-filter);
+   backdrop-filter: var(--app-glass-filter);
+-  box-shadow: 0 1px 0 rgb(255 255 255 / .5) inset, 0 18px 40px -28px rgb(35 60 48 / .45);
+-}
+-.app-theme-sand .app-rail-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: #233c30; }
+-.app-theme-sand .app-rail-sections { flex: 1; display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid #d9d6c4; }
++}
++.app-theme-sand .app-rail-outline { z-index: -1; overflow: visible; fill: none; stroke: #cdd0bd; stroke-width: 1; }
++.app-theme-sand .app-rail-brand { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 14px; color: #233c30; }
++.app-theme-sand .app-rail-sections { flex: 1; display: flex; flex-direction: column; gap: 10px; width: 48px; padding-top: 10px; border-top: 1px solid #d9d6c4; }
+ .app-theme-sand .app-rail-sections nav + nav { padding-top: 10px; border-top: 1px solid #d9d6c4; }
+-.app-theme-sand .app-rail-sections ul { display: flex; flex-direction: column; gap: 4px; }
+-.app-theme-sand .app-rail-link { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; color: #4d6b4e; outline: none; }
+-.app-theme-sand .app-rail-icon { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; transition: scale 280ms cubic-bezier(.22,1,.36,1), background-color 200ms ease, color 200ms ease; }
++.app-theme-sand .app-rail-sections ul { display: flex; flex-direction: column; gap: 4px; width: 48px; }
++.app-theme-sand .app-rail-sections li { width: 48px; }
++.app-theme-sand .app-rail-link { position: relative; display: flex; align-items: center; width: 48px; height: 48px; padding-left: 2px; border-radius: 15px; color: #4d6b4e; outline: none; }
++.app-theme-sand .app-rail-link[data-expanded] { width: calc(var(--rail-surface-width) - 20px); }
++.app-theme-sand .app-rail-icon { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 14px; transition: scale 320ms cubic-bezier(.22,1,.36,1), background-color 200ms ease, color 200ms ease; }
+ .app-theme-sand .app-rail-link[aria-current="page"] .app-rail-icon { background-color: #233c30; color: #ffd09c; box-shadow: 0 8px 18px -12px rgb(35 60 48 / .8); }
+ .app-theme-sand .app-rail-badge { position: absolute; top: 2px; right: 1px; }
+ .app-theme-sand .app-rail-label {
+   position: absolute;
+-  z-index: 1;
+-  left: -2px;
++  left: 62px;
+   top: 50%;
+   display: flex;
+   align-items: center;
+-  gap: 12px;
+-  width: max-content;
+-  max-width: 300px;
+-  padding: 8px 18px 8px 8px;
+-  border: 1px solid #d5d5c5;
+-  border-radius: 18px;
+-  background-color: var(--rail-glass);
+-  -webkit-backdrop-filter: var(--app-glass-filter);
+-  backdrop-filter: var(--app-glass-filter);
+-  box-shadow: 0 18px 40px -22px rgb(35 60 48 / .6);
++  width: 228px;
++  min-height: 52px;
++  max-width: calc(100vw - 112px);
+   opacity: 0;
+-  /* Grows out of the rail icon it sits on. */
+-  transform-origin: 26px 50%;
+-  translate: 0 -50%;
+-  scale: .75;
++  translate: -10px -50%;
+   pointer-events: none;
+-  transition: opacity 160ms ease, scale 320ms cubic-bezier(.22,1,.36,1);
+-}
+-.app-theme-sand .app-rail-label-icon { display: grid; place-items: center; flex: none; width: 48px; height: 48px; border-radius: 14px; background-color: #233c30; color: #ffd09c; }
+-.app-theme-sand .app-rail-label-title { display: block; font-size: 15px; font-weight: 600; line-height: 1.35; color: #233c30; white-space: nowrap; }
+-.app-theme-sand .app-rail-label-hint { display: block; margin-top: 2px; font-size: 12px; line-height: 1.45; color: #5d6857; }
+-.app-theme-sand .app-rail-link:is(:hover, :focus-visible) .app-rail-icon { scale: 1.08; color: #233c30; background-color: rgb(255 253 246 / .9); }
+-.app-theme-sand .app-rail-link[aria-current="page"]:is(:hover, :focus-visible) .app-rail-icon { background-color: #233c30; color: #ffd09c; }
+-.app-theme-sand .app-rail-link:is(:hover, :focus-visible) .app-rail-label { opacity: 1; scale: 1; }
++  transition: opacity 180ms ease, translate 320ms cubic-bezier(.22,1,.36,1);
++}
++.app-theme-sand .app-rail-label-title { display: block; font-size: 15px; font-weight: 600; line-height: 1.4; color: #233c30; white-space: nowrap; }
++.app-theme-sand .app-rail-label-hint { display: block; margin-top: 3px; font-size: 12px; line-height: 1.55; color: #5d6857; }
++.app-theme-sand .app-rail-link[data-expanded] .app-rail-icon { scale: 1.12; color: #233c30; background-color: #e8eddf; }
++.app-theme-sand .app-rail-link[aria-current="page"][data-expanded] .app-rail-icon { background-color: #233c30; color: #ffd09c; }
++.app-theme-sand .app-rail-link[data-expanded] .app-rail-label { opacity: 1; translate: 0 -50%; transition-delay: 60ms, 0ms; }
+ .app-theme-sand .app-rail-link:focus-visible .app-rail-icon { outline: 2px solid var(--color-ember-500); outline-offset: 2px; }
+-.app-theme-sand .app-rail-account { position: relative; }
++.app-theme-sand .app-rail-account { position: relative; flex: none; }
+ .app-theme-sand .app-rail-avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid #c4ccb5; background-color: #e8eadb; color: #233c30; font-weight: 600; font-size: 14px; }
+ .app-theme-sand .app-rail-card {
+   position: absolute;
+-  left: calc(100% + 14px);
+-  bottom: 0;
++  left: 62px;
++  bottom: 36px;
+   width: 220px;
+-  padding: 14px;
+-  border: 1px solid #d5d5c5;
+-  border-radius: 14px;
+-  background-color: var(--rail-glass);
+-  -webkit-backdrop-filter: var(--app-glass-filter);
+-  backdrop-filter: var(--app-glass-filter);
+-  box-shadow: 0 14px 30px -20px rgb(35 60 48 / .55);
+   opacity: 0;
+   visibility: hidden;
+-  translate: -8px 0;
+-  transition: opacity 180ms ease, translate 260ms cubic-bezier(.22,1,.36,1), visibility 0s linear 260ms;
+-}
+-/* A small hover bridge so the pointer can travel from the avatar to the card. */
+-.app-theme-sand .app-rail-card::before { content: ""; position: absolute; inset: 0 100% 0 -16px; }
+-.app-theme-sand .app-rail-account:is(:hover, :focus-within) .app-rail-card { opacity: 1; visibility: visible; translate: 0 0; transition-delay: 0s; }
++  translate: -10px 0;
++  pointer-events: none;
++  transition: opacity 180ms ease, translate 320ms cubic-bezier(.22,1,.36,1), visibility 0s linear 220ms;
++}
++.app-theme-sand .app-rail-account[data-expanded] .app-rail-card { opacity: 1; visibility: visible; translate: 0 0; pointer-events: auto; transition-delay: 60ms, 0ms, 0ms; }
++/* The transparent bridge stays within the single surface when moving to account actions. */
++.app-theme-sand .app-rail-account[data-expanded]::before { content: ""; position: absolute; left: 0; bottom: 0; width: calc(var(--rail-surface-width) - 20px); height: 150px; z-index: -1; }
+ .app-theme-sand .app-topbar {
+   height: 72px;
+   /* Frosted glass: content scrolling underneath shows through as soft colour. */
+@@ -320,6 +293,17 @@
+   .app-theme-sand .home-welcome-copy, .app-theme-sand .home-welcome-actions { max-width: 100%; }
+   .app-theme-sand .workspace-drawing { opacity: .12; right: 0; }
+ }
++@media (min-width: 768px) and (max-height: 600px) {
++  .app-theme-sand .app-rail { inset: 8px auto 8px 12px; padding-block: 8px; gap: 4px; }
++  .app-theme-sand .app-rail-brand { height: 36px; }
++  .app-theme-sand .app-rail-sections { gap: 4px; padding-top: 4px; }
++  .app-theme-sand .app-rail-sections nav + nav { padding-top: 4px; }
++  .app-theme-sand .app-rail-sections ul { gap: 0; }
++  .app-theme-sand .app-rail-sections li:has([aria-disabled="true"]) { display: none; }
++  .app-theme-sand .app-rail-link { height: 44px; }
++  .app-theme-sand .app-rail-icon { width: 40px; height: 40px; }
++  .app-theme-sand .app-rail-avatar { width: 36px; height: 32px; }
++}
+ @media (max-width: 767px) {
+   .app-theme-sand .app-topbar { height: 64px; }
+   .app-theme-sand .home-welcome { --welcome-radius: 18px; padding: 24px; }
+--- a/src/components/shell/AppSidebar.tsx
++++ b/src/components/shell/AppSidebar.tsx
+@@ -1,6 +1,9 @@
+ "use client";
+ 
+ import Link from "next/link";
++import { useId, useRef } from "react";
++import { useRailSurface } from "./useRailSurface";
++import { railSurfacePath } from "./railSurface";
+ import { usePathname } from "next/navigation";
+ import { SignOutButton } from "@/components/dom/SignOutButton";
+ import { QMark } from "@/components/dom/Wordmark";
+@@ -14,15 +17,24 @@
+ /**
+  * Icon rail on ≥ 768 px — same destinations as the bottom tabs (docs/09 §5). It floats over the page on
+  * frosted glass like the top bar, so the content area runs the full width underneath. Hovering (or
+- * focusing) an icon grows it into a frosted card: a large icon, the page name and one line about it.
++ * focusing) a menu stretches the same glass surface to reveal its name and description.
+  */
+ export function AppSidebar({ user }: { user: SessionUser }) {
+   const pathname = usePathname();
++  const root = useRef<HTMLElement>(null);
++  const clip = useRef<SVGPathElement>(null);
++  const outline = useRef<SVGPathElement>(null);
++  const clipId = `rail-surface-${useId().replace(/:/g, "")}`;
++  const initialPath = railSurfacePath(720, {extension:0, center:104, panelHeight:76});
++  useRailSurface(root, clip, outline);
+   const role = primaryRole(user.roles);
+   const initials = user.fullName.trim().slice(0, 1) || user.employeeCode.slice(0, 1);
+ 
+   return (
+-    <aside aria-label="เมนูหลัก" className="app-rail hidden md:flex select-none">
++    <aside ref={root} aria-label="เมนูหลัก" className="app-rail hidden md:flex select-none">
++      <svg className="app-rail-clip" width="0" height="0" aria-hidden="true" focusable="false"><defs><clipPath id={clipId} clipPathUnits="userSpaceOnUse"><path ref={clip} d={initialPath} /></clipPath></defs></svg>
++      <div className="app-rail-glass" style={{clipPath:`url(#${clipId})`}} aria-hidden="true" />
++      <svg className="app-rail-outline" aria-hidden="true" focusable="false"><path ref={outline} d={initialPath} /></svg>
+       <Link href="/home" aria-label="QCheck หน้าหลัก" className="app-rail-brand">
+         <QMark className="h-6 w-auto" />
+       </Link>
+@@ -41,7 +53,6 @@
+                         {item.href === "/alerts" && <NotificationBadge className="app-rail-badge" />}
+                       </span>
+                       <span className="app-rail-label">
+-                        <span className="app-rail-label-icon"><NavIcon name={item.icon} className="size-6" /></span>
+                         <span className="min-w-0">
+                           <span className="app-rail-label-title">{item.label}</span>
+                           {item.hint && <span className="app-rail-label-hint">{item.hint}</span>}
+@@ -58,7 +69,7 @@
+ 
+       <div className="app-rail-account">
+         <button type="button" aria-label={`บัญชี ${user.fullName}`} className="app-rail-avatar">{initials}</button>
+-        <div className="app-rail-card">
++        <div className="app-rail-card" inert>
+           <p className="text-sm font-medium text-ti-50 truncate">{user.fullName}</p>
+           <p className="mt-0.5 text-xs text-ti-400 truncate">
+             <span className="font-mono tracking-wider">{user.employeeCode}</span>
+--- /dev/null
++++ b/src/components/shell/railSurface.ts
+@@ -0,0 +1,31 @@
++/** A single outline for the rail and its rounded extension. Coordinates are CSS pixels. */
++export type RailShape = { extension: number; center: number; panelHeight: number };
++export const RAIL_WIDTH = 68;
++const finite = (value: number, fallback: number) => Number.isFinite(value) ? value : fallback;
++const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
++
++export function advanceRailShape(current: RailShape, target: RailShape, delta: number, still: boolean): RailShape {
++  const amount = still ? 1 : 1 - Math.exp(-20 * clamp(finite(delta, 0), 0, 0.05));
++  const move = (from: number, to: number) => {
++    const end = finite(to, 0), start = finite(from, end);
++    return Math.abs(end - start) < 0.05 ? end : start + (end - start) * amount;
++  };
++  return { extension: Math.max(0, move(current.extension, target.extension)), center: move(current.center, target.center), panelHeight: Math.max(0, move(current.panelHeight, target.panelHeight)) };
++}
++
++export function railSurfacePath(height: number, shape: RailShape): string {
++  const h = Math.max(68, finite(height, 68));
++  const edge = RAIL_WIDTH - 0.5, left = 0.5, bottom = h - 0.5;
++  const baseRadius = 22;
++  const extension = clamp(finite(shape.extension, 0), 0, 360);
++  const start = `M22.5 .5 H45.5 Q${edge} .5 ${edge} 22.5`;
++  const finish = `V${bottom-baseRadius} Q${edge} ${bottom} 45.5 ${bottom} H22.5 Q${left} ${bottom} ${left} ${bottom-baseRadius} V22.5 Q${left} .5 22.5 .5 Z`;
++  if (extension < 0.1 || h < 120) return start + finish;
++  const panelHeight = clamp(finite(shape.panelHeight, 76), 54, Math.max(54, h - 80));
++  const top = clamp(finite(shape.center, h / 2) - panelHeight / 2, 38, h - 38 - panelHeight);
++  const end = top + panelHeight;
++  const neck = Math.min(16, extension / 3, top - 22.5, h - 22.5 - end);
++  const radius = Math.min(18, extension / 3, panelHeight / 3);
++  const right = edge + extension;
++  return start + `V${top-neck} Q${edge} ${top} ${edge+neck} ${top} H${right-radius} Q${right} ${top} ${right} ${top+radius} V${end-radius} Q${right} ${end} ${right-radius} ${end} H${edge+neck} Q${edge} ${end} ${edge} ${end+neck}` + finish;
++}
+--- /dev/null
++++ b/src/components/shell/useRailSurface.ts
+@@ -0,0 +1,121 @@
++"use client";
++
++import { useEffect, type RefObject } from "react";
++import { advanceRailShape, railSurfacePath, RAIL_WIDTH, type RailShape } from "./railSurface";
++
++const ITEM = ".app-rail-link, .app-rail-account";
++
++/** Animate one glass silhouette; pointer motion never causes React renders. */
++export function useRailSurface(rootRef: RefObject<HTMLElement | null>, clipRef: RefObject<SVGPathElement | null>, outlineRef: RefObject<SVGPathElement | null>) {
++  useEffect(() => {
++    const root = rootRef.current;
++    if (!root) return;
++    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
++    const hover = window.matchMedia("(hover: hover) and (pointer: fine)");
++    let active: HTMLElement | null = null;
++    let restoringFocus = false;
++    let height = root.getBoundingClientRect().height;
++    let current: RailShape = { extension: 0, center: 104, panelHeight: 76 };
++    let target = { ...current };
++    let frame = 0, last = 0, closeTimer = 0;
++    const controller = new AbortController();
++    const options = { signal: controller.signal };
++
++    const paint = () => {
++      const path = railSurfacePath(height, current);
++      clipRef.current?.setAttribute("d", path);
++      outlineRef.current?.setAttribute("d", path);
++      root.style.setProperty("--rail-surface-width", `${RAIL_WIDTH + current.extension}px`);
++    };
++    const tick = (now: number) => {
++      current = advanceRailShape(current, target, last ? (now - last) / 1000 : 1 / 60, reduce.matches);
++      last = now;
++      paint();
++      const moving = Math.abs(current.extension-target.extension) > 0.05 || Math.abs(current.center-target.center) > 0.05 || Math.abs(current.panelHeight-target.panelHeight) > 0.05;
++      frame = moving ? window.requestAnimationFrame(tick) : 0;
++      if (!moving) last = 0;
++    };
++    const wake = () => { if (!frame) frame = window.requestAnimationFrame(tick); };
++    const cancelClose = () => { window.clearTimeout(closeTimer);closeTimer = 0; };
++    const findItem = (node: EventTarget | null) => node instanceof Element ? node.closest<HTMLElement>(ITEM) : null;
++    const open = (item: HTMLElement | null) => {
++      cancelClose();
++      if (item && !root.contains(item)) return;
++      if (item !== active) {
++        active?.removeAttribute("data-expanded");
++        active?.querySelector(".app-rail-card")?.setAttribute("inert", "");
++        active = item;
++        active?.setAttribute("data-expanded", "");
++        active?.querySelector(".app-rail-card")?.removeAttribute("inert");
++      }
++      if (!item) { target = { ...target, extension: 0 };wake();return; }
++      const panel = item.querySelector<HTMLElement>(".app-rail-label, .app-rail-card");
++      if (!panel) return;
++      const bounds = root.getBoundingClientRect();
++      const box = panel.getBoundingClientRect();
++      height = bounds.height;
++      const width = Math.min(box.right - bounds.left + 20, window.innerWidth - bounds.left - 16);
++      target = { extension: Math.max(0, width - RAIL_WIDTH), center: box.top - bounds.top + box.height / 2, panelHeight: Math.max(76, box.height + 24) };
++      if (current.extension < 0.1) current = { ...current, center: target.center, panelHeight: target.panelHeight };
++      wake();
++    };
++    const closeSoon = () => { cancelClose();closeTimer = window.setTimeout(() => open(null), 90); };
++    const over = (event: PointerEvent) => {
++      if (!hover.matches || event.pointerType !== "mouse") return;
++      const item = findItem(event.target);
++      if (item) open(item);
++    };
++    const out = (event: PointerEvent) => {
++      if (active?.contains(event.relatedTarget as Node | null)) return;
++      const next = findItem(event.relatedTarget);
++      if (next && root.contains(next)) open(next);
++      else if (!(document.activeElement instanceof Element && document.activeElement.matches(":focus-visible") && root.contains(document.activeElement))) closeSoon();
++    };
++    const click = (event: MouseEvent) => {
++      if (event.target instanceof Element && event.target.closest(".app-rail-avatar")) open(findItem(event.target));
++    };
++    const focus = (event: FocusEvent) => {
++      if (restoringFocus) return;
++      const item = findItem(event.target);
++      if (item && (item.matches(".app-rail-account") || (event.target instanceof Element && event.target.matches(":focus-visible")))) open(item);
++    };
++    const blur = (event: FocusEvent) => { if (!root.contains(event.relatedTarget as Node | null)) closeSoon(); };
++    const resize = () => {
++      height = root.getBoundingClientRect().height;
++      if (height === 0) open(null);
++      else if (active) open(active);
++      paint();
++    };
++    const escape = (event: KeyboardEvent) => {
++      if (event.key !== "Escape" || !active) return;
++      const avatar = active.querySelector<HTMLButtonElement>(".app-rail-avatar");
++      event.preventDefault();
++      open(null);
++      if (avatar) {restoringFocus = true;avatar.focus({preventScroll:true});restoringFocus = false;}
++    };
++    const windowBlur = () => open(null);
++    const leave = () => {
++      if (document.activeElement instanceof Element && document.activeElement.matches(":focus-visible") && root.contains(document.activeElement)) return;
++      closeSoon();
++    };
++    const outside = (event: PointerEvent) => { if (!root.contains(event.target as Node | null)) open(null); };
++    root.addEventListener("pointerover", over, options);
++    root.addEventListener("pointerout", out, options);
++    root.addEventListener("pointerleave", leave, options);
++    root.addEventListener("click", click, options);
++    root.addEventListener("focusin", focus, options);
++    root.addEventListener("focusout", blur, options);
++    root.addEventListener("keydown", escape, options);
++    document.addEventListener("pointerdown", outside, options);
++    window.addEventListener("blur", windowBlur, options);
++    window.addEventListener("resize", resize, options);
++    reduce.addEventListener("change", wake, options);
++    const observer = new ResizeObserver(resize);
++    observer.observe(root);
++    paint();
++    return () => {
++      controller.abort();observer.disconnect();cancelClose();window.cancelAnimationFrame(frame);
++      active?.removeAttribute("data-expanded");root.style.removeProperty("--rail-surface-width");
++    };
++  }, [rootRef, clipRef, outlineRef]);
++}
+--- /dev/null
++++ b/src/components/shell/railSurface.test.ts
+@@ -0,0 +1,55 @@
++import { describe, expect, it } from "vitest";
++import { advanceRailShape, railSurfacePath, type RailShape } from "./railSurface";
++
++const closed: RailShape = {extension:0,center:104,panelHeight:76};
++const open: RailShape = {extension:240,center:104,panelHeight:76};
++
++describe("continuous sidebar surface motion", () => {
++  it.each([30,60,120])("reaches the same outline after 300ms at %i fps", fps => {
++    let shape = closed;
++    for(let i=0;i<fps*.3;i++) shape = advanceRailShape(shape,open,1/fps,false);
++    expect(shape.extension).toBeCloseTo(240*(1-Math.exp(-6)),5);
++  });
++
++  it("reverses from the currently drawn edge and follows a new menu without resetting", () => {
++    const opening = advanceRailShape(closed,open,.05,false);
++    const closing = advanceRailShape(opening,closed,.016,false);
++    expect(closing.extension).toBeLessThan(opening.extension);
++    expect(closing.extension).toBeGreaterThan(0);
++    const next = advanceRailShape(closing,{...open,center:420},.016,false);
++    expect(next.extension).toBeGreaterThan(closing.extension);
++    expect(next.center).toBeGreaterThan(closing.center);
++    expect(next.center).toBeLessThan(420);
++  });
++
++  it("uses the final shape immediately under reduced motion", () => {
++    expect(advanceRailShape(closed,open,.016,true)).toEqual(open);
++  });
++
++  it.each([NaN,Infinity,-Infinity,-3,0,60])("bounds frame delta %s", delta => {
++    const shape = advanceRailShape(closed,open,delta,false);
++    expect(Number.isFinite(shape.extension)).toBe(true);
++    expect(shape.extension).toBeGreaterThanOrEqual(0);
++    expect(shape.extension).toBeLessThanOrEqual(advanceRailShape(closed,open,.05,false).extension);
++  });
++});
++
++describe("one connected glass outline", () => {
++  it.each([68,120,390,696,1156])("keeps a single closed, finite contour at height %i", height => {
++    for(const center of [-500,0,height/2,height,height+500,NaN]) {
++      for(const extension of [0,.05,1,120,240,Infinity]) {
++        const path = railSurfacePath(height,{center,extension,panelHeight:100});
++        expect(path.match(/M/g)).toHaveLength(1);
++        expect(path.endsWith("Z")).toBe(true);
++        expect(path).not.toMatch(/NaN|Infinity/);
++        const numbers = path.match(/-?\d*\.?\d+/g)!.map(Number);
++        expect(Math.min(...numbers)).toBeGreaterThanOrEqual(0);
++        for(const command of path.match(/[MHVQ][^MHVQZ]*/g)!) {
++          const values = command.slice(1).match(/-?\d*\.?\d+/g)!.map(Number);
++          const ys = command[0] === "V" ? values : command[0] === "H" ? [] : values.filter((_,i)=>i%2===1);
++          ys.forEach(y=>expect(y).toBeLessThanOrEqual(height));
++        }
++      }
++    }
++  });
++});

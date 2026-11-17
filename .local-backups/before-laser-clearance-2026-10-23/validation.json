@@ -1,0 +1,12 @@
+{
+  "lint": "pass",
+  "typecheck": "pass",
+  "build": "pass",
+  "tests": {
+    "passed": 417,
+    "skipped": 8
+  },
+  "geometryClearance": "every vertex inside focused ellipse with 0.06 margin",
+  "browser": "Username and Password checked at 1280x720; Password checked at 390x844; no horizontal overflow",
+  "undo": "rehearsed and original hashes verified"
+}

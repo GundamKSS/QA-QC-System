@@ -1,0 +1,9 @@
+{
+  "src/config/experience.ts": "80f405d3d3ec3e340f0f64f44c4cec50f6b0bc37faf582a6cb4381415c60563b",
+  "src/lib/auth-stage.ts": "fd7d420a5af8cac71bed0e3913433d29511aa01fc1192472e188bcfa3f8c4690",
+  "src/components/canvas/AuthStage.tsx": "01b6a61c6f2a9aeecc99a67cf8ed894ad70704bf1c936208dea1a8248bb2b93d",
+  "src/components/canvas/Scene.tsx": "00e5564107b0309cf39c9ee9631d8ff0d15d8a90ef4cb8f930631b16b132d41d",
+  "src/components/canvas/ScanRing.tsx": "c1cd56108619b5adc5f923ffa95b5164e96114ccff22492142717b79d6154d47",
+  "src/components/dom/LoginForm.tsx": "5c3b38a298e13aba321b140d04e2136eb85749b9b4c802f39a0cea169afe51f2",
+  "eslint.config.mjs": "870f1adccecf3051cbcd9fd307cef51d7633cf510979c181a81f4b1797273493"
+}

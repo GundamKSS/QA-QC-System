@@ -1,0 +1,20 @@
+{
+  "src/app/(app)/home/page.tsx": "0e2b6beed5f5dbc79cf8dbbe9e3b22f9f651e75532b09f56e8c7a9e04005549b",
+  "src/app/(app)/plans/page.tsx": "a631ad8662cfbeb6e4f28a0d3983324ff8e01b59b4f4318a829d85e0efe5231c",
+  "src/app/(app)/more/page.tsx": "93043b8edf910a41aaaad4b8d9d394dd80aed3d5a633e8ded72c2cd08353ffa1",
+  "src/app/(app)/alerts/page.tsx": "d38d8735fd0ab3ddc6140a7abe9474753f571265202c17540c9c4ef185893cfb",
+  "src/app/(app)/master/page.tsx": "610a1b38f386be5f258dfc46b596c51f234c1b6f0fd93fde6b6cf62821fe26d4",
+  "src/app/(app)/jobs/page.tsx": "6b5a3ce6ff3cab3f7452852c30b08d5ceb0342d0f96719826564a25393729464",
+  "src/app/(app)/master/[table]/MasterForms.tsx": "6f6334b7dbe5a2dc66a73862afafa62519473f9c75f289f0377386e7a20641b1",
+  "src/app/(app)/master/[table]/page.tsx": "df5aa6371cdfd34ad8c203df0769ce31770706ca09be43eb52a944299a31f183",
+  "src/app/(app)/admin/users/UserAdminForms.tsx": "3c889bf61ff396d2ecf2f9cd831d8b66a33c2fa829c854e2ec3b27c69d7a8ee8",
+  "src/app/(app)/admin/users/page.tsx": "1b2d83660afc02babc6920942496cd9d713f1bde2dcc51a6b418ac68e45e8235",
+  "src/app/(app)/plans/new/OpenPlanForm.tsx": "ac2b15a06590c9828c46f6e0d9e6e86abfc6094ca8a4c86a8a1f68fe966112c3",
+  "src/app/(app)/plans/[id]/WorkOrderActions.tsx": "3ff8318819bbeef34e7a75e987b5561fdb4854daf041519883836180df8abf3d",
+  "src/app/(app)/plans/[id]/PlanActions.tsx": "71cd496b94ca8f47689ca26348d1dafc95a47f691d5abcd42b581432fc9f3e4b",
+  "src/app/(app)/plans/[id]/page.tsx": "d6f38effac1e6a805600e4e0a256a7f441b341e162e7643cd9bbfdc452f376d7",
+  "src/app/(app)/plans/[id]/work-orders/new/WorkOrderForm.tsx": "17b7bdb50fc457a340e1a9f6cf7ffa9e156d17a0bd09df249c6b815d58779bf9",
+  "src/components/shell/TopAppBar.tsx": "a586f416d3e3ab2ed6c8ab044a16720cde9475c6f85f3a03dd24f91d9a94b0f3",
+  "src/components/shell/AppSidebar.tsx": "2f408e1e5e8651e6bdf8cb93b504165c187b4b276388e19fbbf90fb92d8d6284",
+  "src/app/app-theme.css": "c98bb0ebe53c17e8ffddc84211ddab7be429907382ee4fa2544a20ed7638a083"
+}

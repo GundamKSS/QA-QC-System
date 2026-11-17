@@ -1,0 +1,557 @@
+<title>แผนผังระบบ QCheck</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one blueprint sheet per question — what the system is made of, who uses it, the user journey, what the program does behind it, then the screen list. Same visual family as the DB map. */
+:root {
+  --paper: #eef0f1;
+  --sheet: #f8f9f9;
+  --ink: #1b1f22;
+  --ink-2: #4a5258;
+  --ink-3: #7a838a;
+  --rule: #d3d8db;
+  --node: #ffffff;
+  --ember: #d9590f;
+  --ember-soft: #fbe3d4;
+  --built: #2f7d4f;
+  --built-soft: #e0f0e6;
+  --part: #a86a0b;
+  --part-soft: #f8ecd3;
+  --plan: #7a838a;
+  --plan-soft: #eceff1;
+  --font-body: "IBM Plex Sans Thai", "Sukhumvit Set", "Thonburi", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121517; --sheet: #191d20; --ink: #e8ecee; --ink-2: #b4bcc1; --ink-3: #848d93; --rule: #2e3438; --node: #20252a;
+    --ember: #ff8a3d; --ember-soft: #3a2416;
+    --built: #6fcf97; --built-soft: #17301f; --part: #e9b04f; --part-soft: #362a12; --plan: #8f989e; --plan-soft: #23282c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121517; --sheet: #191d20; --ink: #e8ecee; --ink-2: #b4bcc1; --ink-3: #848d93; --rule: #2e3438; --node: #20252a;
+  --ember: #ff8a3d; --ember-soft: #3a2416;
+  --built: #6fcf97; --built-soft: #17301f; --part: #e9b04f; --part-soft: #362a12; --plan: #8f989e; --plan-soft: #23282c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ember); }
+h1 { margin: 0; font-size: clamp(26px, 4vw, 36px); line-height: 1.2; font-weight: 700; text-wrap: balance; }
+h2 { margin: 0; font-size: 21px; font-weight: 600; text-wrap: balance; }
+h3 { margin: 0; font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--ember); }
+.lead { color: var(--ink-2); max-width: 72ch; }
+.mono { font-family: var(--font-mono); font-size: .92em; }
+.sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; }
+.section { padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.section-head { display: grid; gap: 4px; }
+.section-head p { color: var(--ink-2); font-size: 14px; max-width: 75ch; }
+.qnum { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); letter-spacing: .06em; }
+
+/* status pills */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--ink-2); align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; border-radius: 999px; padding: 1px 9px; white-space: nowrap; border: 1px solid transparent; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.built { color: var(--built); background: var(--built-soft); }
+.pill.part { color: var(--part); background: var(--part-soft); }
+.pill.plan { color: var(--plan); background: var(--plan-soft); border-color: var(--rule); border-style: dashed; }
+.phase { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; white-space: nowrap; }
+
+/* SVG drawings */
+.scroller { overflow-x: auto; }
+.scroller svg { display: block; width: 100%; height: auto; }
+svg text { font-family: var(--font-body); }
+.box { fill: var(--node); stroke: var(--rule); stroke-width: 1.2; }
+.box.built { stroke: var(--built); }
+.box.part { stroke: var(--part); }
+.box.plan { stroke: var(--plan); stroke-dasharray: 5 4; fill: var(--plan-soft); }
+.zone { fill: none; stroke: var(--ink-3); stroke-dasharray: 2 4; }
+.t1 { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.t2 { font-size: 12px; fill: var(--ink-2); }
+.t3 { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-3); }
+.zl { font-size: 13px; font-weight: 600; fill: var(--ink-3); }
+.ln { fill: none; stroke: var(--ink-3); stroke-width: 1.4; }
+.ln.plan { stroke-dasharray: 5 4; }
+.ln.loop { stroke: var(--ember); }
+.lt { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-3); paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; stroke-linejoin: round; }
+.lt.loop { fill: var(--ember); }
+.dot.built { fill: var(--built); } .dot.part { fill: var(--part); } .dot.plan { fill: var(--plan); }
+
+/* roles */
+.filter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.filter span { font-size: 13px; color: var(--ink-3); margin-right: 4px; }
+.chip { font: inherit; font-size: 13px; border: 1px solid var(--rule); background: var(--node); color: var(--ink); border-radius: 999px; padding: 3px 12px; cursor: pointer; min-height: 32px; }
+.chip:hover { border-color: var(--ink-3); }
+.chip:focus-visible, .rolecard:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 12px; }
+.rolecard { background: var(--node); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; cursor: pointer; text-align: left; font: inherit; color: inherit; min-width: 0; }
+.rolecard.sel { border-color: var(--ember); box-shadow: 0 0 0 1px var(--ember); }
+.rolecard .rn { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.rolecard .code { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); }
+.rolecard .meta { font-size: 12.5px; color: var(--ink-3); }
+.rolecard ul { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 3px; }
+.rolecard .tabs { font-size: 12px; color: var(--ink-2); border-top: 1px dashed var(--rule); padding-top: 8px; }
+.login-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.login-split > div { border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; background: var(--node); }
+.login-split p { font-size: 14px; color: var(--ink-2); }
+
+/* journey */
+.journey { display: grid; gap: 0; counter-reset: st; }
+.stage { display: grid; grid-template-columns: 44px 1fr; gap: 0 14px; counter-increment: st; }
+.stage .rail { display: grid; justify-items: center; grid-template-rows: 30px 1fr; }
+.stage .rail::before { content: counter(st); width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ink-3); display: grid; place-items: center; font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--ink-2); background: var(--sheet); }
+.stage .rail::after { content: ""; width: 1.5px; background: var(--rule); }
+.stage:last-child .rail::after { background: transparent; }
+.stage.s-built .rail::before { border-color: var(--built); color: var(--built); }
+.stage.s-part .rail::before { border-color: var(--part); color: var(--part); }
+.stage .body { padding-bottom: 22px; display: grid; gap: 8px; min-width: 0; }
+.stage .sh { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; padding-top: 3px; }
+.stage .sh p { font-size: 13.5px; color: var(--ink-3); flex-basis: 100%; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.step { display: grid; grid-template-columns: minmax(0, 150px) 1fr auto; gap: 4px 12px; align-items: start; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 5px; background: var(--node); transition: opacity .15s; }
+.step .who { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.step .what { font-size: 14px; min-width: 0; }
+.step .st { display: flex; gap: 6px; align-items: center; justify-self: end; }
+.step.dim { opacity: .28; }
+@media (max-width: 640px) {
+  .step { grid-template-columns: 1fr; }
+  .step .st { justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { .step { transition: none; } }
+
+/* program flows */
+.flows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.flow { background: var(--node); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.flow .fh { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.flow ol { margin: 0; padding-left: 22px; display: grid; gap: 5px; font-size: 14px; }
+.flow ol li::marker { font-family: var(--font-mono); color: var(--ember); font-size: 12px; }
+.flow .why { font-size: 13px; color: var(--ink-2); border-top: 1px dashed var(--rule); padding-top: 8px; }
+.machine { display: grid; gap: 10px; }
+.states { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.state { font-family: var(--font-mono); font-size: 12px; padding: 3px 9px; border-radius: 4px; border: 1px solid var(--rule); background: var(--node); white-space: nowrap; }
+.state.built { border-color: var(--built); color: var(--built); background: var(--built-soft); }
+.state.plan { border-style: dashed; color: var(--ink-3); }
+.states .arr { color: var(--ink-3); font-size: 12px; }
+.machine p { font-size: 13px; color: var(--ink-2); }
+
+/* screens */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
+td.r { font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+td.w { font-size: 13px; color: var(--ink-2); }
+tr.dim td { opacity: .3; }
+.note ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; color: var(--ink-2); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">QCheck · ตรวจรับคุณภาพปั๊มลม TRW × PUMA · สถานะ 22 ต.ค. 2026</div>
+    <h1>แผนผังระบบ QCheck</h1>
+    <p class="lead">ภาพรวมทั้งโปรแกรมในหน้าเดียว: ระบบประกอบด้วยอะไร ผู้ใช้มีใคร แต่ละคนทำอะไร ขั้นตอนงานตั้งแต่ของเข้าจนเคลม Supplier และโปรแกรมทำอะไรเบื้องหลังในแต่ละขั้น ทุกขั้นมีป้ายบอกว่าสร้างแล้วหรือยังเป็นแผน</p>
+    <div class="legend">
+      <span class="pill built">สร้างแล้ว ใช้ได้</span>
+      <span class="pill part">สร้างบางส่วน</span>
+      <span class="pill plan">ยังไม่สร้าง (ตามสเปก)</span>
+      <span><span class="phase">R1.0</span> Pilot · <span class="phase">R1.1</span> Go-live Phase 1 · <span class="phase">P2</span> <span class="phase">P3</span> Phase ถัดไป</span>
+    </div>
+    <p class="lead" style="font-size:14px">อ้างอิง: QCheck Project Spec v0.5, docs/01–18 และโค้ดใน repo · ตารางฐานข้อมูลดูได้ที่ <a href="https://claude.ai/artifact/7deEenB94tV5aSDASqp51w">แผนผังฐานข้อมูล QCheck</a></p>
+  </header>
+
+  <!-- 1. Architecture -->
+  <section class="sheet section" aria-labelledby="arch-t">
+    <div class="section-head">
+      <div class="qnum">1 · ระบบประกอบด้วยอะไร</div>
+      <h2 id="arch-t">ส่วนประกอบของระบบ</h2>
+      <p>QCheck เป็นเว็บแอปตัวเดียว เปิดได้ทั้งมือถือและ laptop โดยไม่ต้องติดตั้งจาก Store ทุกคำขอวิ่งผ่าน server ของ QCheck ซึ่งเป็นตัวเดียวที่คุยกับระบบกลาง TRW และฐานข้อมูล</p>
+    </div>
+    <div class="scroller">
+      <svg viewBox="0 0 1160 430" style="min-width:900px" role="img" aria-label="แผนภาพส่วนประกอบระบบ: อุปกรณ์ผู้ใช้ → server QCheck → ระบบกลาง TRW และ SQL Server">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/></marker></defs>
+        <!-- devices -->
+        <rect class="zone" x="10" y="10" width="250" height="410" rx="6"/>
+        <text class="zl" x="26" y="34">อุปกรณ์ผู้ใช้</text>
+        <rect class="box built" x="30" y="52" width="210" height="78" rx="5"/>
+        <text class="t1" x="44" y="77">มือถือ / PDA</text><text class="t2" x="44" y="97">ผู้ตรวจ QC / QA · ใช้หน้างาน</text><text class="t3" x="44" y="116">เว็บมือถือ · แท็บล่าง 5 แท็บ</text>
+        <rect class="box built" x="30" y="146" width="210" height="78" rx="5"/>
+        <text class="t1" x="44" y="171">Laptop</text><text class="t2" x="44" y="191">หัวหน้า, Admin, จัดซื้อ, ผู้บริหาร</text><text class="t3" x="44" y="210">เมนูซ้าย (sidebar)</text>
+        <rect class="box plan" x="30" y="240" width="210" height="64" rx="5"/>
+        <text class="t1" x="44" y="265">จอ TV โรงงาน</text><text class="t2" x="44" y="285">Status board <tspan class="t3">R1.1</tspan></text>
+        <rect class="box plan" x="30" y="320" width="210" height="84" rx="5"/>
+        <text class="t1" x="44" y="345">ทำงานออฟไลน์</text><text class="t2" x="44" y="365">เก็บผลตรวจในเครื่อง แล้วซิงค์</text><text class="t2" x="44" y="383">เมื่อเน็ตกลับ <tspan class="t3">R1.0–1.1</tspan></text>
+
+        <!-- server -->
+        <rect class="zone" x="330" y="10" width="420" height="410" rx="6"/>
+        <text class="zl" x="346" y="34">Server QCheck · Next.js 16</text>
+        <rect class="box built" x="350" y="52" width="380" height="58" rx="5"/>
+        <text class="t1" x="364" y="76">หน้าเว็บ + ปุ่มบันทึก (API routes)</text><text class="t2" x="364" y="96">ทุกหน้าสร้างที่ server ส่งเฉพาะข้อมูลที่ผู้ใช้มีสิทธิ์เห็น</text>
+        <rect class="box built" x="350" y="124" width="380" height="58" rx="5"/>
+        <text class="t1" x="364" y="148">ตรวจตัวตน + สิทธิ์ทุกคำขอ</text><text class="t2" x="364" y="168">session cookie เข้ารหัส 12 ชม. · ตารางสิทธิ์หน้าเดียวทั้งระบบ</text>
+        <rect class="box built" x="350" y="196" width="380" height="58" rx="5"/>
+        <text class="t1" x="364" y="220">กฎธุรกิจ (Business rules)</text><text class="t2" x="364" y="240">10% QC, Need, เลขแผน, กำหนด 90 วัน, กันแผนซ้ำ, สถานะ</text>
+        <rect class="box built" x="350" y="268" width="380" height="58" rx="5"/>
+        <text class="t1" x="364" y="292">บันทึกประวัติ (Audit) + แจ้งเตือนในแอป</text><text class="t2" x="364" y="312">ใครทำอะไร เมื่อไร ค่าก่อน/หลัง · งานใหม่ของฉัน</text>
+        <rect class="box plan" x="350" y="340" width="380" height="64" rx="5"/>
+        <text class="t1" x="364" y="364">งานเบื้องหลัง: PDF Report, อีเมล, Push</text><text class="t2" x="364" y="384">ส่งแจ้งเตือนนอกแอป · ออกเอกสาร <tspan class="t3">R1.0–P2</tspan></text>
+
+        <!-- external -->
+        <rect class="zone" x="820" y="10" width="330" height="410" rx="6"/>
+        <text class="zl" x="836" y="34">ระบบที่เชื่อมต่อ</text>
+        <rect class="box built" x="840" y="52" width="290" height="90" rx="5"/>
+        <text class="t1" x="854" y="77">ระบบกลาง TRW (API)</text><text class="t2" x="854" y="97">ตรวจรหัสผ่านพนักงานออฟฟิศ</text><text class="t2" x="854" y="115">ส่งบทบาท role_prog ของ PRG003</text><text class="t3" x="854" y="133">QCheck ไม่เก็บรหัสผ่านนี้</text>
+        <rect class="box built" x="840" y="160" width="290" height="104" rx="5"/>
+        <text class="t1" x="854" y="185">SQL Server · ฐานข้อมูล QCheck</text><text class="t2" x="854" y="205">28 ตาราง: ผู้ใช้, Master, แผน, ใบงาน,</text><text class="t2" x="854" y="223">ประวัติ, ค่าตั้งระบบ</text><text class="t3" x="854" y="245">db/001–012 · npm run db:migrate</text>
+        <rect class="box plan" x="840" y="282" width="290" height="58" rx="5"/>
+        <text class="t1" x="854" y="306">ที่เก็บรูป / วิดีโอ</text><text class="t2" x="854" y="326">แทน Drive ของ AppSheet ที่เต็ม <tspan class="t3">R1.0</tspan></text>
+        <rect class="box plan" x="840" y="354" width="290" height="50" rx="5"/>
+        <text class="t1" x="854" y="377">อีเมลบริษัท (M365)</text><text class="t3" x="854" y="394">ส่ง NCP / แจ้งเตือน · P2</text>
+
+        <path class="ln" d="M240,91 H350" marker-end="url(#ar)"/><text class="lt" x="295" y="84" text-anchor="middle">HTTPS</text>
+        <path class="ln" d="M240,185 H290 V91" />
+        <path class="ln plan" d="M240,272 H290 V185" />
+        <path class="ln plan" d="M240,362 H290 V272" />
+        <path class="ln" d="M730,153 H785 V97 H840" marker-end="url(#ar)"/><text class="lt" x="785" y="128" text-anchor="middle">login</text>
+        <path class="ln" d="M730,225 H785 V212 H840" marker-end="url(#ar)"/><text class="lt" x="785" y="240" text-anchor="middle">SQL</text>
+        <path class="ln plan" d="M730,372 H785 V311 H840" marker-end="url(#ar)"/>
+        <path class="ln plan" d="M785,372 V379 H840" marker-end="url(#ar)"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 2. Users -->
+  <section class="sheet section" aria-labelledby="users-t">
+    <div class="section-head">
+      <div class="qnum">2 · ผู้ใช้มีใคร ทำอะไร</div>
+      <h2 id="users-t">ผู้ใช้ 9 บทบาท</h2>
+      <p>คนหนึ่งมีได้หลายบทบาท กดการ์ดบทบาทเพื่อไฮไลต์ขั้นตอนของบทบาทนั้นในข้อ 3 และหน้าจอที่เปิดได้ในข้อ 5</p>
+    </div>
+    <div class="login-split">
+      <div>
+        <h3>พนักงานออฟฟิศ</h3>
+        <p>เข้าด้วยรหัสพนักงาน + รหัสผ่านของระบบกลาง TRW บทบาทตั้งที่ระบบกลาง (role_prog ของ PRG003) QCheck อ่านมาใหม่ทุกครั้งที่ login</p>
+        <span class="pill built">สร้างแล้ว · ทดสอบบัญชีจริงครบ 9 บทบาท</span>
+      </div>
+      <div>
+        <h3>ผู้ใช้หน้างาน (ไม่มีบัญชีระบบกลาง)</h3>
+        <p>Admin สร้างให้ในหน้า "ผู้ใช้หน้างาน" ได้รหัส F0001… + PIN 6 หลัก เลือกบทบาทได้แค่ QC / QA Inspector · เข้าครั้งแรกต้องตั้ง PIN ใหม่ · PIN ผิด 5 ครั้งล็อกจนกว่า Admin หรือหัวหน้า QC ปลดล็อก</p>
+        <span class="pill built">สร้างแล้ว</span>
+      </div>
+    </div>
+    <div class="filter" role="group" aria-label="กรองตามบทบาท"><span>ดูเฉพาะ:</span><div class="filter" id="role-filter"></div></div>
+    <div class="roles" id="roles"></div>
+  </section>
+
+  <!-- 3. Journey -->
+  <section class="sheet section" aria-labelledby="journey-t">
+    <div class="section-head">
+      <div class="qnum">3 · ขั้นตอนการทำงานของผู้ใช้</div>
+      <h2 id="journey-t">วงจรงาน ตั้งแต่ของเข้าจนเคลม Supplier</h2>
+      <p>ภาพบนคือวงจรทั้งหมด เส้นสีส้มคือวงที่ย้อนกลับ (ซ่อมแล้วตรวจซ้ำ) ด้านล่างแจกแจงทีละขั้นว่าใครทำอะไร</p>
+    </div>
+    <div class="scroller">
+      <svg id="cycle" viewBox="0 0 1180 190" style="min-width:960px" role="img" aria-label="วงจรงาน 11 ขั้น"></svg>
+    </div>
+    <div class="journey" id="journey"></div>
+  </section>
+
+  <!-- 4. Program -->
+  <section class="sheet section" aria-labelledby="prog-t">
+    <div class="section-head">
+      <div class="qnum">4 · ขั้นตอนการทำงานของโปรแกรม</div>
+      <h2 id="prog-t">โปรแกรมทำอะไรเบื้องหลัง</h2>
+      <p>สิ่งที่เกิดใน server เมื่อผู้ใช้กดปุ่มในแต่ละขั้น ทั้ง 4 เรื่องนี้สร้างแล้วและมีเทสต์คุม</p>
+    </div>
+    <div class="flows">
+      <article class="flow">
+        <div class="fh"><h3>เข้าสู่ระบบ</h3><span class="pill built">สร้างแล้ว</span></div>
+        <ol>
+          <li>รับรหัสพนักงาน ถ้าขึ้นต้นด้วย F → ตรวจ PIN กับค่าที่ hash ไว้ในฐานข้อมูล (ไม่ส่งไประบบกลาง)</li>
+          <li>รหัสอื่น → server เรียก API ระบบกลาง ตรวจรหัสผ่าน ต้องมีสิทธิ์ PRG003 และบทบาทที่ QCheck รู้จัก</li>
+          <li>บันทึก/อัปเดตผู้ใช้และบทบาทลง users, user_roles (ถ้า DB ล่ม พนักงานออฟฟิศยังเข้าได้)</li>
+          <li>สร้าง session cookie เข้ารหัส อายุ 12 ชม. และบันทึก audit</li>
+          <li>ผู้ใช้หน้างานที่ใช้ PIN ชั่วคราว → พาไปตั้ง PIN ใหม่ก่อน</li>
+        </ol>
+        <p class="why">ผิดเกินกำหนดถูกล็อก · ระบบกลางล่มแสดง "ระบบไม่พร้อม" แยกจากรหัสผิด · ไม่บอกว่ารหัสไหนมีอยู่จริง</p>
+      </article>
+      <article class="flow">
+        <div class="fh"><h3>ทุกครั้งที่เปิดหน้าหรือกดปุ่ม</h3><span class="pill built">สร้างแล้ว</span></div>
+        <ol>
+          <li>อ่าน session cookie ถ้าไม่มีหรือหมดอายุ → กลับหน้า Login</li>
+          <li>ผู้ใช้หน้างาน: อ่านสถานะและบทบาทจาก DB ใหม่ทุกครั้ง ปิดบัญชีแล้วใช้ไม่ได้ทันที</li>
+          <li>เทียบบทบาทกับตารางสิทธิ์หน้า ไม่มีสิทธิ์ = ไม่พบหน้า และเมนูไม่แสดง</li>
+          <li>ปุ่มบันทึกตรวจสิทธิ์ซ้ำอีกชั้นและบันทึก audit ค่าก่อน → หลัง</li>
+        </ol>
+        <p class="why">ซ่อนเมนูอย่างเดียวกันคนพิมพ์ URL ตรงไม่ได้ จึงตรวจที่ server ทุกครั้ง</p>
+      </article>
+      <article class="flow">
+        <div class="fh"><h3>เปิดแผน</h3><span class="pill built">สร้างแล้ว</span></div>
+        <ol>
+          <li>จัดรูปเลข Invoice / PO (ตัดช่องว่าง ตัวพิมพ์ใหญ่) แล้วค้นหัวเอกสารเดิม</li>
+          <li>ไม่พบ → สร้างหัวเอกสาร กำหนดตรวจ = วันที่ Invoice + 90 วัน (ค่าจาก settings)</li>
+          <li>มีแผนของเอกสาร + รุ่นนี้อยู่แล้ว → ปฏิเสธ (กันแผนซ้ำ)</li>
+          <li>ออกเลข QP-YYMM-NNNN จากตัวนับรายเดือน แบบล็อกแถว</li>
+          <li>คัดลอก % QC ปัจจุบัน คำนวณจำนวนที่ต้องตรวจ = ปัดขึ้น(ล็อต × 10%)</li>
+          <li>บันทึกแผน + ประวัติสถานะ OPEN ทั้งหมดใน transaction เดียว</li>
+        </ol>
+        <p class="why">ทำใน transaction เดียว ถ้าขั้นไหนล้ม ทุกอย่างย้อนกลับ ไม่มีเลขแผนหายหรือหัวเอกสารค้าง</p>
+      </article>
+      <article class="flow">
+        <div class="fh"><h3>เปิดใบงาน (เรียกของเข้า)</h3><span class="pill built">สร้างแล้ว</span></div>
+        <ol>
+          <li>คำนวณ Need = เป้า 10% ของล็อต − ที่ตรวจไปแล้ว ถ้าครบเป้าแล้ว ใบนี้เป็น "เรียกเข้าแก้ไข" (Need 0)</li>
+          <li>ตรวจจำนวนเรียกเข้า: ≥ Need และไม่เกินส่วนของล็อตที่ยังไม่เรียก</li>
+          <li>1 แผนเปิดได้ 1 ใบต่อวันเรียกเข้า</li>
+          <li>ผู้รับผิดชอบ 2–5 คน ต้องเป็น QC Inspector ที่ยังใช้งานอยู่</li>
+          <li>บันทึกใบงาน QP-…-1, -2, … ใบแรกเปลี่ยนแผนเป็น ASSIGNED และขึ้นใน "งานของฉัน" ทันที (ไม่ต้องกดรับ)</li>
+          <li>เมื่อเรียกครบทั้งล็อตและตรวจครบเป้า ใบที่ไม่เคยตรวจเลยเปลี่ยนเป็น "ไม่สำเร็จ" อัตโนมัติ</li>
+        </ol>
+        <p class="why">กฎตามประชุม D (21 ต.ค.) ที่ QA Head ตัดสิน · ใบที่ไม่สำเร็จเก็บไว้เป็นประวัติ ไม่นำไปคำนวณ</p>
+      </article>
+    </div>
+
+    <div class="machine">
+      <h3>สถานะแผน (ตามสเปก docs/03 §2.1)</h3>
+      <div class="states" id="plan-states"></div>
+      <p>สีเขียว = โค้ดเปลี่ยนเข้าสถานะนี้ได้แล้ว (เปิดแผน, มอบหมายเมื่อเปิดใบงานแรก, กลับเป็น OPEN เมื่อยกเลิกใบงานจนไม่เหลือ, ยกเลิกแผน) · เส้นประ = รอโมดูล Checklist, QA และ Report</p>
+      <h3>สถานะใบงาน</h3>
+      <div class="states" id="wo-states"></div>
+      <p>ตอนนี้ยังไม่มีหน้า Checklist ใบงานจึงยังไม่ถูกส่ง (SUBMITTED) จากการตรวจจริง</p>
+    </div>
+  </section>
+
+  <!-- 5. Screens -->
+  <section class="sheet section" aria-labelledby="screens-t">
+    <div class="section-head">
+      <div class="qnum">5 · หน้าจอ</div>
+      <h2 id="screens-t">หน้าจอทั้งหมดและใครเปิดได้</h2>
+      <p>สิทธิ์มาจากตารางเดียวใน lib/auth/page-access.ts เมนูและการตรวจที่ server ใช้ตารางเดียวกัน</p>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>หน้า</th><th>ใช้ทำอะไร</th><th>ใครเปิดได้</th><th>สถานะ</th></tr></thead>
+      <tbody id="screens"></tbody>
+    </table></div>
+  </section>
+
+  <section class="sheet section note" aria-labelledby="open-t">
+    <div class="section-head">
+      <div class="qnum">6 · ยังต้องตัดสิน</div>
+      <h2 id="open-t">เรื่องที่ยังรอคำตอบและกระทบภาพรวม</h2>
+    </div>
+    <ul>
+      <li><b>T1 / T2</b> นำ QA แกนหลักเข้า Phase 1 หรือไม่ และใช้ timeline แบบไหน</li>
+      <li><b>A16</b> แบรนด์ PUMA นำเข้าจาก OEM ด้วยหรือไม่ (กระทบกฎ 10%, AQL ตั้งต้น, Report, NCP)</li>
+      <li><b>D4 / D11</b> NCP 1 ใบต่อ Invoice หรือต่อแผน และมีขั้น PM ในการเคลมหรือไม่</li>
+      <li><b>A17</b> ตอนเปิดแผนแรกกรอกแค่ "จำนวน SKU" หรือรายการรุ่นทั้งหมดใน Invoice</li>
+      <li>ค่าจริงของตาราง AQL ยังรอไฟล์จาก QA · โมดูลที่ยังไม่สร้างทั้งหมดอ้างอิงตามสเปก อาจปรับหลังประชุมยืนยัน</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const ROLES = {
+    QC_HEAD: { name: "หัวหน้า QC", n: "1–2 คน · Laptop + มือถือ", does: ["เปิดแผนตรวจต่อ Invoice / PO + รุ่น", "เปิดใบงานเมื่อโรงงานเรียกของเข้า เลือก QC 2–5 คน", "ติดตามความคืบหน้า ยกเลิกแผน / ใบงาน", "ตรวจทานผล QC แล้วส่ง QA (ยังไม่สร้าง)", "ปลดล็อก PIN ของ QC Inspector"], tabs: "หน้าหลัก · แผน · งาน · ประวัติ · เพิ่มเติม" },
+    QC_INSPECTOR: { name: "ผู้ตรวจ QC", n: "~4 คน เผื่อ 10 · มือถือ", does: ["เห็นใบงานที่ได้รับมอบหมายทันที", "สแกน Serial ตรวจ Checklist ถ่ายรูป (ยังไม่สร้าง)", "ซ่อม (Rework) หรือคัดออก (Reject) รายเครื่อง (ยังไม่สร้าง)", "ดูประวัติใบงานของตัวเอง"], tabs: "หน้าหลัก · งานของฉัน · สแกน · ประวัติ · เพิ่มเติม" },
+    QA_HEAD: { name: "หัวหน้า QA", n: "1–2 คน · Laptop + มือถือ", does: ["เปิดแผน และดูใบงานในหน้าแผน", "กำหนดระดับ AQL พักล็อต (ยังไม่สร้าง)", "ตรวจทานและอนุมัติ Report (ยังไม่สร้าง)", "ออก NCP เคลม Supplier (P2)"], tabs: "หน้าหลัก · แผน · คิว QA · ประวัติ · เพิ่มเติม" },
+    QA_INSPECTOR: { name: "ผู้ตรวจ QA", n: "คนชุดเดียวกับ QC · มือถือ", does: ["หยิบงานจากคิว QA สุ่มตรวจตาม AQL (ยังไม่สร้าง)", "ไม่รับเครื่องไหน ระบบส่งงานซ่อมกลับ QC (ยังไม่สร้าง)", "ดูประวัติใบงาน"], tabs: "หน้าหลัก · คิว QA · สแกน · ประวัติ · เพิ่มเติม" },
+    MASTER_ADMIN: { name: "ผู้ดูแลข้อมูลหลัก", n: "ทีม QA 1–3 คน · Laptop", does: ["เพิ่ม/แก้ ยี่ห้อ ประเภทปั๊ม รุ่น Vendor อาการ วิธีแก้", "ปิดใช้งานแทนการลบ", "สร้าง Checklist และเวอร์ชัน (ยังไม่สร้าง)"], tabs: "หน้าหลัก · ข้อมูลหลัก · แจ้งเตือน · เพิ่มเติม" },
+    ADMIN: { name: "ผู้ดูแลระบบ", n: "1–2 คน · Laptop", does: ["สร้างผู้ใช้หน้างาน ออก PIN ปิด/เปิดบัญชี ปลดล็อก", "เปิดแผนและใบงานได้", "ตั้งค่าระบบ อุปกรณ์ส่วนกลาง (ยังไม่สร้าง)"], tabs: "หน้าหลัก · ตั้งค่า · แผน · แจ้งเตือน · เพิ่มเติม" },
+    PURCHASING: { name: "จัดซื้อต่างประเทศ", n: "1–3 คน · Laptop", does: ["ดู Report / NCP ที่ออกแล้ว (P2)", "อัปเดตสถานะเคลม Pending → On Process → Accept / Reject (P2)"], tabs: "หน้าหลัก · รายงาน · ข้อมูลหลัก · แจ้งเตือน · เพิ่มเติม" },
+    PM: { name: "Product Manager", n: "Laptop", does: ["ดูข้อมูลหลักและรายงาน", "ตอบประเด็นแก้ไขสินค้ากับ Supplier ถ้าตัดสินให้มีขั้นนี้ (D11)"], tabs: "หน้าหลัก · รายงาน · ข้อมูลหลัก · แจ้งเตือน · เพิ่มเติม" },
+    MANAGEMENT: { name: "ผู้บริหาร", n: "Laptop / จอ TV", does: ["Dashboard คุณภาพ Vendor, Pareto อาการ, KPI ผู้ตรวจ (P3)", "ดู audit log"], tabs: "หน้าหลัก · รายงาน · ข้อมูลหลัก · แจ้งเตือน · เพิ่มเติม" },
+  };
+
+  const B = "built", P = "part", N = "plan";
+  // Stages of the user journey. who = role codes (or "ALL").
+  const STAGES = [
+    { t: "เตรียมข้อมูลหลัก", d: "ทำครั้งเดียวก่อนเริ่มใช้ แล้วปรับเมื่อมีรุ่นหรืออาการใหม่", steps: [
+      ["MASTER_ADMIN", "เพิ่ม/แก้ ยี่ห้อ ประเภทปั๊ม รุ่น Vendor อาการ (รหัส DEF00001 ออกอัตโนมัติ) วิธีแก้", B, "R1.0"],
+      ["MASTER_ADMIN", "นำเข้า Checklist ของแต่ละประเภทปั๊ม ผูกกับรุ่น Publish เป็นเวอร์ชัน", N, "R1.0"],
+      ["ADMIN", "สร้างผู้ใช้หน้างาน F… ออก PIN ชั่วคราว (แสดงครั้งเดียว)", B, "R1.0"],
+    ]},
+    { t: "เข้าสู่ระบบ", d: "", steps: [
+      ["ALL", "พนักงานออฟฟิศใช้รหัสพนักงาน + รหัสผ่านระบบกลาง", B, "R1.0"],
+      ["QC_INSPECTOR QA_INSPECTOR", "ผู้ใช้หน้างานใช้ F… + PIN ครั้งแรกตั้ง PIN ใหม่", B, "R1.0"],
+    ]},
+    { t: "เปิดแผนตรวจ", d: "1 แผน = 1 เอกสารรับเข้า × 1 รุ่น", steps: [
+      ["QC_HEAD QA_HEAD ADMIN", "เลือก Vendor พิมพ์เลข Invoice / PO วันที่ จำนวน SKU เลือกรุ่น ใส่จำนวนล็อต → ได้เลข QP-… และจำนวนที่ QC ต้องตรวจทันที", B, "R1.0"],
+      ["QC_HEAD QA_HEAD ADMIN", "แผนถัดไปของ Invoice เดิม ระบบดึงหัวเอกสารมาให้ · ดูรายการแผน กำหนด 90 วัน ยกเลิกแผน", B, "R1.0"],
+      ["QC_HEAD QA_HEAD", "สแกน QR เพื่อเปิดแผน", N, "R1.0"],
+    ]},
+    { t: "เรียกของเข้า (ใบงาน)", d: "โรงงานทยอยเรียกของเข้า แต่ละครั้ง = 1 ใบงาน", steps: [
+      ["QC_HEAD ADMIN", "เปิดใบงาน ใส่วันที่และจำนวนเรียกเข้า (≥ Need) เลือกผู้ตรวจ 2–5 คน · ทำเครื่องหมาย \"รอของ\"", B, "R1.0"],
+      ["QA_HEAD", "ดูใบงานในหน้าแผน (อ่านอย่างเดียว)", B, "R1.0"],
+      ["QC_INSPECTOR", "ใบงานขึ้นใน \"งานของฉัน\" และแจ้งเตือนทันที ไม่ต้องกดรับ", B, "R1.0"],
+    ]},
+    { t: "ตรวจ QC รายเครื่อง", d: "หัวใจของงานหน้างาน", steps: [
+      ["QC_INSPECTOR", "สแกน Serial → ระบบเปิด Checklist ตามรุ่น ตอบทุกหัวข้อ ถ่ายรูป/วิดีโอในแอป เลือกอาการจากรายการ", N, "R1.0"],
+      ["QC_INSPECTOR", "ผลรายเครื่องคำนวณอัตโนมัติ: ผ่าน / อนุโลม / ไม่ผ่าน", N, "R1.0"],
+      ["QC_INSPECTOR", "ตรวจได้แม้ไม่มีเน็ต แล้วซิงค์ภายหลัง · มีแบบฟอร์มกระดาษสำรอง", N, "R1.0–1.1"],
+      ["QC_HEAD", "พบปัญหาในตัวอย่าง → ระบบแจ้ง ให้ตัดสินว่าจะตรวจส่วนที่เหลือเพิ่มไหม", N, "R1.0"],
+    ]},
+    { t: "ซ่อม (Rework) หรือคัดออก (Reject)", d: "", loop: true, steps: [
+      ["QC_INSPECTOR", "แก้ได้ → ใบ Rework เฉพาะหัวข้อที่ไม่ผ่าน ใส่วิธีแก้ + รูปหลังแก้ แล้วตรวจหัวข้อนั้นซ้ำ", N, "R1.0"],
+      ["QC_INSPECTOR", "แก้ไม่ได้ → QC Reject รายเครื่อง", N, "R1.0"],
+    ]},
+    { t: "หัวหน้า QC ตรวจทาน แล้วส่ง QA", d: "", steps: [
+      ["QC_HEAD", "ตรวจครบจำนวนและไม่มี Rework ค้าง → ตรวจทาน ตีกลับเครื่องที่บันทึกผิด หรือส่งเข้าคิว QA", N, "R1.0"],
+    ]},
+    { t: "ตรวจ QA ตาม AQL", d: "ใช้แผนเดียวกับ QC ไม่มีใบงานแยก", loop: true, steps: [
+      ["QA_HEAD", "กำหนดระดับ AQL (ผ่อนคลาย / ปกติ / เคร่งครัด) ระบบคำนวณจำนวนสุ่มใหม่ · พักล็อตได้", N, "R1.1"],
+      ["QA_INSPECTOR", "หยิบแผนจากคิว QA สุ่มตรวจตามจำนวน AQL", N, "R1.1"],
+      ["QA_INSPECTOR", "ไม่รับเครื่องไหน → ระบบสร้างงานซ่อมกลับไปให้ QC แล้ว QA ตรวจซ้ำ", N, "R1.1"],
+      ["QA_HEAD", "ตีกลับทั้งล็อต → QC ตรวจใหม่ทั้งรอบ", N, "P2"],
+    ]},
+    { t: "Report (เฉพาะปั๊มนำเข้า)", d: "ปั๊มผลิตเองจบที่ QA ไม่ต้องมี Report", steps: [
+      ["QA_HEAD", "Report QC + QA สร้างจากข้อมูลตรวจ ตรวจทาน แก้เอง หรือตีกลับ แล้วอนุมัติ ได้ PDF", N, "R1.0 / R1.1"],
+    ]},
+    { t: "NCP และเคลม Supplier", d: "", steps: [
+      ["QA_HEAD", "ออก NCP รวมต่อ Invoice ระบบคำนวณค่าแรงจากความซับซ้อน + ความรุนแรง ส่งอีเมลสรุปถึงจัดซื้อ", N, "P2"],
+      ["PURCHASING", "รับเรื่อง อัปเดตสถานะ Pending → On Process → Accept / Reject Claim", N, "P2"],
+      ["PM", "ตอบประเด็นแก้ไขสินค้ากับ Supplier (ถ้า D11 = ทำ)", N, "P2–P3"],
+    ]},
+    { t: "ติดตามและวัดผล", d: "เกิดตลอดทุกขั้น", steps: [
+      ["ALL", "แจ้งเตือนในแอปเมื่อมีงานใหม่ของฉัน", P, "R1.1"],
+      ["QC_HEAD QC_INSPECTOR QA_HEAD QA_INSPECTOR", "ประวัติใบงานที่ส่ง / ปิด / ยกเลิก", B, "R1.0"],
+      ["ALL", "Status board บนจอ TV", N, "R1.1"],
+      ["MANAGEMENT PURCHASING PM QA_HEAD", "Dashboard Vendor, Pareto อาการ, KPI ผู้ตรวจ", N, "P3"],
+    ]},
+  ];
+
+  const SCREENS = [
+    ["/login", "เข้าสู่ระบบ (ฉาก 3D)", "ทุกคน", B],
+    ["/change-password", "ตั้ง PIN ใหม่ของผู้ใช้หน้างาน", "ผู้ใช้หน้างาน", B],
+    ["/home", "หน้าหลักตามบทบาท", "ALL", B],
+    ["/alerts", "แจ้งเตือน (งานใหม่ของฉัน)", "ALL", B],
+    ["/more", "บัญชี บทบาท ออกจากระบบ", "ALL", B],
+    ["/plans", "รายการแผน ค้นหา กรอง", "QC_HEAD QA_HEAD ADMIN", B],
+    ["/plans/new", "เปิดแผน", "QC_HEAD QA_HEAD ADMIN", B],
+    ["/plans/[id]", "รายละเอียดแผน + ใบงาน + ประวัติสถานะ", "QC_HEAD QA_HEAD ADMIN", B],
+    ["/plans/[id]/work-orders/new", "เปิดใบงาน มอบหมายผู้ตรวจ", "QC_HEAD ADMIN", B],
+    ["/jobs", "งานของฉัน / งานทั้งหมดของทีม", "QC_HEAD QC_INSPECTOR", B],
+    ["/history", "ประวัติใบงาน", "QC_HEAD QC_INSPECTOR QA_HEAD QA_INSPECTOR", B],
+    ["/master", "ข้อมูลหลัก (แก้ได้เฉพาะผู้ดูแลข้อมูลหลัก)", "MASTER_ADMIN QC_HEAD QA_HEAD PM MANAGEMENT", B],
+    ["/admin/users", "ผู้ใช้หน้างาน (หัวหน้า QC ปลดล็อก PIN ได้)", "ADMIN QC_HEAD", B],
+    ["/scan", "สแกน Serial เข้า Checklist", "QC_HEAD QC_INSPECTOR QA_HEAD QA_INSPECTOR", N],
+    ["/qa-queue", "คิว QA", "QA_HEAD QA_INSPECTOR", N],
+    ["/checklists", "ดู Checklist (อ่านอย่างเดียว)", "ALL", N],
+    ["/reports", "Report / NCP", "ADMIN QC_HEAD QC_INSPECTOR QA_HEAD QA_INSPECTOR PURCHASING PM MANAGEMENT", N],
+    ["/dashboard", "Dashboard Vendor / KPI", "QA_HEAD PURCHASING PM MANAGEMENT", N],
+    ["/settings", "ตั้งค่าระบบ", "ADMIN", N],
+    ["/audit", "Audit log", "ADMIN QC_HEAD QA_HEAD MANAGEMENT", N],
+  ];
+
+  const LABEL = { built: "สร้างแล้ว", part: "บางส่วน", plan: "ยังไม่สร้าง" };
+  const pill = (s) => `<span class="pill ${s}">${LABEL[s]}</span>`;
+  const whoText = (who) => who === "ALL" ? "ทุกบทบาท" : who.split(" ").map((r) => ROLES[r] ? ROLES[r].name : r).join(", ");
+  const has = (who, role) => !role || who === "ALL" || who.split(" ").includes(role);
+
+  // role cards + filter
+  const rolesEl = document.getElementById("roles");
+  const filterEl = document.getElementById("role-filter");
+  let current = null;
+  const allBtn = document.createElement("button");
+  allBtn.className = "chip"; allBtn.type = "button"; allBtn.textContent = "ทุกบทบาท"; allBtn.setAttribute("aria-pressed", "true");
+  allBtn.addEventListener("click", () => setRole(null));
+  filterEl.appendChild(allBtn);
+  const chips = {}, cards = {};
+  for (const code in ROLES) {
+    const r = ROLES[code];
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = r.name; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => setRole(current === code ? null : code));
+    filterEl.appendChild(b); chips[code] = b;
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "rolecard";
+    c.innerHTML = `<div class="rn"><h3>${r.name}</h3><span class="code">${code}</span></div><div class="meta">${r.n}</div><ul>${r.does.map((x) => `<li>${x}</li>`).join("")}</ul><div class="tabs">แท็บบนมือถือ: ${r.tabs}</div>`;
+    c.addEventListener("click", () => { setRole(current === code ? null : code); document.getElementById("journey-t").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); });
+    rolesEl.appendChild(c); cards[code] = c;
+  }
+
+  // journey
+  const stageStatus = (steps) => steps.every((s) => s[2] === B) ? B : steps.some((s) => s[2] !== N) ? P : N;
+  const journey = document.getElementById("journey");
+  const stepEls = [];
+  STAGES.forEach((st) => {
+    const status = stageStatus(st.steps);
+    const div = document.createElement("div");
+    div.className = `stage s-${status}`;
+    div.innerHTML = `<div class="rail" aria-hidden="true"></div><div class="body"><div class="sh"><h3>${st.t}</h3>${pill(status)}${st.loop ? '<span class="phase" style="color:var(--ember);border-color:var(--ember)">วนซ้ำได้</span>' : ""}${st.d ? `<p>${st.d}</p>` : ""}</div><ul class="steps"></ul></div>`;
+    const ul = div.querySelector(".steps");
+    st.steps.forEach(([who, what, s, ph]) => {
+      const li = document.createElement("li");
+      li.className = "step"; li.dataset.who = who;
+      li.innerHTML = `<div class="who">${whoText(who)}</div><div class="what">${what}</div><div class="st"><span class="phase">${ph}</span>${pill(s)}</div>`;
+      ul.appendChild(li); stepEls.push(li);
+    });
+    journey.appendChild(div);
+  });
+
+  // cycle strip
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("cycle");
+  const el = (n, a, p) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+  const defs = el("defs", {}, svg);
+  const mk = (id, color) => { const m = el("marker", { id, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs); el("path", { d: "M0,0 L10,5 L0,10 z", fill: color }, m); };
+  mk("c-ar", "var(--ink-3)"); mk("c-ar2", "var(--ember)");
+  const short = ["ข้อมูลหลัก", "Login", "เปิดแผน", "ใบงาน", "ตรวจ QC", "Rework", "ตรวจทาน", "ตรวจ QA", "Report", "NCP / เคลม", "ติดตามผล"];
+  const bw = 92, gap = 14, y = 80, h = 50;
+  const xs = short.map((_, i) => 10 + i * (bw + gap));
+  short.forEach((label, i) => {
+    const s = stageStatus(STAGES[i].steps);
+    el("rect", { class: `box ${s}`, x: xs[i], y, width: bw, height: h, rx: 5 }, svg);
+    el("circle", { class: `dot ${s}`, cx: xs[i] + 12, cy: y + 14, r: 4 }, svg);
+    const t = el("text", { class: "t2", x: xs[i] + bw / 2, y: y + 33, "text-anchor": "middle", style: "font-weight:600;fill:var(--ink)" }, svg); t.textContent = label;
+    const n = el("text", { class: "t3", x: xs[i] + bw - 8, y: y + 17, "text-anchor": "end" }, svg); n.textContent = i + 1;
+    if (i < short.length - 1) el("path", { class: "ln", d: `M${xs[i] + bw},${y + h / 2} H${xs[i + 1]}`, "marker-end": "url(#c-ar)" }, svg);
+  });
+  const loop = (from, to, label, above, rise = 34, dx = 0) => {
+    const x1 = xs[from] + bw / 2 + dx, x2 = xs[to] + bw / 2 + dx, yy = above ? y - rise : y + h + rise, y0 = above ? y : y + h;
+    el("path", { class: "ln loop", d: `M${x1},${y0} V${yy} H${x2} V${y0}`, "marker-end": "url(#c-ar2)" }, svg);
+    const t = el("text", { class: "lt loop", x: (x1 + x2) / 2, y: above ? yy - 6 : yy + 15, "text-anchor": "middle" }, svg); t.textContent = label;
+  };
+  loop(5, 4, "ซ่อมแล้วตรวจซ้ำ", true, 30, 14);
+  loop(7, 5, "QA ไม่รับ → ส่งซ่อมกลับ QC", false);
+  loop(6, 4, "หัวหน้าตีกลับเครื่องที่บันทึกผิด", true, 62, -18);
+
+  // states
+  const planStates = [["OPEN", B], ["ASSIGNED", B], ["QC_IN_PROGRESS", N], ["QC_REVIEW", N], ["QA_PENDING", N], ["QA_IN_PROGRESS", N], ["ON_HOLD", N], ["QA_LOT_REJECTED", N], ["REPORT_REVIEW", N], ["COMPLETED", N], ["CANCELLED", B]];
+  const woStates = [["IN_PROGRESS", B], ["SUBMITTED", N], ["RETURNED", N], ["CLOSED", N], ["FAILED", B], ["CANCELLED", B]];
+  const renderStates = (id, list, cut) => {
+    document.getElementById(id).innerHTML = list.map(([s, st], i) => `${i && i !== cut ? '<span class="arr">→</span>' : i === cut ? '<span class="arr" style="margin-left:8px">หรือ</span>' : ""}<span class="state ${st}">${s}</span>`).join("");
+  };
+  renderStates("plan-states", planStates, 10);
+  renderStates("wo-states", woStates, 4);
+
+  // screens
+  const tb = document.getElementById("screens");
+  const rows = SCREENS.map(([route, what, who, s]) => {
+    const tr = document.createElement("tr");
+    tr.dataset.who = who === "ทุกคน" || who === "ผู้ใช้หน้างาน" ? "ALL" : who;
+    tr.innerHTML = `<td class="r">${route}</td><td>${what}</td><td class="w">${who === "ทุกคน" || who === "ผู้ใช้หน้างาน" ? who : whoText(who)}</td><td>${pill(s)}</td>`;
+    tb.appendChild(tr); return tr;
+  });
+
+  function setRole(code) {
+    current = code;
+    allBtn.setAttribute("aria-pressed", String(code === null));
+    for (const c in chips) { chips[c].setAttribute("aria-pressed", String(c === code)); cards[c].classList.toggle("sel", c === code); }
+    stepEls.forEach((li) => li.classList.toggle("dim", !has(li.dataset.who, code)));
+    rows.forEach((tr) => tr.classList.toggle("dim", !has(tr.dataset.who, code)));
+  }
+})();
+</script>

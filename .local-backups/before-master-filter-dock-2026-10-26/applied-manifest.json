@@ -1,0 +1,8 @@
+{
+  "components/master/MasterTableView.tsx": "1cd56b68262c96e69aff99b7e77cc15ffbc9124cd4355023449a5059a6fee568",
+  "components/master/master-table.css": "ca97a6f71196470a61771545e843be4633e6a4c3ee630da6bb84e5e4741136a3",
+  "components/shell/TopAppBar.tsx": "28e721b88ef70e94f7c814f133dc2dd64cd0d0dda94a276c2376213d85270108",
+  "components/master/MasterFilters.tsx": "e1e9ef71043dce19716ee2bab196d78b5eee320ca31b8eb1c2103e71515e2b67",
+  "components/master/filterDock.ts": "be081fd34347c03eb732669d12be25f21053774891d99d3d11bb973bdfbc0640",
+  "tests/master-filter-dock.test.ts": "2ab0a00f6bb9687f338581e9906dbb8d1a46a24b024030a027b78ddd5f5c2ebb"
+}

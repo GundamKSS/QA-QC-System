@@ -1,0 +1,9 @@
+{
+  "src/components/shell/nav.ts": "121fad8b520ecac97a19e0ad13f819697a8e08b8d37adba0793b9405d38ac355",
+  "src/components/shell/BottomTabBar.tsx": "e9f4e60de23624ed9cab55c28f292b5a5cc10ebece98f7fd334f8085e908ab60",
+  "src/components/shell/NavIcon.tsx": "8231f2ed6f0d8e0e0fb3d812c2db4f172412849b4ee09ea0eada9e130c7d76f2",
+  "src/components/dom/Icons.tsx": "009e54afcbc122c0606d8a69110c735f2d34b64e42782d7e3bcacb826e49c0bf",
+  "src/components/shell/shell.test.ts": "f66cf166dba87b01da00397a463db85ef0848b2c42848e9ca3fd5454cffb1b0b",
+  "src/lib/auth/page-access.test.ts": "ae171dac99eacc7fee4466574ff1333b8b790d778fcb4bb732f7fbf6f361787f",
+  "docs/09-app-shell.md": "c9237169b2d4215e637512733082d879c52ba5a74e4e1cfb60046c2c8faf7717"
+}

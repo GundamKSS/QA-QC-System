@@ -1,0 +1,33 @@
+{
+  "lint": "passed",
+  "typecheck": "passed",
+  "production_build": "passed",
+  "tests": {
+    "passed": 398,
+    "skipped": 8
+  },
+  "responsive_preview": {
+    "data": "fictional fixtures, no SQL connection",
+    "viewport_widths": [
+      320,
+      390,
+      768,
+      1024,
+      1280,
+      1360,
+      1440
+    ],
+    "all_six_master_types": "checked",
+    "horizontal_body_overflow": false,
+    "mobile_action_height": 44,
+    "checks": [
+      "empty search",
+      "inactive filter",
+      "edit navigation and cancel",
+      "small-screen form",
+      "history disclosures",
+      "long Thai text and model code"
+    ]
+  },
+  "restore": "verified in temporary copy, preserves parallel generated-code change"
+}

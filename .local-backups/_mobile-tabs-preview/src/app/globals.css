@@ -1,0 +1,190 @@
+@import "tailwindcss";
+@import "./app-theme.css";
+
+/* Design tokens (docs/07 §2.2). Mirrored for WebGL in src/config/experience.ts —
+   src/config/palette.test.ts fails if the two lists drift apart. */
+@theme {
+  --color-carbon-950: #08090a;
+  --color-carbon-900: #0e0f11;
+  --color-carbon-800: #16181b;
+  --color-carbon-700: #212328;
+  --color-carbon-600: #2e3137;
+  --color-ti-50: #f2f1ee;
+  --color-ti-200: #cfcdc7;
+  --color-ti-400: #9a9890;
+  --color-ti-500: #85837c;
+  --color-ti-600: #6b6a64;
+  --color-ti-metal: #8c8a84;
+  --color-ember-400: #ff8a55;
+  --color-ember-500: #ff6b2c;
+  --color-ember-600: #e0541a;
+  --color-pass: #3fd08a;
+  --color-fail: #f2546b;
+
+  /* Thai needs room for stacked tone marks (docs/07 §2.3): body ≥ 1.6, headings ≥ 1.35.
+     Tailwind's text-* utilities set their own line-height, so the defaults are overridden here. */
+  --text-sm--line-height: 1.6;
+  --text-base--line-height: 1.6;
+  --text-lg--line-height: 1.6;
+  --text-xl--line-height: 1.35;
+  --text-2xl--line-height: 1.35;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-rise: rise 700ms var(--ease-out-expo) both;
+  --animate-word: word 520ms var(--ease-out-expo) both;
+  --animate-scan: scan 6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  @keyframes word {
+    from {
+      opacity: 0;
+      transform: translateY(0.35em);
+      filter: blur(3px);
+    }
+  }
+  @keyframes scan {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    10%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(var(--scan-travel, 60vh));
+      opacity: 0;
+    }
+  }
+}
+
+/* Below lg only. Phones turned sideways get the two-column layout (docs/07 §6);
+   short portrait phones get a smaller stage so the button stays above the fold. */
+@custom-variant phone-landscape (@media (orientation: landscape) and (max-height: 540px) and (width < 64rem));
+@custom-variant short-portrait (@media (orientation: portrait) and (max-height: 700px) and (width < 64rem));
+
+/* Side gutter that also clears the notch in landscape (viewport-fit=cover).
+   Override the gutter per breakpoint with e.g. sm:[--gutter:2rem]. */
+@utility px-safe {
+  padding-left: max(var(--gutter, 1.25rem), env(safe-area-inset-left));
+  padding-right: max(var(--gutter, 1.25rem), env(safe-area-inset-right));
+}
+
+/* next/font exposes the families as CSS variables on <html>. */
+@theme inline {
+  --font-sans: var(--font-plex-thai), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background-color: var(--color-carbon-900);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-carbon-900);
+    color: var(--color-ti-50);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.35;
+  }
+
+  ::selection {
+    background-color: var(--color-ember-500);
+    color: var(--color-carbon-900);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ember-500);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Match the 650ms login success beat: cover form, static art and canvas together
+     before the full document navigation, then reveal the entire authenticated shell. */
+  .auth-screen::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    background: var(--color-carbon-900);
+    opacity: 0;
+  }
+  .auth-screen:has([data-phase="success"])::after {
+    animation: auth-departure 280ms cubic-bezier(0.4, 0, 1, 1) 350ms both;
+  }
+  @keyframes auth-departure {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .app-arrival {
+    animation: app-arrival 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  @keyframes app-arrival {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Start as each streamed Home section mounts; no client-side loading gate. */
+  .home-enter > * {
+    animation: home-enter 480ms var(--ease-out-expo) backwards;
+  }
+  .home-enter > :nth-child(2) { animation-delay: 50ms; }
+  .home-enter > :nth-child(3) { animation-delay: 110ms; }
+  .home-enter > :nth-child(4) { animation-delay: 170ms; }
+
+  @keyframes home-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .auth-screen::after, .app-arrival, .home-enter > * { animation: none !important; }
+  }
+
+  /* Brushed-titanium hairline along the top edge of a panel. */
+  .ti-hairline {
+    position: relative;
+  }
+  .ti-hairline::before {
+    content: "";
+    position: absolute;
+    inset: 0 12% auto;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-ti-200) 45%, transparent),
+      transparent
+    );
+    pointer-events: none;
+  }
+}

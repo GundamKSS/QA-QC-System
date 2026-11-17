@@ -1,0 +1,249 @@
+--- before/components/master/MasterTableView.tsx
++++ after/components/master/MasterTableView.tsx
+@@ -8,6 +8,7 @@
+ import type { MasterDef } from "@/lib/master/registry";
+ import { masterTableHref, type MasterTableValues } from "@/lib/master/table-query";
+ import { MasterBack } from "./MasterBack";
++import { MasterHero } from "./MasterHero";
+ import { MasterForm } from "./MasterForms";
+ import { MasterRecords } from "./MasterRecords";
+ import { useMasterTable } from "./useMasterTable";
+@@ -49,15 +50,38 @@
+   return (
+     <div className="master-page"><div className="master-content">
+       <MasterBack />
+-      <header className="master-header">
+-        <div className="master-title-block">
+-          <div className="master-title-line"><h1>{def.label}</h1>{data && <span className="master-count">{data.total.toLocaleString("th-TH")} รายการ</span>}</div>
+-          <p className="master-description">{def.description}</p>
+-        </div>
+-        {canEdit && !creating && (editId === null || editMissing) && (
+-          <Link href={link({ new: "1" })} className="app-primary-action bg-ember-500 text-carbon-900 hover:bg-ember-400 master-add"><span aria-hidden="true" className="text-xl font-normal">+</span>เพิ่ม{def.singular}</Link>
+-        )}
+-      </header>
++      <MasterHero>
++        <header className="master-header">
++          <div className="master-title-block">
++            <p className="master-eyebrow" lang="en">Master data</p>
++            <div className="master-title-line"><h1 id="master-title">{def.label}</h1>{data && <span className="master-count">{data.total.toLocaleString("th-TH")} รายการ</span>}</div>
++            <p className="master-description">{def.description}</p>
++          </div>
++          {canEdit && !creating && (editId === null || editMissing) && (
++            <Link href={link({ new: "1" })} className="app-primary-action bg-ember-500 text-carbon-900 hover:bg-ember-400 master-add"><span aria-hidden="true" className="text-xl font-normal">+</span>เพิ่ม{def.singular}</Link>
++          )}
++        </header>
++
++        {/* Keyed by the address values: the fields are uncontrolled, so a new `q` / `status` (a link, "ล้างตัวกรอง") remounts them with the right value. */}
++        <form method="get" action={path} className="master-filters" role="search" aria-label={`ค้นหา${def.singular}`}>
++          <label className="master-filter-label master-search-field">
++            <span>ค้นหา{def.singular}</span>
++            <span className="master-input-wrap">
++              <svg className="master-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
++              <input key={`q:${q}`} name="q" type="search" defaultValue={q} maxLength={100} placeholder="ค้นหาจากรหัสหรือชื่อ…" className="master-input" />
++            </span>
++          </label>
++          <label className="master-filter-label">
++            <span>สถานะ</span>
++            <select key={`status:${status}`} name="status" defaultValue={status === "all" ? "" : status} className="master-select">
++              <option value="">ทั้งหมด</option>
++              <option value="active">ใช้งาน</option>
++              <option value="inactive">ปิดใช้งาน</option>
++            </select>
++          </label>
++          <button type="submit" className="master-filter-button">ค้นหา</button>
++        </form>
++      </MasterHero>
+ 
+       {saved !== null && <p role="status" className="rounded-control border border-green-500/40 bg-carbon-800 px-3 py-2 text-sm text-green-300">บันทึกแล้ว{savedRow ? ` — ${displayValue(def.fields[0], savedRow.values[def.fields[0].key])}` : ""}</p>}
+ 
+@@ -66,25 +90,6 @@
+       {formWaiting && <div role="status" aria-label="กำลังโหลดฟอร์ม" aria-busy="true" className="app-panel h-40 animate-pulse rounded-panel border border-carbon-700 bg-carbon-800" />}
+       {editMissing && <Alert>ไม่พบรายการที่จะแก้ไข</Alert>}
+ 
+-      {/* Keyed by the address values: the fields are uncontrolled, so a new `q` / `status` (a link, "ล้างตัวกรอง") remounts them with the right value. */}
+-      <form method="get" action={path} className="app-panel master-filters" role="search" aria-label={`ค้นหา${def.singular}`}>
+-        <label className="master-filter-label master-search-field">
+-          <span>ค้นหา{def.singular}</span>
+-          <span className="master-input-wrap">
+-            <svg className="master-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
+-            <input key={`q:${q}`} name="q" type="search" defaultValue={q} maxLength={100} placeholder="ค้นหาจากรหัสหรือชื่อ…" className="master-input" />
+-          </span>
+-        </label>
+-        <label className="master-filter-label">
+-          <span>สถานะ</span>
+-          <select key={`status:${status}`} name="status" defaultValue={status === "all" ? "" : status} className="master-select">
+-            <option value="">ทั้งหมด</option>
+-            <option value="active">ใช้งาน</option>
+-            <option value="inactive">ปิดใช้งาน</option>
+-          </select>
+-        </label>
+-        <button type="submit" className="master-filter-button">ค้นหา</button>
+-      </form>
+ 
+       {error && <LoadError message={error} onRetry={reload} />}
+ 
+--- before/components/master/master-table.css
++++ after/components/master/master-table.css
+@@ -186,6 +186,44 @@
+ .master-history-details .master-history { grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
+ .master-card-footer { border-top: 1px solid var(--color-carbon-700); background: color-mix(in srgb, var(--color-carbon-900) 35%, transparent); padding: 12px 18px; }
+ 
++/* The same expanding cutting mat as Home, with stable, readable filter controls. */
++.app-theme-sand .master-hero {
++  position: relative;
++  isolation: isolate;
++  display: grid;
++  min-width: 0;
++  gap: 24px;
++  padding: 28px 32px;
++  color: #fff4dd;
++  color-scheme: dark;
++}
++.master-hero::before {
++  content: "";
++  position: absolute;
++  z-index: -1;
++  inset: calc(var(--welcome-top, 0px) * var(--apart, 0) * -1) calc(var(--welcome-right, 0px) * var(--apart, 0) * -1) 0 calc(var(--welcome-left, 0px) * var(--apart, 0) * -1);
++  border: 1px solid #4b624b;
++  border-radius: calc(var(--radius-surface) * (1 - var(--apart, 0)));
++  background-color: #294635;
++  background-image: linear-gradient(rgb(232 220 178 / .045) 1px, transparent 1px), linear-gradient(90deg, rgb(232 220 178 / .045) 1px, transparent 1px);
++  background-size: 32px 32px;
++  box-shadow: 0 12px 32px -22px rgb(35 60 48 / .5);
++  pointer-events: none;
++}
++.master-hero .master-eyebrow { margin-bottom: 10px; color: #ffd09c; font-family: var(--font-mono); font-size: 10px; line-height: 1.5; letter-spacing: .14em; text-transform: uppercase; }
++.master-hero .master-title-line h1 { color: #fff4dd; }
++.master-hero .master-description { color: #c3cbb6; }
++.master-hero .master-count { border-color: rgb(195 203 182 / .4); background: rgb(255 244 221 / .06); color: #e6dec8; }
++.app-theme-sand .master-hero .master-filters { padding: 20px 0 0; border: 0; border-top: 1px solid rgb(195 203 182 / .25); border-radius: 0; background: transparent; box-shadow: none; }
++.master-hero .master-filter-label { color: #e6dec8; }
++.app-theme-sand .master-hero :is(.master-input, .master-select) { background-color: #fff9ed; border-color: #c4ccb5; color: #263c2e; color-scheme: light; }
++.app-theme-sand .master-hero :is(.master-input, .master-select):focus-visible { border-color: #f0a15c; outline-color: #f0a15c; box-shadow: 0 0 0 5px rgb(240 161 92 / .14); }
++.app-theme-sand .master-hero :is(.master-add, .master-filter-button) { background-color: #f4e8cd; border-color: #d6cfa8; color: #294635; box-shadow: none; }
++@media (hover: hover) and (pointer: fine) {
++  .app-theme-sand .master-hero :is(.master-add, .master-filter-button):hover { background-color: #fff4dd; border-color: #fff4dd; }
++}
++@media (max-width: 767px) { .app-theme-sand .master-hero { padding: 24px 20px; gap: 20px; } }
++
+ @media (min-width: 640px) { .master-page { padding: 28px 24px; } }
+ @media (min-width: 1280px) { .master-page { padding: 32px; } }
+ @container (min-width: 36rem) {
+--- before/components/dom/WorkspaceDrawing.tsx
++++ after/components/dom/WorkspaceDrawing.tsx
+@@ -1,12 +1,7 @@
+ "use client";
+ 
+ import { useEffect, useRef } from "react";
+-
+-const MOTION = "(prefers-reduced-motion: no-preference)";
+-/** Page scroll (px) over which the compressor comes fully apart — small, so the first nudge already moves it. */
+-const SPREAD_PX = 140;
+-/** Easing toward the scroll position per frame — lower is softer. */
+-const EASE = 0.2;
++import { bindExpandingSurface } from "./expandingSurface";
+ 
+ type Part = { dx: number; dy: number; turn?: number };
+ /** Exploded-view offset of each part at full scroll, in viewBox units (and degrees). */
+@@ -35,46 +30,7 @@
+   const ref = useRef<SVGSVGElement>(null);
+ 
+   useEffect(() => {
+-    const card = ref.current?.parentElement;
+-    const area = card?.closest<HTMLElement>(".app-page-area");
+-    if (!card || !area) return;
+-    const media = window.matchMedia(MOTION);
+-    const controller = new AbortController();
+-    let frame = 0;
+-    let shown = 0;
+-
+-    const target = () => {
+-      if (!media.matches) return 0;
+-      return Math.min(1, Math.max(0, window.scrollY / SPREAD_PX));
+-    };
+-    const step = () => {
+-      const goal = target();
+-      shown += (goal - shown) * EASE;
+-      if (Math.abs(goal - shown) < 0.001) shown = goal;
+-      card.style.setProperty("--apart", shown.toFixed(4));
+-      frame = shown === goal ? 0 : window.requestAnimationFrame(step);
+-    };
+-    const wake = () => {
+-      if (!frame) frame = window.requestAnimationFrame(step);
+-    };
+-    // How far the mat may grow: to the content area's sides and up to its top (just under the top bar).
+-    const measure = () => {
+-      const box = card.getBoundingClientRect();
+-      const room = area.getBoundingClientRect();
+-      card.style.setProperty("--welcome-left", `${Math.max(0, box.left - room.left)}px`);
+-      card.style.setProperty("--welcome-right", `${Math.max(0, room.right - box.right)}px`);
+-      card.style.setProperty("--welcome-top", `${Math.max(0, box.top - room.top)}px`);
+-      wake();
+-    };
+-
+-    window.addEventListener("scroll", wake, { passive: true, signal: controller.signal });
+-    window.addEventListener("resize", measure, { passive: true, signal: controller.signal });
+-    media.addEventListener("change", wake, { signal: controller.signal });
+-    measure();
+-    return () => {
+-      controller.abort();
+-      window.cancelAnimationFrame(frame);
+-    };
++    return bindExpandingSurface(ref.current?.parentElement ?? null);
+   }, []);
+ 
+   return (
+--- /dev/null
++++ after/components/master/MasterHero.tsx
+@@ -0,0 +1,10 @@
++"use client";
++
++import { useEffect, useRef, type ReactNode } from "react";
++import { bindExpandingSurface } from "@/components/dom/expandingSurface";
++
++export function MasterHero({ children }: { children: ReactNode }) {
++  const ref = useRef<HTMLElement>(null);
++  useEffect(() => bindExpandingSurface(ref.current), []);
++  return <section ref={ref} className="master-hero" aria-labelledby="master-title">{children}</section>;
++}
+--- /dev/null
++++ after/components/dom/expandingSurface.ts
+@@ -0,0 +1,38 @@
++/** Share the Home mat's scroll response without moving its readable content. */
++export function bindExpandingSurface(card: HTMLElement | null): (() => void) | undefined {
++  const area = card?.closest<HTMLElement>(".app-page-area");
++  if (!card || !area) return;
++  const media = window.matchMedia("(prefers-reduced-motion: no-preference)");
++  const controller = new AbortController();
++  let frame = 0;
++  let shown = 0;
++
++  const step = () => {
++    const goal = media.matches ? Math.min(1, Math.max(0, window.scrollY / 140)) : 0;
++    shown += (goal - shown) * 0.2;
++    if (Math.abs(goal - shown) < 0.001) shown = goal;
++    card.style.setProperty("--apart", shown.toFixed(4));
++    frame = shown === goal ? 0 : window.requestAnimationFrame(step);
++  };
++  const wake = () => {
++    if (!frame) frame = window.requestAnimationFrame(step);
++  };
++  const measure = () => {
++    const box = card.getBoundingClientRect();
++    const room = area.getBoundingClientRect();
++    card.style.setProperty("--welcome-left", `${Math.max(0, box.left - room.left)}px`);
++    card.style.setProperty("--welcome-right", `${Math.max(0, room.right - box.right)}px`);
++    card.style.setProperty("--welcome-top", `${Math.max(0, box.top - room.top)}px`);
++    wake();
++  };
++
++  window.addEventListener("scroll", wake, { passive: true, signal: controller.signal });
++  window.addEventListener("resize", measure, { passive: true, signal: controller.signal });
++  media.addEventListener("change", wake, { signal: controller.signal });
++  measure();
++  return () => {
++    controller.abort();
++    window.cancelAnimationFrame(frame);
++    for (const key of ["--apart", "--welcome-left", "--welcome-right", "--welcome-top"]) card.style.removeProperty(key);
++  };
++}

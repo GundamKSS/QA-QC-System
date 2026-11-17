@@ -1,0 +1,287 @@
+--- before/src/config/experience.ts
++++ after/src/config/experience.ts
+@@ -67,6 +67,8 @@
+     successSeconds: 0.6,
+     phaseTransitionSeconds: 0.18,
+     ringRadius: 1.4,
++    /** A visible scanner head circles the model while a credential input has focus. */
++    focusOrbitSeconds: 4.2,
+   },
+ 
+   /** Film finish over the whole stage (docs/07 §8): CSS only, so every tier gets it for free. */
+--- before/src/lib/auth-stage.ts
++++ after/src/lib/auth-stage.ts
+@@ -3,15 +3,15 @@
+ import { useSyncExternalStore } from "react";
+ import type { ScanPhase } from "@/components/canvas/scanTimeline";
+ 
+-type StageSignal = { phase: ScanPhase; round: number; typing: boolean; usernameFocused: boolean };
+-const initial: StageSignal = { phase: "idle", round: 0, typing: false, usernameFocused: false };
++type StageSignal = { phase: ScanPhase; round: number; typing: boolean; usernameFocused: boolean; inputFocused: boolean };
++const initial: StageSignal = { phase: "idle", round: 0, typing: false, usernameFocused: false, inputFocused: false };
+ let current = initial;
+ const listeners = new Set<() => void>();
+ 
+ /** Only presentation state crosses this boundary; no form values or credentials. */
+-export function publishAuthStage(phase: ScanPhase, round = 0, typing = false, usernameFocused = false) {
+-  if (current.phase === phase && current.round === round && current.typing === typing && current.usernameFocused === usernameFocused) return;
+-  current = { phase, round, typing, usernameFocused };
++export function publishAuthStage(phase: ScanPhase, round = 0, typing = false, usernameFocused = false, inputFocused = false) {
++  if (current.phase === phase && current.round === round && current.typing === typing && current.usernameFocused === usernameFocused && current.inputFocused === inputFocused) return;
++  current = { phase, round, typing, usernameFocused, inputFocused };
+   listeners.forEach((listener) => listener());
+ }
+ 
+--- before/src/components/canvas/AuthStage.tsx
++++ after/src/components/canvas/AuthStage.tsx
+@@ -61,7 +61,7 @@
+             className="absolute inset-x-0 top-0 h-svh opacity-0 transition-opacity ease-out group-data-ready/stage:opacity-[var(--stage-opacity,1)]"
+             style={{ transitionDuration: signal.phase === "success" ? "0ms" : `${stage.fadeInMs}ms` }}
+           >
+-            <Scene still={reducedMotion} phase={signal.phase} phaseRound={signal.round} typing={signal.typing} usernameExpanded={signal.usernameFocused} eventSource={eventSource} onFade={setFade} onReady={() => setReady(true)} onLost={() => setReady(false)} />
++            <Scene still={reducedMotion} phase={signal.phase} phaseRound={signal.round} typing={signal.typing} inputFocused={signal.inputFocused} usernameExpanded={signal.usernameFocused} eventSource={eventSource} onFade={setFade} onReady={() => setReady(true)} onLost={() => setReady(false)} />
+           </div>
+         </StageBoundary>
+       )}
+--- before/src/components/canvas/Scene.tsx
++++ after/src/components/canvas/Scene.tsx
+@@ -20,6 +20,8 @@
+   phase: ScanPhase;
+   phaseRound: number;
+   typing: boolean;
++  /** Either credential field has focus; no input values enter the scene. */
++  inputFocused: boolean;
+   /** Presentation-only username focus; no input text enters the scene. */
+   usernameExpanded: boolean;
+   eventSource: HTMLElement;
+@@ -172,7 +174,7 @@
+ }
+ 
+ /** The auth stage's WebGL scene. Loaded on demand by <AuthStage>; never server-rendered. */
+-export default function Scene({ still, phase, phaseRound, typing, usernameExpanded, eventSource, onFade, onReady, onLost }: SceneProps) {
++export default function Scene({ still, phase, phaseRound, typing, inputFocused, usernameExpanded, eventSource, onFade, onReady, onLost }: SceneProps) {
+   const [quality, setQuality] = useState<QualityLevel>(detectQuality);
+   const dpr = dprFor(quality, window.devicePixelRatio);
+   const [introSeconds] = useState(introDuration);
+@@ -206,7 +208,7 @@
+         <Checkpoints frameRef={frameRef} phase={phase} still={still} />
+       </ModelInteraction>
+       <Dust still={still} count={qualitySettings(quality).dust} />
+-      <ScanRing frameRef={frameRef} phase={phase} still={still} typing={typing} />
++      <ScanRing frameRef={frameRef} phase={phase} still={still} typing={typing} inputFocused={inputFocused} />
+       <FirstFrame onReady={onReady} onLost={onLost} />
+     </Canvas>
+   );
+--- before/src/components/canvas/ScanRing.tsx
++++ after/src/components/canvas/ScanRing.tsx
+@@ -5,16 +5,19 @@
+ import { AdditiveBlending, DoubleSide, Quaternion, RingGeometry, Shape, ShapeGeometry, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+ import { palette, stage } from "@/config/experience";
+ import type { ScanFrame, ScanPhase } from "./scanTimeline";
++import { advanceScanOrbit, scanOrbitActive } from "./scanOrbit";
+ 
+ /** The scan plane becomes a face-on green seal during the existing success hold. */
+-export function ScanRing({ frameRef, phase, still, typing }: { frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean }) {
++export function ScanRing({ frameRef, phase, still, typing, inputFocused }: { frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
+   const group = useRef<Group>(null);
+   const core = useRef<MeshBasicMaterial>(null);
+   const glow = useRef<MeshBasicMaterial>(null);
+   const tickRef = useRef<Mesh>(null);
+   const tickMaterialRef = useRef<MeshBasicMaterial>(null);
+-  const pressureRef = useRef<Mesh>(null);
+-  const pressureAmountRef = useRef(0);
++  const orbitRef = useRef<Group>(null);
++  const orbitMaterialRef = useRef<MeshBasicMaterial>(null);
++  const headMaterialRef = useRef<MeshBasicMaterial>(null);
++  const orbitAmountRef = useRef(0);
+   const invalidate = useThree((state) => state.invalidate);
+   const color = phase === "success" ? palette.pass : palette.ember500;
+   const flat = useMemo(() => new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2), []);
+@@ -27,10 +30,14 @@
+     shape.lineTo(0.73, 0.4);
+     shape.lineTo(-0.12, -0.5);
+     shape.closePath();
+-    return { tick: new ShapeGeometry(shape), pressure: new RingGeometry(stage.scan.ringRadius - 0.007, stage.scan.ringRadius + 0.007, 128) };
++    return {
++      tick: new ShapeGeometry(shape),
++      // An asymmetric arc makes rotation visible; a full torus alone looks stationary.
++      orbit: new RingGeometry(stage.scan.ringRadius - 0.014, stage.scan.ringRadius + 0.014, 64, 1, -Math.PI * 0.42, Math.PI * 0.42),
++    };
+   }, []);
+-  useEffect(() => () => { geometry.tick.dispose(); geometry.pressure.dispose(); }, [geometry]);
+-  useEffect(() => { invalidate(); }, [phase, still, typing, invalidate]);
++  useEffect(() => () => { geometry.tick.dispose(); geometry.orbit.dispose(); }, [geometry]);
++  useEffect(() => { invalidate(); }, [phase, still, typing, inputFocused, invalidate]);
+ 
+   useFrame(({ camera }, delta) => {
+     const sample = frameRef.current;
+@@ -38,23 +45,25 @@
+     const time = sample.phaseElapsed ?? 0;
+     const raw = Math.max(0, Math.min(1, (time - stage.interaction.sealStartSeconds) / (stage.interaction.sealEndSeconds - stage.interaction.sealStartSeconds)));
+     const seal = success ? still ? 1 : raw * raw * (3 - 2 * raw) : 0;
+-    const filling = typing && phase === "focus";
++    const orbitActive = scanOrbitActive(phase, inputFocused);
+     if (group.current) {
+       group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY;
+       group.current.quaternion.copy(flat).slerp(camera.quaternion, seal);
+       group.current.scale.setScalar(1 - 0.3 * seal);
+     }
+-    if (core.current) core.current.opacity = success ? (1 - seal) * 0.8 : filling ? 0 : sample.ringOpacity;
+-    if (glow.current) glow.current.opacity = (success ? (1 - seal) * 0.8 : sample.ringOpacity) * (filling ? 0.04 : 0.13);
++    if (core.current) core.current.opacity = success ? (1 - seal) * 0.8 : sample.ringOpacity;
++    if (glow.current) glow.current.opacity = (success ? (1 - seal) * 0.8 : sample.ringOpacity) * 0.13;
+     if (tickRef.current) { tickRef.current.visible = success; tickRef.current.scale.setScalar(0.75 + seal * 0.25); }
+     if (tickMaterialRef.current) tickMaterialRef.current.opacity = seal;
+     const damping = still ? 1 : 1 - Math.exp(-4 * Math.min(delta, 0.05));
+-    pressureAmountRef.current += ((filling ? 1 : 0) - pressureAmountRef.current) * damping;
+-    if (pressureRef.current) {
+-      pressureRef.current.visible = filling && !success;
+-      const count = geometry.pressure.index?.count ?? 0;
+-      geometry.pressure.setDrawRange(0, Math.floor(count * pressureAmountRef.current / 6) * 6);
++    orbitAmountRef.current += ((orbitActive ? 1 : 0) - orbitAmountRef.current) * damping;
++    if (orbitRef.current) {
++      orbitRef.current.visible = phase !== "success" && phase !== "locked" && orbitAmountRef.current > 0.001;
++      orbitRef.current.rotation.z = advanceScanOrbit(orbitRef.current.rotation.z, delta, orbitActive && !still);
+     }
++    const orbitOpacity = orbitAmountRef.current * (typing ? 0.95 : 0.8);
++    if (orbitMaterialRef.current) orbitMaterialRef.current.opacity = orbitOpacity;
++    if (headMaterialRef.current) headMaterialRef.current.opacity = orbitOpacity;
+   }, -1);
+ 
+   return (
+@@ -63,9 +72,15 @@
+         <torusGeometry args={[stage.scan.ringRadius, 0.008, 8, 128]} />
+         <meshBasicMaterial ref={core} color={color} transparent depthWrite={false} toneMapped={false} />
+       </mesh>
+-      <mesh ref={pressureRef} name="inspection-pressure" geometry={geometry.pressure} visible={false}>
+-        <meshBasicMaterial color={palette.ember400} transparent opacity={0.75} side={DoubleSide} depthWrite={false} toneMapped={false} />
+-      </mesh>
++      <group ref={orbitRef} name="inspection-focus-orbit" visible={false}>
++        <mesh geometry={geometry.orbit}>
++          <meshBasicMaterial ref={orbitMaterialRef} color={palette.ember400} transparent opacity={0} side={DoubleSide} depthWrite={false} toneMapped={false} />
++        </mesh>
++        <mesh name="inspection-focus-head" position={[stage.scan.ringRadius, 0, 0]}>
++          <sphereGeometry args={[0.026, 12, 8]} />
++          <meshBasicMaterial ref={headMaterialRef} color={palette.ember400} transparent opacity={0} depthWrite={false} toneMapped={false} />
++        </mesh>
++      </group>
+       <mesh ref={tickRef} name="inspection-success-seal" geometry={geometry.tick} visible={false} renderOrder={20}>
+         <meshBasicMaterial ref={tickMaterialRef} color={palette.pass} transparent opacity={0} side={DoubleSide} depthTest={false} depthWrite={false} toneMapped={false} />
+       </mesh>
+--- before/src/components/dom/LoginForm.tsx
++++ after/src/components/dom/LoginForm.tsx
+@@ -99,8 +99,8 @@
+       state.status === "unavailable");
+   const stagePhase = !online ? "offline" : pending ? "submitting" : succeeded ? "success" : locked ? "locked" : stageError ? "error" : focused ? "focus" : "idle";
+   useEffect(() => {
+-    publishAuthStage(stagePhase, stateAt, typing, usernameFocused);
+-  }, [stagePhase, stateAt, typing, usernameFocused]);
++    publishAuthStage(stagePhase, stateAt, typing, usernameFocused, focused);
++  }, [stagePhase, stateAt, typing, usernameFocused, focused]);
+   useEffect(() => () => publishAuthStage("idle"), []);
+ 
+   // Next.js keeps hidden pages alive with <Activity>, which re-runs effects when a page is
+@@ -236,8 +236,9 @@
+         if (input instanceof HTMLInputElement && input.name === "password") setPasswordActivity({ at: stateAt, hasContent: input.value.length > 0 });
+       }}
+       onFocusCapture={(event) => {
+-        setFocused(true);
+-        setUsernameFocused((event.target as unknown) === codeRef.current);
++        const target = event.target as HTMLElement;
++        setFocused(target === codeRef.current || target === passwordRef.current);
++        setUsernameFocused(target === codeRef.current);
+       }}
+       onBlurCapture={(event) => {
+         if (!event.currentTarget.contains(event.relatedTarget)) {
+--- before/eslint.config.mjs
++++ after/eslint.config.mjs
+@@ -9,6 +9,7 @@
+   globalIgnores([
+     // Default ignores of eslint-config-next:
+     ".next/**",
++    ".local-backups/**",
+     "out/**",
+     "build/**",
+     "next-env.d.ts",
+--- before/src/components/canvas/scanOrbit.ts
++++ after/src/components/canvas/scanOrbit.ts
+@@ -0,0 +1,18 @@
++import { stage } from "@/config/experience";
++import type { ScanPhase } from "./scanTimeline";
++
++const turn = Math.PI * 2;
++
++/** Field activity never overrides the authentication result or a pending request. */
++export function scanOrbitActive(phase: ScanPhase, inputFocused: boolean): boolean {
++  return inputFocused && phase !== "submitting" && phase !== "success" && phase !== "locked";
++}
++
++/** Advance a visible scanner without catching up time spent in a hidden tab. */
++export function advanceScanOrbit(angle: number, delta: number, active: boolean): number {
++  const remainder = Number.isFinite(angle) ? angle % turn : 0;
++  const current = remainder < 0 ? remainder + turn : remainder === 0 ? 0 : remainder;
++  if (!active || !Number.isFinite(delta) || delta <= 0) return current;
++  const step = Math.min(delta, 0.05);
++  return (current + step * turn / stage.scan.focusOrbitSeconds) % turn;
++}
+--- before/src/components/canvas/scanOrbit.test.ts
++++ after/src/components/canvas/scanOrbit.test.ts
+@@ -0,0 +1,58 @@
++import { describe, expect, it } from "vitest";
++import { stage } from "@/config/experience";
++import { advanceScanOrbit, scanOrbitActive } from "./scanOrbit";
++import type { ScanPhase } from "./scanTimeline";
++
++const turn = Math.PI * 2;
++const phases: ScanPhase[] = ["reveal", "idle", "focus", "submitting", "success", "error", "locked", "offline"];
++
++describe("focused scanner priority", () => {
++  it.each(phases)("handles focused and blurred inputs during %s", (phase) => {
++    const allowed = !["submitting", "success", "locked"].includes(phase);
++    expect(scanOrbitActive(phase, true)).toBe(allowed);
++    expect(scanOrbitActive(phase, false)).toBe(false);
++  });
++});
++
++describe("scanner orbit clock", () => {
++  it.each([20, 30, 60, 120])("completes a full turn at %i frames per second", (fps) => {
++    const start = 0.31;
++    let angle = start;
++    const frames = Math.round(stage.scan.focusOrbitSeconds * fps);
++    for (let frame = 0; frame < frames; frame++) angle = advanceScanOrbit(angle, 1 / fps, true);
++    expect(angle).toBeCloseTo(start, 10);
++  });
++
++  it("holds its position while inactive and resumes from that angle", () => {
++    const paused = advanceScanOrbit(0.7, 1 / 60, true);
++    expect(advanceScanOrbit(paused, 4.2, false)).toBe(paused);
++    const resumed = advanceScanOrbit(paused, 1 / 60, true);
++    const uninterrupted = advanceScanOrbit(advanceScanOrbit(0.7, 1 / 60, true), 1 / 60, true);
++    expect(resumed).toBe(uninterrupted);
++  });
++
++  it("crosses the turn boundary with the same angular step", () => {
++    const step = (1 / 60) * turn / stage.scan.focusOrbitSeconds;
++    const before = turn - step / 2;
++    const after = advanceScanOrbit(before, 1 / 60, true);
++    expect(after).toBeCloseTo(step / 2, 12);
++    expect((after - before + turn) % turn).toBeCloseTo(step, 12);
++  });
++
++  it.each([-1, 0, NaN, Infinity, -Infinity])("ignores invalid or nonpositive frame time %s", (delta) => {
++    expect(advanceScanOrbit(0.7, delta, true)).toBe(0.7);
++  });
++
++  it.each([1, 60, Number.MAX_VALUE])("caps a long frame of %s seconds instead of catching up", (delta) => {
++    expect(advanceScanOrbit(0.7, delta, true)).toBe(advanceScanOrbit(0.7, 0.05, true));
++  });
++
++  it.each([-turn * 3 - 0.1, turn * 7 + 0.1, Number.MAX_VALUE, NaN, Infinity, -Infinity])("normalizes angle %s to a finite turn", (angle) => {
++    for (const active of [false, true]) {
++      const next = advanceScanOrbit(angle, 0.05, active);
++      expect(Number.isFinite(next)).toBe(true);
++      expect(next).toBeGreaterThanOrEqual(0);
++      expect(next).toBeLessThan(turn);
++    }
++  });
++});

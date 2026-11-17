@@ -1,0 +1,586 @@
+/* Oryzo-inspired material palette: warm paper, forest green and terracotta.
+   Scoped tokens let every existing workspace page share the same treatment. */
+@layer base {
+  .app-theme-sand {
+    color-scheme: light;
+    --color-carbon-950: #e6ddce;
+    --color-carbon-900: #f1ebdf;
+    --color-carbon-850: #f8f2e6;
+    --color-carbon-800: #fff9ed;
+    --color-carbon-750: #e0d8c7;
+    --color-carbon-700: #d5d5c5;
+    --color-carbon-600: #78856e;
+    --color-carbon-500: #626c5e;
+    --color-ti-50: #263c2e;
+    --color-ti-100: #2d4536;
+    --color-ti-200: #465640;
+    --color-ti-300: #53624c;
+    --color-ti-400: #626c5e;
+    --color-ti-500: #68715f;
+    --color-ti-600: #78856e;
+    --color-ti-700: #85917c;
+    --color-ti-metal: #78856e;
+    --color-ember-200: #6c2a13;
+    --color-ember-300: #78350f;
+    --color-ember-400: #a34922;
+    --color-ember-500: #bc542b;
+    --color-ember-600: #8b3d20;
+    --color-ember-950: #fff0ea;
+    --color-pass: #1e6b47;
+    --color-fail: #a63532;
+    --color-red-300: #a63532;
+    --color-red-400: #a63532;
+    --color-red-500: #b5433a;
+    --color-green-300: #1e6b47;
+    --color-green-400: #1e6b47;
+    --color-green-500: #195e3e;
+    --color-green-600: #144f33;
+    --color-emerald-300: #1e6b47;
+    --color-emerald-400: #1e6b47;
+    --color-emerald-500: #195e3e;
+    --color-emerald-600: #144f33;
+    --color-amber-200: #92400e;
+    --color-amber-300: #92400e;
+    --color-amber-400: #b45309;
+    --color-amber-500: #d97706;
+    --color-amber-600: #b45309;
+    --color-amber-700: #92400e;
+    --color-amber-800: #78350f;
+    --color-amber-900: #451a03;
+    --color-yellow-300: #92400e;
+    --color-yellow-400: #b45309;
+    --color-yellow-500: #d97706;
+    background-image: radial-gradient(ellipse at 90% 0%, rgb(176 153 107 / .09), transparent 48%);
+  }
+
+  /* Fullscreen camera dialogs, dark viewfinders, and dark overlay sheets keep their luminous HUD colors */
+  .app-theme-sand .camera-viewfinder,
+  .app-theme-sand [data-theme-surface="dark"] {
+    color-scheme: dark;
+    --color-carbon-950: #08090a;
+    --color-carbon-900: #0e0f11;
+    --color-carbon-850: #121417;
+    --color-carbon-800: #16181b;
+    --color-carbon-750: #1c1e23;
+    --color-carbon-700: #212328;
+    --color-carbon-600: #2e3137;
+    --color-carbon-500: #3d414a;
+    --color-ti-50: #ffffff;
+    --color-ti-100: #f2f1ee;
+    --color-ti-200: #cfcdc7;
+    --color-ti-300: #b4b2aa;
+    --color-ti-400: #9a9890;
+    --color-ti-500: #85837c;
+    --color-ti-600: #6b6a64;
+    --color-ti-700: #55544e;
+    --color-ti-metal: #8c8a84;
+    --color-ember-200: #ffd0b8;
+    --color-ember-300: #ffb088;
+    --color-ember-400: #ff8a55;
+    --color-ember-500: #ff6b2c;
+    --color-ember-600: #e0541a;
+    --color-ember-950: #2a0f05;
+    --color-pass: #3fd08a;
+    --color-fail: #f2546b;
+    --color-green-300: #abe0b2;
+    --color-green-400: #86efac;
+    --color-emerald-300: #a7f3d0;
+    --color-emerald-400: #6ee7b7;
+    --color-amber-200: #fef08a;
+    --color-amber-300: #fde68a;
+    --color-amber-400: #fcd34d;
+    --color-amber-500: #f59e0b;
+    --color-amber-600: #d97706;
+    --color-yellow-300: #fde68a;
+    --color-yellow-400: #fcd34d;
+    color: #f2f1ee;
+  }
+
+  .app-theme-sand .app-navigation,
+  .app-theme-sand .home-welcome {
+    color-scheme: dark;
+    --color-carbon-950: #192e24;
+    --color-carbon-900: #233c30;
+    --color-carbon-800: #304e3d;
+    --color-carbon-700: #45604a;
+    --color-carbon-600: #819776;
+    --color-ti-50: #fff4dd;
+    --color-ti-200: #e6dec8;
+    --color-ti-400: #c3cbb6;
+    --color-ti-500: #bdc9b8;
+    --color-ti-600: #829980;
+    --color-ember-400: #ffd09c;
+    --color-ember-500: #f0a15c;
+    --color-ember-600: #de8b48;
+    --color-pass: #abe0b2;
+    --color-fail: #ffb6aa;
+    --color-green-300: #abe0b2;
+    --color-green-400: #86efac;
+    --color-emerald-300: #a7f3d0;
+    --color-emerald-400: #6ee7b7;
+    --color-amber-200: #fef08a;
+    --color-amber-300: #fde68a;
+    --color-amber-400: #fcd34d;
+    --color-amber-500: #f59e0b;
+    --color-amber-600: #d97706;
+    --color-yellow-300: #fde68a;
+    --color-yellow-400: #fcd34d;
+    color: var(--color-ti-50);
+  }
+
+  html:has(.app-theme-sand), body:has(.app-theme-sand) {
+    background-color: #f1ebdf;
+    color-scheme: light;
+  }
+
+  /* The auth scene keeps its existing camera and 3D choreography, in the same forest palette. */
+  .auth-screen {
+    --color-carbon-950: #15271f;
+    --color-carbon-900: #1c3027;
+    --color-carbon-800: #263b30;
+    --color-carbon-700: #3b5140;
+    --color-carbon-600: #68755d;
+    --color-ti-50: #fff4dd;
+    --color-ti-200: #e6dec8;
+    --color-ti-400: #c3cbb6;
+    --color-ti-500: #bdc9b8;
+    --color-ti-600: #829980;
+    --color-ember-400: #ffc38b;
+    --color-ember-500: #f0a15c;
+    --color-ember-600: #de8b48;
+    color: var(--color-ti-50);
+  }
+  html:has(.auth-screen), body:has(.auth-screen) { background-color: #1c3027; }
+}
+
+/* Matte surfaces and quiet page entrances keep working screens tactile and legible. */
+.app-theme-sand {
+  isolation: isolate;
+  --app-glass-background: rgb(255 249 237 / .62);
+  --app-glass-filter: blur(18px) saturate(1.6);
+}
+.app-theme-sand .app-page-area > :where(div, section, article) { animation: workspace-enter 300ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes workspace-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.app-theme-sand .app-page-area { position: relative; }
+.app-theme-sand h1 { font-size: clamp(1.65rem, 1.2rem + 1.1vw, 2.15rem); font-weight: 500; letter-spacing: -.025em; line-height: 1.5; }
+.app-theme-sand h2, .app-theme-sand h3 { letter-spacing: -.012em; }
+.app-theme-sand :where(.app-panel, .master-table-panel, .master-card, .master-empty) {
+  border-color: var(--color-carbon-700);
+  background-color: var(--color-carbon-800);
+  background-image: none;
+  box-shadow: 0 2px 3px rgb(62 52 30 / .025), 0 10px 28px -22px rgb(49 60 35 / .22);
+}
+.app-theme-sand .app-panel { border-radius: var(--radius-panel); }
+.app-theme-sand :where(input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea) {
+  background-color: #fffdf6;
+  color: var(--color-ti-50);
+  border-color: var(--color-carbon-600);
+  box-shadow: inset 0 1px 2px rgb(42 60 38 / .035);
+}
+.app-theme-sand :where(input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-ember-400);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgb(188 84 43 / .07);
+}
+.app-theme-sand :where(input, textarea)::placeholder { color: var(--color-ti-500); opacity: 1; }
+.app-theme-sand input[type="checkbox"], .app-theme-sand input[type="radio"] { accent-color: #385c40; }
+.app-theme-sand .text-ember-500 { color: var(--color-ember-400); }
+.app-theme-sand :where(.app-primary-action, .bg-ember-500, .bg-ember-400, .bg-ember-600) { color: #fff9ed; }
+.app-theme-sand .app-primary-action {
+  background-image: none;
+  border-radius: var(--radius-control);
+  box-shadow: 0 2px 0 rgb(100 44 20 / .13), inset 0 1px 0 rgb(255 255 255 / .15);
+}
+.app-theme-sand .app-metal-action { background-image: none; box-shadow: none; }
+.app-theme-sand :where(a, button, summary, input, select, textarea) {
+  transition-property: color, background-color, border-color, box-shadow, opacity, translate, scale;
+  transition-duration: 180ms, 180ms, 180ms, 240ms, 180ms, 300ms, 220ms;
+  transition-timing-function: cubic-bezier(.22,1,.36,1);
+}
+.app-theme-sand :where(.app-panel, tbody tr) { transition: border-color 220ms ease, box-shadow 240ms ease, background-color 180ms ease; }
+.app-theme-sand :where(.app-primary-action, .app-metal-action):focus-visible { box-shadow: 0 0 0 4px rgb(188 84 43 / .16); }
+.app-theme-sand a.app-panel:focus-visible { border-color: var(--color-ember-400); }
+.app-theme-sand table { font-variant-numeric: tabular-nums; }
+.app-theme-sand thead { background-color: #eae8da; color: #53624c; }
+.app-theme-sand thead th { font-weight: 500; padding-block: 14px; }
+.app-theme-sand tbody tr { background-color: transparent; }
+.app-theme-sand tbody tr:hover { background-color: rgb(63 89 52 / .045); }
+.app-theme-sand :where(.master-filters, .master-card-footer) { background-color: rgb(255 249 237 / .72); }
+.app-theme-sand .master-empty-icon { background-color: #e8eadb; border-color: #bbc4ab; color: #4d6b4e; }
+.app-theme-sand .master-table thead { background-color: #eae8da; }
+.app-theme-sand .master-edit, .app-theme-sand .master-toggle { background-color: #fffdf6; }
+
+/* One clipped glass surface grows out of the rail; labels have no separate panel. */
+.app-theme-sand .app-rail {
+  --rail-surface-width: 68px;
+  position: fixed;
+  z-index: 40;
+  inset: 12px auto 12px 12px;
+  width: 68px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0;
+  border-radius: var(--radius-surface);
+  background: transparent;
+}
+.app-theme-sand .app-rail-clip { position: absolute; pointer-events: none; }
+.app-theme-sand .app-rail-glass,
+.app-theme-sand .app-rail-outline { position: absolute; inset: 0 auto 0 0; width: var(--rail-surface-width); height: 100%; pointer-events: none; }
+.app-theme-sand .app-rail-glass {
+  z-index: -2;
+  background-color: var(--app-glass-background);
+  -webkit-backdrop-filter: var(--app-glass-filter);
+  backdrop-filter: var(--app-glass-filter);
+}
+.app-theme-sand .app-rail-outline { z-index: -1; overflow: visible; fill: none; stroke: #cdd0bd; stroke-width: 1; }
+.app-theme-sand .app-rail-brand { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: var(--radius-control); color: #233c30; }
+.app-theme-sand .app-rail-sections { flex: 1; display: flex; flex-direction: column; gap: 10px; width: 48px; padding-top: 10px; border-top: 1px solid #d9d6c4; }
+.app-theme-sand .app-rail-sections nav + nav { padding-top: 10px; border-top: 1px solid #d9d6c4; }
+.app-theme-sand .app-rail-sections ul { display: flex; flex-direction: column; gap: 4px; width: 48px; }
+.app-theme-sand .app-rail-sections li { width: 48px; }
+.app-theme-sand .app-rail-link { position: relative; display: flex; align-items: center; width: 48px; height: 48px; padding-left: 2px; border-radius: var(--radius-control); color: #4d6b4e; outline: none; }
+.app-theme-sand .app-rail-link[data-expanded] { width: calc(var(--rail-surface-width) - 20px); }
+.app-theme-sand .app-rail-icon { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--radius-control); transition: scale 320ms cubic-bezier(.22,1,.36,1), background-color 200ms ease, color 200ms ease; }
+.app-theme-sand .app-rail-link[aria-current="page"] .app-rail-icon { background-color: #233c30; color: #ffd09c; box-shadow: 0 8px 18px -12px rgb(35 60 48 / .8); }
+.app-theme-sand .app-rail-badge { position: absolute; top: 2px; right: 1px; }
+.app-theme-sand .app-rail-label {
+  position: absolute;
+  left: 62px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  width: 228px;
+  min-height: 52px;
+  max-width: calc(100vw - 112px);
+  opacity: 0;
+  translate: -10px -50%;
+  pointer-events: none;
+  transition: opacity 180ms ease, translate 320ms cubic-bezier(.22,1,.36,1);
+}
+.app-theme-sand .app-rail-label-title { display: block; font-size: 15px; font-weight: 600; line-height: 1.4; color: #233c30; white-space: nowrap; }
+.app-theme-sand .app-rail-label-hint { display: block; margin-top: 3px; font-size: 12px; line-height: 1.55; color: #5d6857; }
+.app-theme-sand .app-rail-link[data-expanded] .app-rail-icon { scale: 1.12; color: #233c30; background-color: #e8eddf; }
+.app-theme-sand .app-rail-link[aria-current="page"][data-expanded] .app-rail-icon { background-color: #233c30; color: #ffd09c; }
+.app-theme-sand .app-rail-link[data-expanded] .app-rail-label { opacity: 1; translate: 0 -50%; transition-delay: 60ms, 0ms; }
+.app-theme-sand .app-rail-link:focus-visible .app-rail-icon { outline: 2px solid var(--color-ember-500); outline-offset: 2px; }
+.app-theme-sand .app-rail-account { position: relative; flex: none; }
+.app-theme-sand .app-rail-avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid #c4ccb5; background-color: #e8eadb; color: #233c30; font-weight: 600; font-size: 14px; }
+.app-theme-sand .app-rail-card {
+  position: absolute;
+  left: 62px;
+  bottom: 36px;
+  width: 220px;
+  opacity: 0;
+  visibility: hidden;
+  translate: -10px 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, translate 320ms cubic-bezier(.22,1,.36,1), visibility 0s linear 220ms;
+}
+.app-theme-sand .app-rail-account[data-expanded] .app-rail-card { opacity: 1; visibility: visible; translate: 0 0; pointer-events: auto; transition-delay: 60ms, 0ms, 0ms; }
+/* The transparent bridge stays within the single surface when moving to account actions. */
+.app-theme-sand .app-rail-account[data-expanded]::before { content: ""; position: absolute; left: 0; bottom: 0; width: calc(var(--rail-surface-width) - 20px); height: 150px; z-index: -1; }
+.app-theme-sand .app-topbar {
+  height: 72px;
+  /* Frosted glass: content scrolling underneath shows through as soft colour. */
+  background-color: var(--app-glass-background);
+  border-color: #d5d5c5;
+  -webkit-backdrop-filter: var(--app-glass-filter);
+  backdrop-filter: var(--app-glass-filter);
+  box-shadow: 0 1px 0 rgb(255 255 255 / .5);
+}
+.app-theme-sand .app-location {
+  min-width: 0;
+  transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* In-header back button with Spring Overshoot */
+.app-theme-sand .topbar-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  white-space: nowrap;
+  border-radius: var(--radius-control);
+  background-color: var(--app-glass-background, rgb(255 249 237 / .88));
+  -webkit-backdrop-filter: var(--app-glass-filter, blur(18px) saturate(1.6));
+  backdrop-filter: var(--app-glass-filter, blur(18px) saturate(1.6));
+  color: #233c30;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  flex-shrink: 0;
+  overflow: hidden;
+  will-change: transform, opacity, max-width;
+}
+.app-theme-sand .topbar-back-visible {
+  max-width: 160px;
+  opacity: 1;
+  padding: 0 12px;
+  border: 1px solid #c7c9b8;
+  box-shadow: 0 3px 12px -3px rgb(35 60 48 / .2), inset 0 1px 0 rgb(255 255 255 / .6);
+  pointer-events: auto;
+  animation: header-back-spring-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.app-theme-sand .topbar-back-hidden {
+  max-width: 0;
+  opacity: 0;
+  padding: 0;
+  border: 0 solid transparent;
+  pointer-events: none;
+  transform: translateY(14px) scale(0.85);
+  transition: max-width 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease, padding 280ms ease;
+}
+.app-theme-sand .topbar-back svg {
+  flex-shrink: 0;
+  transition: transform 200ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .app-theme-sand .topbar-back:hover {
+    border-color: #1e6b47;
+    background-color: #1e6b47;
+    color: #fff4dd;
+    box-shadow: 0 4px 14px -3px rgb(30 107 71 / .3);
+  }
+  .app-theme-sand .topbar-back:hover svg {
+    transform: translateX(-3px);
+  }
+}
+@keyframes header-back-spring-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.06); /* Spring overshoot "ดึ๋งๆ" */
+  }
+  75% {
+    transform: translateY(2px) scale(0.98);  /* Micro-bounce */
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Universal Master-style page back button */
+.app-theme-sand .app-back-btn,
+.app-theme-sand .master-back:not(.topbar-back) {
+  justify-self: start;
+  align-self: start;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  border: 1px solid var(--color-carbon-600);
+  border-radius: var(--radius-control);
+  background-color: var(--app-glass-background, rgb(255 249 237 / .72));
+  -webkit-backdrop-filter: var(--app-glass-filter, blur(18px) saturate(1.6));
+  backdrop-filter: var(--app-glass-filter, blur(18px) saturate(1.6));
+  box-shadow: 0 4px 16px -10px rgb(35 60 48 / .28), inset 0 1px 0 rgb(255 255 255 / .45);
+  color: var(--color-ti-50);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 180ms ease,
+    box-shadow 220ms ease,
+    opacity 200ms ease,
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+
+.app-theme-sand .app-back-btn[data-docked="true"],
+.app-theme-sand .master-back:not(.topbar-back)[data-docked="true"] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.94);
+}
+
+.app-theme-sand .app-back-btn[data-docked="false"][data-has-docked="true"],
+.app-theme-sand .master-back:not(.topbar-back)[data-docked="false"][data-has-docked="true"] {
+  animation: page-back-spring-out 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes page-back-spring-out {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.04); /* Spring overshoot */
+  }
+  75% {
+    transform: translateY(-1px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.app-theme-sand .app-back-btn svg,
+.app-theme-sand .master-back:not(.topbar-back) svg {
+  flex-shrink: 0;
+  transition: transform 220ms ease;
+}
+
+.app-theme-sand .app-back-btn:is(:focus-visible, :active),
+.app-theme-sand .master-back:not(.topbar-back):is(:focus-visible, :active) {
+  border-color: #1e6b47;
+  background-color: #1e6b47;
+  color: #fff4dd;
+  box-shadow: 0 6px 20px -10px rgb(30 107 71 / .4), inset 0 1px 0 rgb(255 255 255 / .12);
+}
+
+.app-theme-sand .app-back-btn:focus-visible,
+.app-theme-sand .master-back:not(.topbar-back):focus-visible {
+  outline: 2px solid #1e6b47;
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-theme-sand .app-back-btn:hover,
+  .app-theme-sand .master-back:not(.topbar-back):hover {
+    border-color: #1e6b47;
+    background-color: #1e6b47;
+    color: #fff4dd;
+    box-shadow: 0 6px 20px -10px rgb(30 107 71 / .4), inset 0 1px 0 rgb(255 255 255 / .12);
+  }
+  .app-theme-sand .app-back-btn:hover svg,
+  .app-theme-sand .master-back:not(.topbar-back):hover svg {
+    transform: translateX(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-sand .app-back-btn,
+  .app-theme-sand .master-back:not(.topbar-back) {
+    animation: none !important;
+    transition: none !important;
+  }
+  .app-theme-sand .app-back-btn svg,
+  .app-theme-sand .master-back:not(.topbar-back) svg {
+    transition: none !important;
+  }
+}
+.app-theme-sand .app-location > span { display: block; color: #68715f; font-family: var(--font-mono); font-size: 9px; letter-spacing: .15em; line-height: 1.5; }
+.app-theme-sand .app-location > p { margin-top: 2px; font-size: 15px; font-weight: 500; }
+.app-theme-sand .app-topbar > a:last-child { border: 1px solid #d5d5c5; background-color: #f3efdf; border-radius: 50%; }
+/* Dark green glass with the same transparency and blur as the top bar. */
+.app-theme-sand .app-mobile-tabs {
+  background: rgb(35 60 48 / .62);
+  -webkit-backdrop-filter: var(--app-glass-filter);
+  backdrop-filter: var(--app-glass-filter);
+  border-color: #4b624b;
+  box-shadow: 0 -6px 24px rgb(32 51 34 / .1);
+}
+.app-theme-sand .app-mobile-tabs ul { height: 48px; padding: 2px 4px; gap: 2px; }
+.app-theme-sand .app-mobile-tabs a { border-radius: var(--radius-control); }
+.app-theme-sand .app-mobile-tabs a[aria-current="page"] { color: #ffd09c; background-color: #3b5140; }
+
+/* The dashboard's welcome panel borrows the reference's green cutting mat and warm paper ink. */
+.app-theme-sand .home-welcome {
+  --welcome-radius: var(--radius-surface);
+  position: relative;
+  isolation: isolate;
+  display: block;
+  padding: 30px 32px;
+  border: 0;
+}
+/*
+  The green mat is drawn by ::before so it can grow on scroll without moving the content: as the page
+  scrolls (--apart 0…1, set by WorkspaceDrawing) it stretches out to the content area's edges and up to
+  the top bar, and its corners straighten. --welcome-left/right/top are the gaps WorkspaceDrawing measures.
+*/
+.app-theme-sand .home-welcome::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(var(--welcome-top, 0px) * var(--apart, 0) * -1) calc(var(--welcome-right, 0px) * var(--apart, 0) * -1) 0 calc(var(--welcome-left, 0px) * var(--apart, 0) * -1);
+  border: 1px solid #4b624b;
+  border-radius: calc(var(--welcome-radius) * (1 - var(--apart, 0)));
+  background-color: #294635;
+  background-image: linear-gradient(rgb(232 220 178 / .045) 1px, transparent 1px), linear-gradient(90deg, rgb(232 220 178 / .045) 1px, transparent 1px);
+  background-size: 32px 32px;
+  box-shadow: 0 12px 32px -22px rgb(35 60 48 / .5);
+  pointer-events: none;
+}
+.app-theme-sand .home-welcome-copy, .app-theme-sand .home-welcome-actions { position: relative; z-index: 1; max-width: calc(100% - 240px); }
+.app-theme-sand .home-welcome h1 { margin-top: 12px; font-size: clamp(1.75rem, 1.25rem + 1.3vw, 2.5rem); line-height: 1.45; }
+.app-theme-sand .home-welcome-copy > :first-child { flex-wrap: wrap; }
+.app-theme-sand .home-welcome-copy [lang="en"] { font-size: 9px; letter-spacing: .12em; }
+.app-theme-sand .home-welcome-copy > p { margin-top: 10px; }
+.app-theme-sand .home-welcome-actions { margin-top: 24px; }
+.app-theme-sand .home-welcome .app-primary-action { background-color: #f4e8cd; color: #294635; box-shadow: none; }
+.app-theme-sand .home-welcome .app-metal-action { border-color: #859375; background: transparent; color: #fff4dd; }
+.app-theme-sand .workspace-drawing { position: absolute; right: 20px; bottom: 15px; width: 250px; height: 220px; color: #d6cfa8; opacity: .75; pointer-events: none; }
+/* Workspace drawing: an exploded view driven by scroll (WorkspaceDrawing sets --apart 0…1; each part sets --dx/--dy/--turn). */
+.app-theme-sand .workspace-drawing .wd-part {
+  transform-box: fill-box;
+  transform-origin: center;
+  translate: calc(var(--dx) * var(--apart, 0) * 1px) calc(var(--dy) * var(--apart, 0) * 1px);
+  rotate: calc(var(--turn) * var(--apart, 0));
+}
+.app-theme-sand .home-kpi { padding: 22px; }
+.app-theme-sand .home-kpi > :first-child > div { border-color: #c4ccb5; background-color: #e8eadb; border-radius: 50%; }
+.app-theme-sand .home-kpi .text-3xl { font-size: 2.5rem; font-weight: 500; letter-spacing: -.05em; }
+
+.auth-screen [data-stage-block] { border-color: rgb(227 215 180 / .25); box-shadow: 0 24px 80px rgb(5 18 10 / .18), inset 0 1px 0 rgb(255 244 221 / .08); }
+.auth-screen input:not([type="checkbox"]) { background-color: rgb(22 40 30 / .72); }
+
+@media (hover: hover) and (pointer: fine) {
+  .app-theme-sand .app-primary-action:not(:disabled, [aria-disabled="true"]):hover { box-shadow: 0 6px 16px -8px rgb(120 50 22 / .45); }
+  .app-theme-sand .home-welcome .app-primary-action:hover { background-color: #fff4dd; }
+  .app-theme-sand .app-metal-action:hover { border-color: var(--color-ember-400); }
+  .app-theme-sand a.app-panel:not([aria-disabled="true"]):hover { border-color: #879975; box-shadow: 0 10px 24px -18px rgb(35 60 48 / .32); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .app-theme-sand :where(.app-primary-action, .app-metal-action, a.app-panel):not(:disabled, [aria-disabled="true"]):hover { translate: var(--hover-x, 0px) calc(var(--hover-y, 0px) - 2px); }
+  .app-theme-sand :where(.app-primary-action, .app-metal-action):not(:disabled, [aria-disabled="true"]):active { translate: 0 0; scale: .985; transition-duration: 100ms; }
+}
+@media (max-width: 1100px) and (min-width: 768px) {
+  .app-theme-sand .home-welcome { padding: 26px; }
+  .app-theme-sand .home-welcome-copy, .app-theme-sand .home-welcome-actions { max-width: 100%; }
+  .app-theme-sand .workspace-drawing { opacity: .12; right: 0; }
+}
+@media (min-width: 768px) and (max-height: 600px) {
+  .app-theme-sand .app-rail { inset: 8px auto 8px 12px; padding-block: 8px; gap: 4px; }
+  .app-theme-sand .app-rail-brand { height: 36px; }
+  .app-theme-sand .app-rail-sections { gap: 4px; padding-top: 4px; }
+  .app-theme-sand .app-rail-sections nav + nav { padding-top: 4px; }
+  .app-theme-sand .app-rail-sections ul { gap: 0; }
+  .app-theme-sand .app-rail-sections li:has([aria-disabled="true"]) { display: none; }
+  .app-theme-sand .app-rail-link { height: 44px; }
+  .app-theme-sand .app-rail-icon { width: 40px; height: 40px; }
+  .app-theme-sand .app-rail-avatar { width: 36px; height: 32px; }
+}
+@media (max-width: 767px) {
+  .app-theme-sand .app-topbar { height: 64px; }
+  .app-theme-sand .home-welcome { padding: 24px; }
+  .app-theme-sand .home-welcome-copy, .app-theme-sand .home-welcome-actions { max-width: 100%; }
+  .app-theme-sand .home-welcome-copy [lang="en"] { max-width: 100%; font-size: 8px; letter-spacing: .08em; }
+  .app-theme-sand .workspace-drawing { opacity: .11; right: -15px; bottom: 0; }
+  .app-theme-sand .home-welcome-actions { margin-top: 20px; }
+  .app-theme-sand .home-kpi { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-sand :where(.app-rail-icon, .app-rail-label, .app-rail-card) { transition: none; }
+  .app-theme-sand .app-rail-link:is(:hover, :focus-visible) .app-rail-icon { scale: 1; }
+  .app-theme-sand .app-rail-link:is(:hover, :focus-visible) .app-rail-label { scale: 1; }
+  .app-theme-sand .app-page-area > :where(div, section, article) { animation: none; }
+  .app-theme-sand :where(a, button, summary, input, select, textarea, .app-panel, tbody tr, .app-location) { transition: none !important; }
+}

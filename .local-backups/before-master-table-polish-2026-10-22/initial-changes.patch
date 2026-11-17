@@ -1,0 +1,480 @@
+--- before/src/app/(app)/master/[table]/page.tsx
++++ after/src/app/(app)/master/[table]/page.tsx
+@@ -6,15 +6,16 @@
+ import { dbConfigured } from "@/lib/db/config";
+ import { dbProblem, dbProblemMessages, isDbError } from "@/lib/db/errors";
+ import { defaultValues, displayValue } from "@/lib/master/form";
+-import { isListed, masterBySlug, type MasterDef } from "@/lib/master/registry";
++import { masterBySlug, type MasterDef } from "@/lib/master/registry";
+ import { getMaster, listMaster, poolDb, refOptions, type MasterRow } from "@/lib/master/repo";
+-import { MasterForm, ToggleActive, type FieldOptions } from "./MasterForms";
++import { MasterForm, type FieldOptions } from "./MasterForms";
++import { MasterRecords } from "./MasterRecords";
++import "./master-table.css";
+ 
+ export const metadata = { title: "ข้อมูลหลัก" };
+ 
+ type SearchParams = Record<string, string | string[] | undefined>;
+ const PAGE_SIZE = 50;
+-const when = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
+ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
+ 
+ export default function MasterTablePage({ params, searchParams }: { params: Promise<{ table: string }>; searchParams: Promise<SearchParams> }) {
+@@ -62,7 +63,6 @@
+     return <Shell def={def}><Alert>{dbProblemMessages[dbProblem(error)]}</Alert></Shell>;
+   }
+ 
+-  const listed = def.fields.filter(isListed);
+   const pages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+   const link = (changes: Record<string, string | number | null>) => {
+     const next = new URLSearchParams();
+@@ -74,85 +74,54 @@
+   const savedRow = saved !== null ? data.rows.find((row) => row.id === saved) : undefined;
+ 
+   return (
+-    <Shell def={def} total={data.total} action={canEdit && !creating && !data.editing ? <Link href={link({ new: "1" })} className="inline-flex h-11 items-center rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">+ เพิ่ม{def.singular}</Link> : null}>
++    <Shell def={def} total={data.total} action={canEdit && !creating && !data.editing ? <Link href={link({ new: "1" })} className={`app-primary-action bg-ember-500 text-carbon-900 hover:bg-ember-400 master-add`}><span aria-hidden="true" className="text-xl font-normal">+</span>เพิ่ม{def.singular}</Link> : null}>
+       {saved !== null && <p role="status" className="rounded-[10px] border border-green-500/40 bg-carbon-800 px-3 py-2 text-sm text-green-300">บันทึกแล้ว{savedRow ? ` — ${displayValue(def.fields[0], savedRow.values[def.fields[0].key])}` : ""}</p>}
+ 
+       {canEdit && creating && <MasterForm def={def} id={null} values={defaultValues(def)} options={data.options} cancelHref={link({})} />}
+       {canEdit && data.editing && <MasterForm def={def} id={data.editing.id} values={data.editing.values} options={data.options} cancelHref={link({})} />}
+       {canEdit && editId !== null && !data.editing && <Alert>ไม่พบรายการที่จะแก้ไข</Alert>}
+ 
+-      <form method="get" action={path} className="flex flex-wrap items-end gap-3" role="search">
+-        <label className="block min-w-[14rem] flex-1 space-y-1 text-sm text-ti-400">
+-          <span>ค้นหา</span>
+-          <input name="q" defaultValue={q} maxLength={100} placeholder="รหัส / ชื่อ" className="h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500" />
++      <form method="get" action={path} className="app-panel master-filters" role="search" aria-label={`ค้นหา${def.singular}`}>
++        <label className={`master-filter-label master-search-field`}>
++          <span>ค้นหา{def.singular}</span>
++          <span className="master-input-wrap">
++            <svg className="master-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
++            <input name="q" type="search" defaultValue={q} maxLength={100} placeholder="ค้นหาจากรหัสหรือชื่อ…" className="master-input" />
++          </span>
+         </label>
+-        <label className="block space-y-1 text-sm text-ti-400">
++        <label className="master-filter-label">
+           <span>สถานะ</span>
+-          <select name="status" defaultValue={status === "all" ? "" : status} className="h-11 rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50">
++          <select name="status" defaultValue={status === "all" ? "" : status} className="master-select">
+             <option value="">ทั้งหมด</option>
+             <option value="active">ใช้งาน</option>
+             <option value="inactive">ปิดใช้งาน</option>
+           </select>
+         </label>
+-        <button type="submit" className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">ค้นหา</button>
++        <button type="submit" className="master-filter-button">ค้นหา</button>
+       </form>
+ 
++      <div className="master-result-bar">
++        <p>{data.rows.length > 0 ? <>แสดง <strong>{(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + data.rows.length}</strong> จาก <strong>{data.total.toLocaleString("th-TH")}</strong> รายการ</> : "0 รายการ"}</p>
++        {(q || status !== "all") && <Link href={path} className="master-clear">ล้างตัวกรอง</Link>}
++      </div>
++
+       {data.rows.length === 0 ? (
+-        <p className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">{q || status !== "all" ? "ไม่พบรายการที่ตรงกับเงื่อนไข" : `ยังไม่มี${def.singular}${canEdit ? " — กด “เพิ่ม” เพื่อเริ่ม" : ""}`}</p>
+-      ) : (
+-        <div className="overflow-x-auto app-panel rounded-xl border border-carbon-700 bg-carbon-800">
+-          <table className="w-full min-w-[760px] text-sm">
+-            <caption className="sr-only">{def.label}</caption>
+-            <thead className="bg-carbon-900 text-left text-xs text-ti-400">
+-              <tr>
+-                {listed.map((field) => <th key={field.key} scope="col" className="px-3 py-2 font-medium">{field.label}</th>)}
+-                <th scope="col" className="px-3 py-2 font-medium">สถานะ</th>
+-                <th scope="col" className="px-3 py-2 font-medium">วันที่เพิ่ม</th>
+-                <th scope="col" className="px-3 py-2 font-medium">วันที่แก้ไขล่าสุด</th>
+-                {canEdit && <th scope="col" className="px-3 py-2"><span className="sr-only">จัดการ</span></th>}
+-              </tr>
+-            </thead>
+-            <tbody>
+-              {data.rows.map((row) => (
+-                <tr key={row.id} className={`border-t border-carbon-700 align-top hover:bg-carbon-700/30 ${row.isActive ? "text-ti-200" : "text-ti-500"} ${row.id === saved ? "bg-pass/10" : ""}`}>
+-                  {listed.map((field) => <td key={field.key} className="px-3 py-2">{displayValue(field, row.values[field.key], row.labels[field.key])}</td>)}
+-                  <td className="px-3 py-2">
+-                    <span className={`rounded-full border px-2 py-0.5 text-xs ${row.isActive ? "border-green-500/50 text-green-300" : "border-carbon-600 text-ti-400"}`}>{row.isActive ? "ใช้งาน" : "ปิดใช้งาน"}</span>
+-                  </td>
+-                  <td className="px-3 py-2 text-xs"><Stamp at={row.createdAt} by={row.createdBy} /></td>
+-                  <td className="px-3 py-2 text-xs"><Stamp at={row.updatedAt} by={row.updatedBy} /></td>
+-                  {canEdit && (
+-                    <td className="px-3 py-2">
+-                      <div className="flex flex-wrap justify-end gap-2">
+-                        <Link href={link({ edit: row.id })} className="inline-flex h-9 items-center rounded-[10px] border border-ti-600 px-3 text-xs text-ti-200 hover:border-ti-400">แก้ไข</Link>
+-                        <ToggleActive slug={def.slug} id={row.id} active={row.isActive} label={displayValue(def.fields[0], row.values[def.fields[0].key])} />
+-                      </div>
+-                    </td>
+-                  )}
+-                </tr>
+-              ))}
+-            </tbody>
+-          </table>
++        <div className="app-panel master-empty">
++          <span className="master-empty-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M4 9h16M9 9v11" /></svg></span>
++          <h2>{q || status !== "all" ? "ไม่พบรายการที่ตรงกับเงื่อนไข" : `ยังไม่มี${def.singular}`}</h2>
++          <p>{q || status !== "all" ? "ลองค้นหาด้วยคำอื่น หรือเปลี่ยนตัวกรองสถานะ" : canEdit ? `กด “เพิ่ม${def.singular}” เพื่อเริ่มบันทึกข้อมูล` : "รายการจะแสดงที่นี่เมื่อมีการเพิ่มข้อมูล"}</p>
++          {(q || status !== "all") && <Link href={path} className="master-clear">แสดงรายการทั้งหมด</Link>}
+         </div>
+-      )}
++      ) : <MasterRecords def={def} rows={data.rows} canEdit={canEdit} saved={saved} editHref={(id) => link({ edit: id })} />}
+ 
+       {pages > 1 && (
+-        <nav aria-label="หน้า" className="flex items-center justify-between text-sm text-ti-400">
+-          {page > 1 ? <Link href={link({ page: page - 1 })} className="underline-offset-4 hover:underline">← ก่อนหน้า</Link> : <span />}
++        <nav aria-label="หน้ารายการข้อมูลหลัก" className="master-pagination">
++          {page > 1 ? <Link href={link({ page: page - 1 })}>← ก่อนหน้า</Link> : <span />}
+           <span>หน้า {page} / {pages}</span>
+-          {page < pages ? <Link href={link({ page: page + 1 })} className="underline-offset-4 hover:underline">ถัดไป →</Link> : <span />}
++          {page < pages ? <Link href={link({ page: page + 1 })}>ถัดไป →</Link> : <span />}
+         </nav>
+       )}
+     </Shell>
+-  );
+-}
+-
+-function Stamp({ at, by }: { at: Date; by: string | null }) {
+-  return (
+-    <>
+-      <span className="block text-ti-200">{when.format(at)}</span>
+-      {by && <span className="block text-ti-500">{by}</span>}
+-    </>
+   );
+ }
+ 
+@@ -162,16 +131,16 @@
+ 
+ function Shell({ def, total, action, children }: { def: MasterDef; total?: number; action?: React.ReactNode; children: React.ReactNode }) {
+   return (
+-    <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
+-      <Link href="/master" className="text-sm text-ti-400 hover:text-ti-200">← ข้อมูลหลัก</Link>
+-      <header className="flex flex-wrap items-end justify-between gap-3">
+-        <div className="space-y-1">
+-          <h1 className="text-2xl text-ti-50">{def.label}{total !== undefined && <span className="ml-2 font-mono text-base text-ti-400">({total})</span>}</h1>
+-          <p className="text-sm text-ti-400">{def.description}</p>
++    <div className="master-page"><div className="master-content">
++      <Link href="/master" className="master-back">← ข้อมูลหลัก</Link>
++      <header className="master-header">
++        <div className="master-title-block">
++          <div className="master-title-line"><h1>{def.label}</h1>{total !== undefined && <span className="master-count">{total.toLocaleString("th-TH")} รายการ</span>}</div>
++          <p className="master-description">{def.description}</p>
+         </div>
+         {action}
+       </header>
+       {children}
+-    </div>
++    </div></div>
+   );
+ }
+--- before/src/app/(app)/master/[table]/MasterForms.tsx
++++ after/src/app/(app)/master/[table]/MasterForms.tsx
+@@ -8,7 +8,7 @@
+ 
+ export type FieldOptions = Record<string, { value: number; label: string; isActive: boolean }[]>;
+ 
+-const inputClass = "h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-invalid:border-red-400";
++const inputClass = "h-11 min-w-0 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-invalid:border-red-400";
+ const idle: MasterFormState = { status: "idle" };
+ 
+ function Control({ field, value, options, invalid, describedBy }: { field: MasterField; value: MasterValues[string]; options: FieldOptions; invalid: boolean; describedBy?: string }) {
+@@ -19,7 +19,7 @@
+     case "number":
+       return <input {...common} type="number" inputMode="numeric" min={field.min} max={field.maxValue} step={1} defaultValue={value === null ? "" : String(value)} className={inputClass} />;
+     case "bool":
+-      return <input name={field.key} type="checkbox" defaultChecked={value === true} className="size-5 accent-ember-500" />;
++      return <input name={field.key} type="checkbox" defaultChecked={value === true} className="size-5 shrink-0 accent-ember-500" />;
+     case "enum":
+       return (
+         <select {...common} defaultValue={value === null ? "" : String(value)} className={inputClass}>
+@@ -49,22 +49,22 @@
+   const title = id === null ? `เพิ่ม${def.singular}` : `แก้ไข${def.singular}`;
+   return (
+     // React resets a form after its action; re-keying restores what was typed when the server says no.
+-    <form key={state.status === "error" ? state.at : "initial"} action={action} aria-labelledby={`${base}-t`} className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5">
++    <form key={state.status === "error" ? state.at : "initial"} action={action} aria-labelledby={`${base}-t`} className="@container min-w-0 space-y-5 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4 sm:p-5">
+       <h2 id={`${base}-t`} className="text-lg font-medium text-ti-50">{title}</h2>
+       <input type="hidden" name="slug" value={def.slug} />
+       {id !== null && <input type="hidden" name="id" value={id} />}
+-      <div className="grid gap-4 sm:grid-cols-2">
++      <div className="grid min-w-0 gap-4 @min-[36rem]:grid-cols-2">
+         {def.fields.map((field) => {
+           const errorId = `${base}-${field.key}-e`;
+           const helpId = `${base}-${field.key}-h`;
+           const describedBy = [errors[field.key] ? errorId : "", field.help ? helpId : ""].filter(Boolean).join(" ") || undefined;
+           return field.kind === "bool" ? (
+-            <label key={field.key} className="flex items-center gap-3 self-end py-2 text-sm text-ti-200">
++            <label key={field.key} className="flex min-h-11 min-w-0 items-center gap-3 self-end rounded-[10px] border border-carbon-700 bg-carbon-900/50 px-3 py-3 text-sm text-ti-200">
+               <Control field={field} value={current[field.key] ?? null} options={options} invalid={false} />
+               {field.label}
+             </label>
+           ) : (
+-            <label key={field.key} className="block space-y-1 text-sm text-ti-400">
++            <label key={field.key} className={`block min-w-0 space-y-1.5 text-sm text-ti-400 ${field.kind === "text" && field.max > 150 ? "@min-[36rem]:col-span-2" : ""}`}>
+               <span>{field.label}{field.required && " *"}</span>
+               <Control field={field} value={current[field.key] ?? null} options={options} invalid={Boolean(errors[field.key])} describedBy={describedBy} />
+               {field.help && <span id={helpId} className="block text-xs text-ti-500">{field.help}</span>}
+@@ -77,11 +77,11 @@
+         })}
+       </div>
+       {state.status === "error" && <p role="alert" className="text-sm text-red-300">{state.message}</p>}
+-      <div className="flex flex-wrap gap-3">
+-        <button type="submit" disabled={pending} className="h-11 rounded-[10px] app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60">
++      <div className="flex flex-col gap-3 border-t border-carbon-700 pt-4 @min-[28rem]:flex-row">
++        <button type="submit" disabled={pending} className="min-h-11 w-full rounded-[10px] app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60 @min-[28rem]:w-auto">
+           {pending ? "กำลังบันทึก…" : "บันทึก"}
+         </button>
+-        <Link href={cancelHref} className="inline-flex h-11 items-center rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">ยกเลิก</Link>
++        <Link href={cancelHref} className="inline-flex min-h-11 w-full items-center justify-center rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 @min-[28rem]:w-auto">ยกเลิก</Link>
+       </div>
+     </form>
+   );
+@@ -89,11 +89,12 @@
+ 
+ const toggleIdle: ToggleState = { status: "idle" };
+ 
+-export function ToggleActive({ slug, id, active, label }: { slug: string; id: number; active: boolean; label: string }) {
++export function ToggleActive({ slug, id, active, label, className = "" }: { slug: string; id: number; active: boolean; label: string; className?: string }) {
+   const [state, action, pending] = useActionState(setMasterActiveAction, toggleIdle);
+   return (
+     <form
+       action={action}
++      className="min-w-0"
+       onSubmit={(event) => {
+         if (active && !window.confirm(`ปิดใช้งาน “${label}”? รายการเดิมที่อ้างถึงยังอยู่ แต่จะเลือกใช้ใหม่ไม่ได้`)) event.preventDefault();
+       }}
+@@ -101,10 +102,10 @@
+       <input type="hidden" name="slug" value={slug} />
+       <input type="hidden" name="id" value={id} />
+       <input type="hidden" name="active" value={active ? "0" : "1"} />
+-      <button type="submit" disabled={pending} className="h-9 rounded-[10px] border border-ti-600 px-3 text-xs text-ti-200 hover:border-ti-400 disabled:opacity-50">
+-        {active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
++      <button type="submit" disabled={pending} aria-busy={pending} aria-label={`${pending ? "กำลังเปลี่ยนสถานะ" : active ? "ปิดใช้งาน" : "เปิดใช้งาน"} ${label}`} className={`inline-flex min-h-11 max-w-full items-center justify-center rounded-[10px] border border-ti-600 px-3 text-xs text-ti-200 hover:border-ti-400 disabled:opacity-50 ${className}`}>
++        {pending ? "กำลังเปลี่ยน…" : active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+       </button>
+-      {state.status === "error" && <span role="alert" className="ml-2 text-xs text-red-300">{state.message}</span>}
++      {state.status === "error" && <span role="alert" className="mt-2 block text-xs text-red-300">{state.message}</span>}
+     </form>
+   );
+ }
+--- before/src/app/(app)/master/[table]/MasterRecords.tsx
++++ after/src/app/(app)/master/[table]/MasterRecords.tsx
+@@ -0,0 +1,104 @@
++import Link from "next/link";
++import type { CSSProperties } from "react";
++import { displayValue } from "@/lib/master/form";
++import { isListed, type MasterDef, type MasterField } from "@/lib/master/registry";
++import type { MasterRow } from "@/lib/master/repo";
++import { ToggleActive } from "./MasterForms";
++
++
++const when = new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
++
++type Props = {
++  def: MasterDef;
++  rows: MasterRow[];
++  canEdit: boolean;
++  saved: number | null;
++  editHref: (id: number) => string;
++};
++
++function fieldWeight(field: MasterField) {
++  if (field.kind === "bool" || field.kind === "number") return 0.8;
++  if (field.kind === "text" && field.max > 150) return 2.3;
++  return field.kind === "text" ? 1.5 : 1.15;
++}
++
++function Status({ active }: { active: boolean }) {
++  return <span className={`master-status ${active ? "master-active" : "master-inactive"}`}><span aria-hidden="true" />{active ? "ใช้งาน" : "ปิดใช้งาน"}</span>;
++}
++
++function Value({ field, row }: { field: MasterField; row: MasterRow }) {
++  const value = displayValue(field, row.values[field.key], row.labels[field.key]);
++  return <span className={field.kind === "bool" ? "master-boolean" : field.key === "code" ? "master-code" : undefined}>{value}</span>;
++}
++
++function Stamp({ label, at, by }: { label: string; at: Date; by: string | null }) {
++  return <div className="master-stamp"><dt>{label}</dt><dd><time dateTime={at.toISOString()}>{when.format(at)}</time>{by && <span>{by}</span>}</dd></div>;
++}
++
++function History({ row, collapsible = false }: { row: MasterRow; collapsible?: boolean }) {
++  const dates = <dl className="master-history"><Stamp label="แก้ไขล่าสุด" at={row.updatedAt} by={row.updatedBy} /><Stamp label="เพิ่มเมื่อ" at={row.createdAt} by={row.createdBy} /></dl>;
++  if (collapsible) return <details className="master-history-details"><summary>ประวัติรายการ</summary>{dates}</details>;
++  return <div className="master-table-history">
++    <dl className="master-history"><Stamp label="แก้ไขล่าสุด" at={row.updatedAt} by={row.updatedBy} /></dl>
++    <details className="master-created-details"><summary>ข้อมูลการสร้าง</summary><dl className="master-history"><Stamp label="เพิ่มเมื่อ" at={row.createdAt} by={row.createdBy} /></dl></details>
++  </div>;
++}
++
++function Actions({ def, row, editHref }: { def: MasterDef; row: MasterRow; editHref: string }) {
++  const label = displayValue(def.fields[0], row.values[def.fields[0].key]);
++  return <div className="master-actions">
++    <Link href={editHref} aria-label={`แก้ไข ${label}`} className="master-edit">แก้ไข</Link>
++    <ToggleActive slug={def.slug} id={row.id} active={row.isActive} label={label} className="master-toggle" />
++  </div>;
++}
++
++/** The available content width also accounts for the app's sidebar on tablets. */
++export function MasterRecords({ def, rows, canEdit, saved, editHref }: Props) {
++  const fields = def.fields.filter(isListed);
++  const [primary, ...secondary] = fields;
++  const weights = [...fields.map(fieldWeight), 1.3, 2, ...(canEdit ? [1.6] : [])];
++  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
++  const dense = fields.length > 4;
++  const fieldTotal = fields.reduce((sum, field) => sum + fieldWeight(field), 0);
++  const widths = dense
++    ? weights.map((weight) => `${weight / weightTotal * 100}%`)
++    : [...fields.map((field) => `calc((100% - ${canEdit ? 500 : 300}px) * ${fieldWeight(field) / fieldTotal})`), "100px", "200px", ...(canEdit ? ["200px"] : [])];
++
++  return <div className={`master-records ${dense ? "master-dense" : ""}`}>
++    <div className="master-table-view">
++      <div className="app-panel master-table-panel">
++        <div className="master-table-scroll" role="region" aria-label={`ตาราง${def.singular} เลื่อนแนวนอนได้`} tabIndex={0}>
++          <table className="master-table">
++            <caption className="sr-only">{def.label}</caption>
++            <colgroup>{widths.map((width, index) => <col key={index} style={{ width } as CSSProperties} />)}</colgroup>
++            <thead><tr>
++              {fields.map((field) => <th key={field.key} scope="col">{field.label}</th>)}
++              <th scope="col">สถานะ</th>
++              <th scope="col">ประวัติรายการ</th>
++              {canEdit && <th scope="col" className="master-action-heading">จัดการ</th>}
++            </tr></thead>
++            <tbody>{rows.map((row) => <tr key={row.id} className={row.id === saved ? "master-saved" : undefined}>
++              {fields.map((field, index) => index === 0 ? <th key={field.key} scope="row"><Value field={field} row={row} /></th> : <td key={field.key}><Value field={field} row={row} /></td>)}
++              <td><Status active={row.isActive} /></td>
++              <td><History row={row} /></td>
++              {canEdit && <td><Actions def={def} row={row} editHref={editHref(row.id)} /></td>}
++            </tr>)}</tbody>
++          </table>
++        </div>
++      </div>
++    </div>
++    <ul className="master-cards" aria-label={def.label}>
++      {rows.map((row) => <li key={row.id} className={`app-panel master-card ${row.id === saved ? "master-saved" : ""}`}>
++        <div className="master-card-body">
++          <div className="master-card-heading">
++            <div className="master-identity"><p>{primary.label}</p><h2><Value field={primary} row={row} /></h2></div>
++            <Status active={row.isActive} />
++          </div>
++          {secondary.length > 0 && <dl className="master-card-fields">{secondary.map((field) => <div key={field.key} className={field.kind === "text" && field.max > 150 ? "master-wide-field" : undefined}><dt>{field.label}</dt><dd><Value field={field} row={row} /></dd></div>)}</dl>}
++          <History row={row} collapsible />
++        </div>
++        {canEdit && <div className="master-card-footer"><Actions def={def} row={row} editHref={editHref(row.id)} /></div>}
++      </li>)}
++    </ul>
++  </div>;
++}
+--- before/src/app/(app)/master/[table]/master-table.css
++++ after/src/app/(app)/master/[table]/master-table.css
+@@ -0,0 +1,115 @@
++.master-page {
++  container-type: inline-size;
++  width: 100%;
++  min-width: 0;
++  max-width: 1480px;
++  margin-inline: auto;
++  padding: 24px 16px;
++}
++
++.master-content { display: grid; min-width: 0; gap: 20px; }
++.master-back { display: inline-flex; min-height: 36px; align-items: center; gap: 8px; font-size: 13px; color: var(--color-ti-400); }
++.master-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
++.master-title-block { min-width: 0; flex: 1 1 260px; }
++.master-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
++.master-title-line h1 { font-size: clamp(1.4rem, 3cqi, 1.75rem); line-height: 1.4; font-weight: 600; color: var(--color-ti-50); }
++.master-count { border: 1px solid var(--color-carbon-600); border-radius: 7px; background: var(--color-carbon-900); padding: 2px 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-ti-200); }
++.master-description { margin-top: 6px; max-width: 70ch; font-size: 13px; line-height: 1.7; color: var(--color-ti-400); overflow-wrap: anywhere; }
++.master-add { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; padding: 0 18px; flex-shrink: 0; font-size: 14px; font-weight: 600; }
++.master-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 16px; border: 1px solid var(--color-carbon-700); border-radius: 14px; }
++.master-search-field { grid-column: 1 / -1; }
++.master-filter-label { display: grid; min-width: 0; gap: 7px; font-size: 12px; font-weight: 500; color: var(--color-ti-400); }
++.master-input-wrap { position: relative; min-width: 0; }
++.master-search-icon { position: absolute; left: 13px; top: 14px; color: var(--color-ti-500); pointer-events: none; }
++.master-input, .master-select { width: 100%; min-width: 0; height: 44px; border: 1px solid var(--color-carbon-600); border-radius: 9px; background: var(--color-carbon-900); padding: 0 12px; color: var(--color-ti-50); font-size: 14px; }
++.master-input { padding-left: 39px; }
++.master-input::placeholder { color: var(--color-ti-500); }
++.master-input:focus, .master-select:focus { outline: 2px solid var(--color-ember-400); outline-offset: 2px; }
++.master-filter-button, .master-clear { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border: 1px solid var(--color-ti-600); border-radius: 9px; padding: 0 18px; font-size: 13px; font-weight: 500; color: var(--color-ti-200); }
++.master-filter-button:hover, .master-clear:hover { border-color: var(--color-ember-400); color: var(--color-ti-50); }
++.master-result-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--color-ti-400); font-size: 12px; }
++.master-result-bar strong { font-weight: 500; color: var(--color-ti-200); font-variant-numeric: tabular-nums; }
++.master-clear { border: 0; min-height: 32px; padding: 0 2px; color: var(--color-ember-400); }
++.master-empty { display: grid; justify-items: center; gap: 10px; border: 1px solid var(--color-carbon-700); border-radius: 14px; padding: 44px 20px; text-align: center; }
++.master-empty-icon { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid var(--color-carbon-600); border-radius: 14px; background: var(--color-carbon-900); color: var(--color-ti-400); }
++.master-empty h2 { font-size: 16px; font-weight: 500; color: var(--color-ti-200); }
++.master-empty p { font-size: 13px; line-height: 1.7; color: var(--color-ti-400); }
++.master-pagination { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; color: var(--color-ti-400); font-size: 12px; }
++.master-pagination a { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 6px; width: fit-content; border: 1px solid var(--color-carbon-600); border-radius: 9px; padding: 0 12px; color: var(--color-ti-200); }
++.master-pagination > :last-child { justify-self: end; }
++.master-pagination a:hover { border-color: var(--color-ember-400); }
++
++.master-records { container-type: inline-size; min-width: 0; }
++.master-table-view { display: none; }
++.master-table-panel { overflow: hidden; border: 1px solid var(--color-carbon-700); border-radius: 14px; }
++.master-table-scroll { overflow-x: auto; scrollbar-color: var(--color-carbon-600) var(--color-carbon-900); scrollbar-width: thin; }
++.master-table-scroll:focus-visible { outline: 2px solid var(--color-ember-400); outline-offset: -3px; }
++.master-table { width: 100%; min-width: 720px; table-layout: fixed; border-collapse: collapse; text-align: left; font-size: 14px; }
++.master-table thead { background: var(--color-carbon-900); }
++.master-table thead th { padding: 15px 14px; font-size: 12px; line-height: 1.6; font-weight: 500; color: var(--color-ti-400); }
++.master-table tbody th, .master-table tbody td { padding: 18px 14px; border-top: 1px solid var(--color-carbon-700); vertical-align: top; line-height: 1.75; overflow-wrap: anywhere; color: var(--color-ti-200); }
++.master-table tbody th { font-weight: 600; color: var(--color-ti-50); }
++.master-table tbody tr:hover { background: color-mix(in srgb, var(--color-carbon-700) 22%, transparent); }
++.master-table tbody tr.master-saved, .master-card.master-saved { background: color-mix(in srgb, var(--color-pass) 8%, var(--color-carbon-800)); }
++.master-table tbody tr.master-saved th:first-child { box-shadow: inset 3px 0 var(--color-pass); }
++.master-action-heading { text-align: center; }
++.master-code { font-family: var(--font-mono), monospace; font-size: .93em; letter-spacing: .015em; }
++.master-boolean { display: inline-flex; font-size: 13px; color: var(--color-ti-200); }
++.master-status { display: inline-flex; max-width: 100%; flex-shrink: 0; align-items: center; gap: 5px; border: 1px solid; border-radius: 999px; padding: 3px 8px; font-size: 12px; line-height: 1.5; white-space: nowrap; }
++.master-status > span { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; background: currentColor; }
++.master-active { color: var(--color-pass); border-color: color-mix(in srgb, var(--color-pass) 30%, transparent); background: color-mix(in srgb, var(--color-pass) 7%, transparent); }
++.master-inactive { color: var(--color-ti-400); border-color: var(--color-carbon-600); background: var(--color-carbon-900); }
++.master-table-history { display: grid; gap: 8px; }
++.master-created-details { color: var(--color-ti-400); font-size: 10px; }
++.master-created-details summary { min-height: 24px; align-content: center; cursor: pointer; }
++.master-created-details[open] summary { margin-bottom: 8px; }
++.master-created-details summary:hover { color: var(--color-ti-50); }
++.master-history { display: grid; gap: 10px; font-size: 11px; line-height: 1.65; }
++.master-stamp { min-width: 0; }
++.master-stamp dt { color: var(--color-ti-500); font-size: 10px; }
++.master-stamp dd { color: var(--color-ti-200); overflow-wrap: anywhere; }
++.master-stamp dd > span { display: block; color: var(--color-ti-400); }
++.master-actions { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 8px; min-width: 0; }
++.master-actions form { min-width: 0; }
++.master-edit, .master-toggle { display: inline-flex; min-height: 44px; width: 100%; align-items: center; justify-content: center; border: 1px solid var(--color-carbon-600); border-radius: 8px; padding: 6px 9px; font-size: 12px; line-height: 1.5; color: var(--color-ti-200); background: var(--color-carbon-900); }
++.master-edit:hover, .master-toggle:hover { border-color: var(--color-ember-400); color: var(--color-ti-50); }
++.master-edit { color: var(--color-ember-400); }
++.master-table .master-actions { grid-template-columns: 1fr; gap: 7px; }
++.master-table .master-edit, .master-table .master-toggle { min-height: 36px; }
++.master-records:not(.master-dense) .master-table .master-actions { grid-template-columns: 1fr 1fr; }
++.master-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; list-style: none; }
++.master-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--color-carbon-700); border-radius: 14px; overflow: hidden; }
++.master-card-body { display: grid; flex: 1; align-content: start; gap: 18px; padding: 18px; }
++.master-card-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
++.master-identity { min-width: 0; }
++.master-identity p, .master-card-fields dt { color: var(--color-ti-400); font-size: 12px; line-height: 1.6; }
++.master-identity h2 { margin-top: 4px; color: var(--color-ti-50); font-size: 16px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
++.master-card-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 18px; }
++.master-card-fields > div { min-width: 0; }
++.master-card-fields dd { margin-top: 4px; color: var(--color-ti-200); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
++.master-wide-field { grid-column: 1 / -1; }
++.master-history-details { border-top: 1px solid var(--color-carbon-700); padding-top: 12px; font-size: 11px; color: var(--color-ti-400); }
++.master-history-details summary { width: fit-content; min-height: 28px; align-content: center; cursor: pointer; }
++.master-history-details summary:hover { color: var(--color-ti-50); }
++.master-history-details .master-history { grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
++.master-card-footer { border-top: 1px solid var(--color-carbon-700); background: color-mix(in srgb, var(--color-carbon-900) 35%, transparent); padding: 12px 18px; }
++
++@media (min-width: 640px) { .master-page { padding: 28px 24px; } }
++@media (min-width: 1280px) { .master-page { padding: 32px; } }
++@container (min-width: 36rem) {
++  .master-filters { grid-template-columns: minmax(0, 1fr) 150px auto; }
++  .master-search-field { grid-column: auto; }
++  .master-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
++}
++@container (min-width: 48rem) {
++  .master-records:not(.master-dense) .master-table-view { display: block; }
++  .master-records:not(.master-dense) .master-cards { display: none; }
++}
++@container (min-width: 64rem) {
++  .master-dense .master-table-view { display: block; }
++  .master-dense .master-cards { display: none; }
++  .master-dense .master-table { min-width: 1024px; }
++  .master-dense .master-table thead th { padding-inline: 10px; }
++  .master-dense .master-table tbody th, .master-dense .master-table tbody td { padding-inline: 10px; }
++}
++@media (pointer: coarse) { .master-table .master-edit, .master-table .master-toggle { min-height: 44px; } }

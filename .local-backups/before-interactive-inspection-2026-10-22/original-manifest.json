@@ -1,0 +1,15 @@
+{
+  "src/components/canvas/AuthStage.tsx": "d66ac239b44e18b3b8f8df9f17ce8bdc5ffefc64a88715f19c77897da94c5726",
+  "src/components/canvas/Scene.tsx": "9b5d0e5d04b4d78f395ddec110e62b71f0d3d2226fa84bf0a9bbd6455cfe8db9",
+  "src/components/canvas/CameraRig.tsx": "6bdf4d8bfeec7f71433bbc2b76872a218ec0655c13357385dddbdc01def70116",
+  "src/components/canvas/AirCompressor.tsx": "93a67eb419445155f6c60984ad0637fde7481b6b6fd5ca9d949249c7e0bc94b3",
+  "src/components/canvas/Checkpoints.tsx": "2fc714c53706a427a894cfefba80740a91f4f690d834c2dbee9f9760a78946db",
+  "src/components/canvas/ScanRing.tsx": "d73bf8e74661796e6acc9c6f00f426ba1c100979aafb099b6645516c68fa80c0",
+  "src/components/canvas/scanTimeline.ts": "4418ba54b2a1b77fe9c059274cb7fbab57326e0f9c9c7172d1fe620fd4730992",
+  "src/components/canvas/scanTimeline.test.ts": "7298ad2df7eedd19ddf1a6c52f2bc141f5b0fe13fefdc1a9167ca300efc37cc7",
+  "src/components/canvas/scanReveal.ts": "7192951fc3e8ac8192c2403094c61122f0b60b35549b483a32be1a807338725c",
+  "src/components/canvas/scanReveal.test.ts": "59b38ab3941437cfafa2042b563ea1706cb78ba608b49c4d538767249dab54a9",
+  "src/components/canvas/cameraMotion.ts": "014ef21337103122cca68569c0f770dd58bcbb289e0085f8cbccdf5ec63b11d1",
+  "src/components/canvas/cameraMotion.test.ts": "adaf7ae80b448ac711600b7e06add084a7b6c015bc1c90dfbba601d0ea231056",
+  "src/config/experience.ts": "08f2fda468641d4bf95ae44bcb1bf2b96c9bb19d910f0d5fc1bc9624d54aff35"
+}

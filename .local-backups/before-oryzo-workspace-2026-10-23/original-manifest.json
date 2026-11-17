@@ -1,0 +1,10 @@
+{
+  "src/app/app-theme.css": "ab1f846fa16a98b37d048d20130e2d99cd93de93c5f68e8a34171414b639222a",
+  "src/app/(app)/layout.tsx": "4ab0bc11ad0391d596560637bb520f21cdf03b20a9b5547ee7a7f93cb3210796",
+  "src/app/(auth)/layout.tsx": "5ea07ac0d7552a1305189e1f6293a2b9b8c0781315f5faa8e2b7878ce53abc9f",
+  "src/app/(app)/home/page.tsx": "0e2b6beed5f5dbc79cf8dbbe9e3b22f9f651e75532b09f56e8c7a9e04005549b",
+  "src/components/shell/AppSidebar.tsx": "0d59cc3dcfebe908d0df121596e785f1433b8014ee0d8a78b19fa82caed5d247",
+  "src/components/shell/TopAppBar.tsx": "53823dec84d6fd24a6309c827d1cacc2266c179e160cee2dcf2986623d9559e2",
+  "src/components/shell/BottomTabBar.tsx": "e9f4e60de23624ed9cab55c28f292b5a5cc10ebece98f7fd334f8085e908ab60",
+  "src/components/dom/Wordmark.tsx": "58ce7de7f8dc93d9e88cc867c1137f6a83434c17935f12e4d54a850648376da9"
+}

@@ -1,0 +1,57 @@
+{
+  "name": "qcheck",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:phone": "next dev --experimental-https -H $(ipconfig getifaddr en0)",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "node --env-file=.env.local tools/migrate.mjs",
+    "postinstall": "node tools/copy-zxing-wasm.mjs"
+  },
+  "dependencies": {
+    "@dnd-kit/dom": "0.5.0",
+    "@dnd-kit/react": "0.5.0",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "barcode-detector": "3.2.2",
+    "jose": "^6.2.12",
+    "mssql": "^12.7.10",
+    "next": "^16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "^0.0.1",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/mssql": "^12.3.0",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.186.0",
+    "eslint": "^9",
+    "eslint-config-next": "^16.4.6",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "overrides": {
+    "@azure/identity": {
+      "@azure/msal-node": "7.1.1"
+    },
+    "@dnd-kit/dom": "0.5.0",
+    "@dnd-kit/state": "0.5.0",
+    "@dnd-kit/abstract": "0.5.0",
+    "@dnd-kit/geometry": "0.5.0",
+    "@dnd-kit/collision": "0.5.0"
+  }
+}

@@ -1,0 +1,800 @@
+--- a/src/components/canvas/AuthStage.tsx
++++ b/src/components/canvas/AuthStage.tsx
+@@ -1,11 +1,14 @@
+ "use client";
+ 
+ import dynamic from "next/dynamic";
+-import { Component, useCallback, useRef, useState, type ReactNode } from "react";
++import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+ import { stage } from "@/config/experience";
+ import { useReducedMotion } from "@/hooks/useBrowserState";
+ import { useAfterLoadIdle, useStageTier } from "@/hooks/useStageTier";
+ import { useAuthStage } from "@/lib/auth-stage";
++import { InspectionOverlay } from "./InspectionOverlay";
++import type { InspectionId } from "./inspectionParts";
++import "./inspection.css";
+ 
+ // three + R3F + drei live in their own chunk, fetched only after the form is ready.
+ const Scene = dynamic(() => import("./Scene"), { ssr: false });
+@@ -36,12 +39,33 @@
+   const reducedMotion = useReducedMotion();
+   const signal = useAuthStage();
+   const root = useRef<HTMLDivElement>(null);
++  const hotspots = useRef<(HTMLButtonElement | null)[]>([]);
++  const [selected, setSelected] = useState<InspectionId | null>(null);
++  const [highlighted, setHighlighted] = useState<string | null>(null);
++  const closeInspection = useCallback(() => {setSelected(null);setHighlighted(null);}, []);
++  const selectPart = useCallback((id: InspectionId) => {setSelected(id);setHighlighted(null);}, []);
++  const available = tier === "3d" && settled && !["submitting", "success", "locked"].includes(signal.phase);
++  const inspection = available && !signal.inputFocused ? selected : null;
+   const lastOpacity = useRef(1);
+   const [eventSource, setEventSource] = useState<HTMLElement | null>(null);
+   const attachRoot = useCallback((node: HTMLDivElement | null) => {
+     root.current = node;
+     setEventSource(node?.parentElement ?? null);
+   }, []);
++
++  useEffect(() => {
++    if (!eventSource) return;
++    const leave = (event: Event) => {
++      if (event.target instanceof Element && event.target.closest("[data-stage-block]")) closeInspection();
++    };
++    eventSource.addEventListener("focusin", leave);
++    eventSource.addEventListener("pointerdown", leave);
++    return () => {eventSource.removeEventListener("focusin", leave);eventSource.removeEventListener("pointerdown", leave);};
++  }, [eventSource, closeInspection]);
++  useEffect(() => {
++    eventSource?.toggleAttribute("data-inspecting", inspection !== null);
++    return () => {eventSource?.removeAttribute("data-inspecting");};
++  }, [eventSource, inspection]);
+ 
+   // Set on the DOM directly: React doesn't manage `data-ready`, so no re-render is needed.
+   const setReady = (ready: boolean) => root.current?.toggleAttribute("data-ready", ready);
+@@ -52,7 +76,8 @@
+   }, []);
+ 
+   return (
+-    <div ref={attachRoot} aria-hidden="true" data-phase={signal.phase} data-username-focused={signal.usernameFocused || undefined} className="group/stage pointer-events-none absolute inset-0 -z-10 overflow-hidden">
++    <>
++    <div ref={attachRoot} aria-hidden="true" data-phase={signal.phase} data-username-focused={(signal.usernameFocused && !["submitting", "success", "locked"].includes(signal.phase)) || undefined} className="group/stage pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+       {children}
+       {tier === "static" && <StaticPoster />}
+       {tier === "3d" && settled && eventSource && (
+@@ -61,12 +86,14 @@
+             className="absolute inset-x-0 top-0 h-svh opacity-0 transition-opacity ease-out group-data-ready/stage:opacity-[var(--stage-opacity,1)]"
+             style={{ transitionDuration: signal.phase === "success" ? "0ms" : `${stage.fadeInMs}ms` }}
+           >
+-            <Scene still={reducedMotion} phase={signal.phase} phaseRound={signal.round} typing={signal.typing} inputFocused={signal.inputFocused} usernameExpanded={signal.usernameFocused} eventSource={eventSource} onFade={setFade} onReady={() => setReady(true)} onLost={() => setReady(false)} />
++            <Scene still={reducedMotion} phase={signal.phase} phaseRound={signal.round} typing={signal.typing} inputFocused={signal.inputFocused} usernameExpanded={signal.usernameFocused} eventSource={eventSource} onFade={setFade} onReady={() => setReady(true)} onLost={() => setReady(false)} selected={inspection} highlighted={highlighted} hotspots={hotspots} />
+           </div>
+         </StageBoundary>
+       )}
+       {tier !== "static" && <StageFinish />}
+     </div>
++    <InspectionOverlay selected={inspection} highlighted={highlighted} available={available} inputFocused={signal.inputFocused} targets={hotspots} onSelect={selectPart} onHighlight={setHighlighted} onClose={closeInspection} />
++    </>
+   );
+ }
+ 
+--- a/src/components/canvas/Scene.tsx
++++ b/src/components/canvas/Scene.tsx
+@@ -9,14 +9,19 @@
+ import { StudioLights } from "./StudioLights";
+ import { ScanRing } from "./ScanRing";
+ import { createScanUniforms, type ScanUniforms } from "./scanReveal";
+-import { blendScan, getIntroDuration, sampleScan, scanTiming, type ScanFrame, type ScanPhase } from "./scanTimeline";
++import { blendScan, getIntroDuration, sampleScan, scanBounds, scanTiming, type ScanFrame, type ScanPhase } from "./scanTimeline";
+ import { CameraRig } from "./CameraRig";
+ import { ModelInteraction } from "./ModelInteraction";
+ import { Checkpoints } from "./Checkpoints";
++import { ExplodedPart } from "./ExplodedPart";
++import type { InspectionId } from "./inspectionParts";
+ import { Dust } from "./Dust";
+ import { degrade, dprFor, initialQuality, qualitySettings, type QualityLevel } from "./quality";
+ 
+ export type SceneProps = {
++  selected: InspectionId | null;
++  highlighted: string | null;
++  hotspots: RefObject<(HTMLButtonElement | null)[]>;
+   phase: ScanPhase;
+   phaseRound: number;
+   typing: boolean;
+@@ -105,8 +110,8 @@
+   return () => document.removeEventListener("visibilitychange", listener);
+ }
+ 
+-function ScanController({ still, phase, phaseRound, introSeconds, frameRef, uniformsRef }: {
+-  still: boolean; phase: ScanPhase; phaseRound: number; introSeconds: number;
++function ScanController({ inspecting, still, phase, phaseRound, introSeconds, frameRef, uniformsRef }: {
++  inspecting: boolean; still: boolean; phase: ScanPhase; phaseRound: number; introSeconds: number;
+   frameRef: RefObject<ScanFrame>; uniformsRef: RefObject<ScanUniforms>;
+ }) {
+   const elapsed = useRef(0);
+@@ -142,10 +147,10 @@
+     const frame = blending ? blendScan(blending.from, target, blending.elapsed) : target;
+     frameRef.current = { ...frame, phaseElapsed: signal.current.elapsed };
+     if (transition.current && (still || transition.current.elapsed >= scanTiming.phaseTransitionSeconds)) transition.current = null;
+-    uniformsRef.current.scanY.value = frameRef.current.scanY;
+-    uniformsRef.current.reveal.value = frameRef.current.reveal;
++    uniformsRef.current.scanY.value = inspecting ? scanBounds.minY : frameRef.current.scanY;
++    uniformsRef.current.reveal.value = inspecting ? 0 : frameRef.current.reveal;
+     // The surface band follows the ring: on while it sweeps, off when it fades (locked, success).
+-    uniformsRef.current.glow.value = phase === "success" ? 0 : Math.min(1, frameRef.current.ringOpacity / 0.75);
++    uniformsRef.current.glow.value = inspecting || phase === "success" ? 0 : Math.min(1, frameRef.current.ringOpacity / 0.75);
+   }, -2);
+   return null;
+ }
+@@ -174,7 +179,7 @@
+ }
+ 
+ /** The auth stage's WebGL scene. Loaded on demand by <AuthStage>; never server-rendered. */
+-export default function Scene({ still, phase, phaseRound, typing, inputFocused, usernameExpanded, eventSource, onFade, onReady, onLost }: SceneProps) {
++export default function Scene({ selected, highlighted, hotspots, still, phase, phaseRound, typing, inputFocused, usernameExpanded, eventSource, onFade, onReady, onLost }: SceneProps) {
+   const [quality, setQuality] = useState<QualityLevel>(detectQuality);
+   const dpr = dprFor(quality, window.devicePixelRatio);
+   const [introSeconds] = useState(introDuration);
+@@ -200,16 +205,17 @@
+     >
+       {/* Sustained low fps steps the level down (high → medium → low); it never climbs back. */}
+       <PerformanceMonitor onDecline={() => setQuality(degrade)} />
+-      <ScanController still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
+-      <CameraRig frameRef={frameRef} phase={phase} still={still} usernameExpanded={usernameExpanded} eventSource={eventSource} onFade={onFade} />
++      <ScanController inspecting={!!selected} still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
++      <CameraRig frameRef={frameRef} phase={phase} still={still} usernameExpanded={usernameExpanded} selected={selected} eventSource={eventSource} onFade={onFade} />
+       <StaticStudio />
+       <ambientLight intensity={0.35} />
+-      <ModelInteraction still={still} active={visible} pointerEnabled={!usernameExpanded} phase={phase}>
+-        <AirCompressor uniforms={uniforms} />
+-        <Checkpoints frameRef={frameRef} phase={phase} still={still} />
++      <ModelInteraction still={still} active={visible && !selected} pointerEnabled={!inputFocused && !selected} phase={phase}>
++        <AirCompressor uniforms={uniforms} inspecting={!!selected} still={still} />
++        {selected && <ExplodedPart key={selected} selected={selected} highlighted={highlighted} still={still} />}
++        <Checkpoints frameRef={frameRef} phase={phase} still={still} hotspots={hotspots} enabled={!selected && !inputFocused} />
+       </ModelInteraction>
+       <Dust still={still} count={qualitySettings(quality).dust} />
+-      <ScanRing frameRef={frameRef} phase={phase} still={still} typing={typing} inputFocused={inputFocused} />
++      <ScanRing inspecting={!!selected} frameRef={frameRef} phase={phase} still={still} typing={typing} inputFocused={inputFocused} />
+       <FirstFrame onReady={onReady} onLost={onLost} />
+     </Canvas>
+   );
+--- a/src/components/canvas/CameraRig.tsx
++++ b/src/components/canvas/CameraRig.tsx
+@@ -2,16 +2,17 @@
+ 
+ import { useFrame, useThree } from "@react-three/fiber";
+ import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+-import { Euler, Vector3, type PerspectiveCamera, type PointLight } from "three";
++import { Euler, Quaternion, Vector3, type PerspectiveCamera, type PointLight } from "three";
+ import { palette, stage } from "@/config/experience";
+ import { clampParallax, sampleCamera, sampleUsernameBackdrop, successEntryBlend } from "./cameraMotion";
++import { inspectionFraming, inspectionPart, type InspectionId } from "./inspectionParts";
+ import { dims } from "./compressorGeometry";
+ import { framingFor, placeCamera } from "./framing";
+ import type { ScanFrame, ScanPhase } from "./scanTimeline";
+ 
+-export function CameraRig({ frameRef, phase, still, usernameExpanded, eventSource, onFade }: {
++export function CameraRig({ frameRef, phase, still, usernameExpanded, selected, eventSource, onFade }: {
+   frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean;
+-  usernameExpanded: boolean;
++  usernameExpanded: boolean; selected: InspectionId | null;
+   eventSource: HTMLElement; onFade: (opacity: number) => void;
+ }) {
+   const get = useThree((state) => state.get);
+@@ -25,9 +26,9 @@
+   const lightRef = useRef<PointLight>(null);
+   const viewRef = useRef({ offsetX: placement.offsetX, offsetY: placement.offsetY, opacity: 1 });
+   const entryRef = useRef({ phase: null as ScanPhase | null, offsetX: placement.offsetX, offsetY: placement.offsetY });
+-  const vectors = useMemo(() => ({ offset: new Vector3(), position: new Vector3(), aim: new Vector3(), look: new Vector3(...stage.camera.target), entryPosition: new Vector3(), entryLook: new Vector3(), rotation: new Euler() }), []);
++  const vectors = useMemo(() => ({ offset: new Vector3(), position: new Vector3(), aim: new Vector3(), look: new Vector3(...stage.camera.target), entryPosition: new Vector3(), entryLook: new Vector3(), rotation: new Euler(), modelRotation: new Quaternion() }), []);
+ 
+-  useEffect(() => { get().invalidate(); }, [get, usernameExpanded, still]);
++  useEffect(() => { get().invalidate(); }, [get, usernameExpanded, selected, still]);
+ 
+   useEffect(() => {
+     const hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+@@ -65,7 +66,7 @@
+     invalidate();
+   }, [get, width, height, placement, vectors]);
+ 
+-  useFrame(({ camera }, delta) => {
++  useFrame(({ camera, scene }, delta) => {
+     const elapsed = frameRef.current.phaseElapsed ?? 0;
+     const beat = sampleCamera(phase, elapsed, frameRef.current.introProgress, still);
+     const backdrop = sampleUsernameBackdrop(framing, phase, usernameExpanded, still);
+@@ -83,7 +84,7 @@
+     const step = Math.min(Math.max(delta, 0), 0.05);
+     const reframing = backdrop.active || Math.abs(view.opacity - 1) > 0.001 || Math.abs(view.offsetX - placement.offsetX) > 0.1 || Math.abs(view.offsetY - placement.offsetY) > 0.1;
+     const damping = 1 - Math.exp(-(reframing ? stage.interaction.usernameBackdrop.damping : stage.interaction.cameraDamping) * step);
+-    const interactive = !still && !backdrop.active && (phase === "idle" || phase === "reveal" || phase === "offline");
++    const interactive = !selected && !still && !backdrop.active && (phase === "idle" || phase === "reveal" || phase === "offline");
+     parallaxRef.current.x += ((interactive ? pointerRef.current.x : 0) - parallaxRef.current.x) * (still ? 1 : damping);
+     parallaxRef.current.y += ((interactive ? pointerRef.current.y : 0) - parallaxRef.current.y) * (still ? 1 : damping);
+     const max = stage.interaction.parallaxDeg * Math.PI / 180;
+@@ -91,9 +92,23 @@
+     vectors.offset.set(placement.position[0] - placement.target[0], placement.position[1] - placement.target[1], placement.position[2] - placement.target[2]).multiplyScalar(backdrop.active ? backdrop.zoom : beat.zoom).applyEuler(vectors.rotation);
+     vectors.aim.set(placement.target[0], beat.aimY, placement.target[2]);
+     vectors.position.copy(vectors.aim).add(vectors.offset);
+-    const direct = still || (!backdrop.active && frameRef.current.introProgress < 1);
+-    const offsetX = width * (0.5 - backdrop.centerX);
+-    const offsetY = height * (0.5 - backdrop.centerY);
++    let centerX = backdrop.centerX, centerY = backdrop.centerY;
++    if (selected) {
++      const part = inspectionPart(selected);
++      const detailFrame = inspectionFraming(width, height);
++      const model = scene.getObjectByName("compressor-interaction");
++      model?.updateWorldMatrix(true, false);
++      vectors.aim.set(part.anchor[0] + 0.08, part.anchor[1], part.anchor[2] + 0.38);
++      if (model) {vectors.aim.applyMatrix4(model.matrixWorld);model.getWorldQuaternion(vectors.modelRotation);}
++      const tangent = Math.tan(stage.camera.fovDeg * Math.PI / 360);
++      const distance = Math.max((part.size[1] * 0.75 + 0.25) / (2 * detailFrame.height * tangent), (part.size[0] * 0.75 + 0.35) / (2 * detailFrame.width * tangent * width / height)) + 0.4;
++      vectors.offset.set(0.18, 0.16, 1).normalize().applyQuaternion(vectors.modelRotation).multiplyScalar(distance);
++      vectors.position.copy(vectors.aim).add(vectors.offset);
++      centerX = detailFrame.centerX;centerY = detailFrame.centerY;
++    }
++    const direct = still || (!selected && !backdrop.active && frameRef.current.introProgress < 1);
++    const offsetX = width * (0.5 - centerX);
++    const offsetY = height * (0.5 - centerY);
+     if (phase === "success" && !still) {
+       const blend = successEntryBlend(elapsed);
+       camera.position.lerpVectors(vectors.entryPosition, vectors.position, blend);
+@@ -109,11 +124,12 @@
+     const perspective = camera as PerspectiveCamera;
+     perspective.setViewOffset(width, height, view.offsetX, view.offsetY, width, height);
+     camera.lookAt(vectors.look);
++    camera.updateMatrixWorld();
+     if (lightRef.current) {
+       const intensity = phase === "focus" ? 2.4 : phase === "locked" ? 0.05 : 0.6;
+       lightRef.current.intensity += (intensity - lightRef.current.intensity) * (still ? 1 : damping);
+     }
+-    view.opacity += (backdrop.opacity - view.opacity) * (still ? 1 : damping);
++    view.opacity += ((selected ? 1 : backdrop.opacity) - view.opacity) * (still ? 1 : damping);
+     onFade(beat.opacity * view.opacity);
+   }, -1);
+ 
+--- a/src/components/canvas/AirCompressor.tsx
++++ b/src/components/canvas/AirCompressor.tsx
+@@ -1,6 +1,7 @@
+ "use client";
+ 
+-import { useEffect, useMemo } from "react";
++import { useFrame } from "@react-three/fiber";
++import { useEffect, useMemo, useRef } from "react";
+ import { CanvasTexture, MeshPhysicalMaterial, MeshStandardMaterial, SRGBColorSpace } from "three";
+ import { buildCompressorGeometry, disposeCompressorGeometry } from "./compressorGeometry";
+ import { applyScanReveal, type ScanUniforms } from "./scanReveal";
+@@ -54,8 +55,13 @@
+ }
+ 
+ /** Photo-inspired V-twin machine, built locally with nine batched finishes and two small labels. */
+-export function AirCompressor({ uniforms }: { uniforms: ScanUniforms }) {
++export function AirCompressor({ uniforms, inspecting, still }: { uniforms: ScanUniforms; inspecting: boolean; still: boolean }) {
+   const resources = useMemo(() => createResources(uniforms), [uniforms]);
++  const opacity = useRef(1);
++  useFrame((_, delta) => {
++    opacity.current += ((inspecting ? 0.16 : 1) - opacity.current) * (still ? 1 : 1 - Math.exp(-7 * Math.min(delta, 0.05)));
++    Object.values(resources.materials).forEach((material) => {material.opacity = opacity.current;material.depthWrite = !inspecting;});
++  });
+   useEffect(() => () => {
+     disposeCompressorGeometry(resources.parts);
+     Object.values(resources.materials).forEach((material) => material.dispose());
+--- a/src/components/canvas/Checkpoints.tsx
++++ b/src/components/canvas/Checkpoints.tsx
+@@ -2,7 +2,7 @@
+ 
+ import { useFrame } from "@react-three/fiber";
+ import { useEffect, useMemo, useRef, type RefObject } from "react";
+-import { AdditiveBlending, MeshBasicMaterial, Quaternion, RingGeometry, Shape, ShapeGeometry, SphereGeometry, Vector3, type Group, type Mesh } from "three";
++import { AdditiveBlending, MeshBasicMaterial, Quaternion, Raycaster, RingGeometry, Shape, ShapeGeometry, SphereGeometry, Vector3, type Group, type Mesh } from "three";
+ import { palette } from "@/config/experience";
+ import type { ScanFrame, ScanPhase } from "./scanTimeline";
+ import { checkpointPositions, sampleCheckpoint, sampleSignalWave, sampleSignalStrength, type CheckpointTone } from "./checkpointPulse";
+@@ -27,23 +27,31 @@
+ }
+ 
+ /** Markers stay on their actual component and billboard to the camera; depth hides their far side. */
+-export function Checkpoints({ frameRef, phase, still }: { frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean }) {
++export function Checkpoints({ frameRef, phase, still, hotspots, enabled }: { frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; hotspots: RefObject<(HTMLButtonElement | null)[]>; enabled: boolean }) {
+   const resources = useMemo(() => createResources(), []);
+   const root = useRef<Group>(null);
+   const stations = useRef<(Group | null)[]>([]), rings = useRef<(Mesh | null)[]>([]), dots = useRef<(Mesh | null)[]>([]), checks = useRef<(Mesh | null)[]>([]);
+   const halos = useRef<(Mesh | null)[]>([]);
+   const waves = useRef<(Mesh | null)[][]>(checkpointPositions.map(() => []));
+   const elapsed = useRef(0);
+-  const vectors = useMemo(() => ({ inverse: new Quaternion(), facing: new Quaternion(), camera: new Vector3(), world: new Vector3(), forward: new Vector3() }), []);
++  const raycaster = useMemo(() => new Raycaster(), []);
++  const occlusion = useRef({ elapsed: 1, hidden: [false, false, false] });
++  const vectors = useMemo(() => ({ inverse: new Quaternion(), facing: new Quaternion(), camera: new Vector3(), world: new Vector3(), forward: new Vector3(), projected: new Vector3(), direction: new Vector3() }), []);
+   useEffect(() => () => {
+     resources.ring.dispose();resources.dot.dispose();resources.check.dispose();resources.halo.dispose();resources.haloMaterial.dispose();
+     Object.values(resources.tones).forEach((material) => material.dispose());
+     resources.active.forEach((material) => material.dispose());
+     resources.waves.flat().forEach((material) => material.dispose());
+   }, [resources]);
+-  useFrame(({ camera, size }, delta) => {
++  useFrame(({ camera, size, scene }, delta) => {
+     const group = root.current;
+     if (!group) return;
++    group.visible = enabled;
++    if (!enabled) {hotspots.current.forEach((button) => {if (button) button.style.visibility = "hidden";});return;}
++    occlusion.current.elapsed += delta;
++    const checkOcclusion = still || occlusion.current.elapsed > 0.12;
++    if (checkOcclusion) occlusion.current.elapsed = 0;
++    const body = scene.getObjectByName("compressor-model");
+     if (!still) elapsed.current += Math.min(Math.max(delta, 0), 0.05);
+     group.updateWorldMatrix(true, false);
+     group.getWorldQuaternion(vectors.inverse).invert();vectors.facing.copy(vectors.inverse).multiply(camera.quaternion);
+@@ -57,6 +65,22 @@
+         vectors.world.copy(station.position).applyMatrix4(group.matrixWorld).sub(vectors.camera);
+         const depth = Math.max(0.1, vectors.world.dot(vectors.forward));
+         station.scale.setScalar(Math.max(1, Math.min(3, 12 * depth / (0.096 * focal))));
++        const button = hotspots.current[index];
++        if (button) {
++          station.getWorldPosition(vectors.world);
++          if (checkOcclusion && body) {
++            vectors.direction.copy(vectors.world).sub(vectors.camera);
++            raycaster.far = Math.max(0, vectors.direction.length() - 0.04);
++            raycaster.set(vectors.camera, vectors.direction.normalize());
++            occlusion.current.hidden[index] = raycaster.intersectObject(body, true).length > 0;
++          }
++          vectors.projected.copy(vectors.world).project(camera);
++          const x = (vectors.projected.x + 1) * size.width / 2;
++          const y = (1 - vectors.projected.y) * size.height / 2;
++          button.style.transform = `translate3d(${x - 22}px,${y - 22}px,0)`;
++          const visible = !occlusion.current.hidden[index] && Math.abs(vectors.projected.x) < 0.98 && Math.abs(vectors.projected.y) < 0.98 && vectors.projected.z > -1 && vectors.projected.z < 1;
++          button.style.visibility = visible ? "visible" : "hidden";
++        }
+       }
+       const sample = sampleCheckpoint(index, frame.scanY, frame.phaseElapsed ?? 0, frame.introProgress < 1 ? "reveal" : phase, still);
+       const material = sample.tone === "active" ? resources.active[index] : resources.tones[sample.tone];
+--- a/src/components/canvas/ScanRing.tsx
++++ b/src/components/canvas/ScanRing.tsx
+@@ -8,7 +8,7 @@
+ import { advanceScanOrbit, scanOrbitActive } from "./scanOrbit";
+ 
+ /** The scan plane becomes a face-on green seal during the existing success hold. */
+-export function ScanRing({ frameRef, phase, still, typing, inputFocused }: { frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
++export function ScanRing({ inspecting, frameRef, phase, still, typing, inputFocused }: { inspecting: boolean; frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
+   const group = useRef<Group>(null);
+   const core = useRef<MeshBasicMaterial>(null);
+   const glow = useRef<MeshBasicMaterial>(null);
+@@ -48,6 +48,7 @@
+     const seal = success ? still ? 1 : raw * raw * (3 - 2 * raw) : 0;
+     const orbitActive = scanOrbitActive(phase, inputFocused);
+     if (group.current) {
++      group.current.visible = !inspecting;
+       group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY;
+       // The elliptical orbit turns with the horizontal tank, including drag and idle yaw.
+       const yaw = scene.getObjectByName("compressor-interaction")?.rotation.y ?? 0;
+--- a/src/components/canvas/scanTimeline.ts
++++ b/src/components/canvas/scanTimeline.ts
+@@ -49,9 +49,9 @@
+   const sweepSeconds = (scanTiming.idleCycleSeconds - scanTiming.topHoldSeconds) / 2;
+   const sweep = Math.max(0, cycle - scanTiming.topHoldSeconds) / sweepSeconds;
+   // Start and finish above the model. A hold and eased turns avoid a visible reset.
+-  // After the opening reveal, keep the painted machine readable while the laser sweeps.
++  // The downward pass restores blueprint lines; the upward pass reveals the painted machine.
+   const scanY = atHeight(sweep <= 1 ? 1 - ease(sweep) : ease(sweep - 1));
+-  return { scanY, reveal: 1, ringOpacity: ringAt(scanY, 0.75), introProgress: 1 };
++  return { scanY, reveal: 0, ringOpacity: ringAt(scanY, 0.75), introProgress: 1 };
+ }
+ 
+ /** A short welcome scan once per local day; returning visits skip the long reveal. */
+--- a/src/components/canvas/scanTimeline.test.ts
++++ b/src/components/canvas/scanTimeline.test.ts
+@@ -28,14 +28,14 @@
+     expect(sampleScan(0.3, { phase: "idle" })).toEqual(sampleScan(0.3, { phase: "reveal" }));
+   });
+ 
+-  it("keeps the painted machine visible after its intro and loops the laser without a jump", () => {
++  it("sweeps between blueprint and paint after the intro without a laser jump", () => {
+     const end = scanTiming.firstIntroSeconds;
+     expect(sampleScan(end + scanTiming.topHoldSeconds / 2).scanY).toBe(scanBounds.maxY);
+     const down = sampleScan(end + scanTiming.idleCycleSeconds / 2);
+     expect(down.scanY).toBeLessThan(scanBounds.midY);
+     // Painted surfaces remain visible on both directions of repeated scans.
+     for (let t = end; t < end + scanTiming.idleCycleSeconds * 2; t += 0.25) {
+-      expect(sampleScan(t).reveal).toBe(1);
++      expect(sampleScan(t).reveal).toBe(0);
+     }
+     const before = sampleScan(end + scanTiming.idleCycleSeconds - 0.001);
+     const after = sampleScan(end + scanTiming.idleCycleSeconds + 0.001);
+--- a/src/components/canvas/scanReveal.ts
++++ b/src/components/canvas/scanReveal.ts
+@@ -125,7 +125,7 @@
+     shader.uniforms.qcheckScanY = uniforms.scanY;
+     shader.uniforms.qcheckReveal = uniforms.reveal;
+     shader.uniforms.qcheckGlow = uniforms.glow;
+-    shader.uniforms.qcheckBlueprintColor = { value: new Color(palette.ti400) };
++    shader.uniforms.qcheckBlueprintColor = { value: new Color("#68b8e4") };
+     shader.uniforms.qcheckScanColor = { value: new Color(palette.ember500) };
+     shader.vertexShader = shader.vertexShader
+       .replace("#include <common>", `#include <common>\n${vertexDeclarations}`)
+--- a/src/components/canvas/cameraMotion.ts
++++ b/src/components/canvas/cameraMotion.ts
+@@ -10,7 +10,7 @@
+   return { x: x / scale, y: y / scale };
+ }
+ 
+-/** Username focus gently approaches the machine; authentication and reduced motion take priority. */
++/** Username focus enlarges the machine behind the form; authentication and reduced motion take priority. */
+ export function sampleUsernameBackdrop(
+   framing: { height: number; centerX: number; centerY: number },
+   phase: ScanPhase,
+@@ -21,10 +21,10 @@
+   const active = expanded && !still && phase !== "submitting" && phase !== "success" && phase !== "locked";
+   return {
+     active,
+-    zoom: active ? config.zoom : 1,
+-    centerX: framing.centerX,
+-    centerY: framing.centerY,
+-    opacity: 1,
++    zoom: active ? framing.height / config.height : 1,
++    centerX: active ? config.centerX : framing.centerX,
++    centerY: active ? config.centerY : framing.centerY,
++    opacity: active ? config.opacity : 1,
+   };
+ }
+ 
+@@ -44,7 +44,7 @@
+   }
+   const intro = 1 - Math.pow(1 - unit(introProgress), 3);
+   return {
+-    zoom: phase === "focus" ? 1 - interaction.focusPush : phase === "locked" ? 1 + interaction.lockedPull : 0.84 + 0.16 * intro,
++    zoom: phase === "locked" ? 1 + interaction.lockedPull : 0.84 + 0.16 * intro,
+     aimY: stage.camera.target[1],
+     opacity: phase === "locked" ? 0.65 : 1,
+   };
+--- a/src/components/canvas/cameraMotion.test.ts
++++ b/src/components/canvas/cameraMotion.test.ts
+@@ -31,28 +31,27 @@
+     expect(sampleCamera("idle", 0, 0, true).zoom).toBe(1);
+   });
+ 
+-  it("moves closer for focus and backs away on lock without changing the aim", () => {
++  it("keeps Password at the complete view and backs away on lock", () => {
+     const focus = sampleCamera("focus", 0, 1, false);
+     const locked = sampleCamera("locked", 0, 1, false);
+-    expect(focus.zoom).toBeLessThan(1);
++    expect(focus.zoom).toBe(1);
+     expect(locked.zoom).toBeGreaterThan(1);
+     expect(locked.aimY).toBe(focus.aimY);
+   });
+ });
+ 
+ describe("username backdrop camera", () => {
+-  it("gently approaches the complete machine without shifting it under the form", () => {
++  it("enlarges Username into a subdued backdrop on every screen", () => {
+     const config = stage.interaction.usernameBackdrop;
+     for (const framing of Object.values(stage.framing)) {
+       const backdrop = sampleUsernameBackdrop(framing, "focus", true, false);
+       expect(backdrop.active).toBe(true);
+       expect(backdrop.zoom).toBeGreaterThan(0);
+       expect(backdrop.zoom).toBeLessThan(1);
+-      expect(backdrop.zoom).toBe(config.zoom);
+-      expect(backdrop.zoom).toBeGreaterThanOrEqual(0.9);
+-      expect(backdrop.centerX).toBe(framing.centerX);
+-      expect(backdrop.centerY).toBe(framing.centerY);
+-      expect(backdrop.opacity).toBe(1);
++      expect(backdrop.zoom).toBeCloseTo(framing.height / config.height);
++      expect(backdrop.centerX).toBe(config.centerX);
++      expect(backdrop.centerY).toBe(config.centerY);
++      expect(backdrop.opacity).toBeLessThan(0.6);
+     }
+   });
+ 
+@@ -62,7 +61,7 @@
+         active: false, zoom: 1, centerX: framing.centerX, centerY: framing.centerY, opacity: 1,
+       });
+     }
+-    expect(sampleCamera("focus", 0, 1, false).zoom).toBe(1 - stage.interaction.focusPush);
++    expect(sampleCamera("focus", 0, 1, false).zoom).toBe(1);
+   });
+ 
+   it.each(["submitting", "success", "locked"] as const)("gives %s priority over username focus", (phase) => {
+--- a/src/config/experience.ts
++++ b/src/config/experience.ts
+@@ -106,9 +106,12 @@
+     inertiaDamping: 7,
+     cameraDamping: 7,
+     focusPush: 0.06,
+-    /** A small focus push keeps the complete machine within its stage, clear of the form. */
++    /** Username becomes a large, subdued backdrop; Password returns to the full machine. */
+     usernameBackdrop: {
+-      zoom: 0.96,
++      height: 0.94,
++      centerX: 0.5,
++      centerY: 0.48,
++      opacity: 0.5,
+       damping: 4.5,
+     },
+     lockedPull: 0.04,
+--- /dev/null
++++ b/src/components/canvas/inspectionParts.ts
+@@ -0,0 +1,49 @@
++import { checkpointPositions } from "./checkpointPulse";
++
++export type InspectionId = "gauge" | "pump" | "motor";
++export type InspectionItem = { id: string; label: string; description: string };
++export type InspectionPart = {
++  id: InspectionId; label: string; shortLabel: string; subtitle: string;
++  anchor: readonly [number, number, number]; size: readonly [number, number, number];
++  items: readonly InspectionItem[];
++};
++
++/** Illustrative anatomy, not a manufacturer-specific parts list or a live machine reading. */
++export const inspectionParts: readonly InspectionPart[] = [
++  { id: "gauge", label: "ชุดเกจวัดแรงดัน", shortLabel: "เกจวัดแรงดัน", subtitle: "สำรวจหน้าปัด กลไก และชุดข้อต่อ", anchor: checkpointPositions[0], size: [1.7, 1.2, 1.2], items: [
++    {id:"case",label:"ตัวเรือน",description:"ตัวเรือนด้านหลังและกรอบยึดหน้าปัด"},
++    {id:"mechanism",label:"ชุดกลไก",description:"โครงสร้างจำลองชุดกลไกภายในเกจ"},
++    {id:"dial",label:"หน้าปัด",description:"แผ่นหน้าปัดและขีดแบ่งสเกล"},
++    {id:"needle",label:"เข็มชี้",description:"เข็มชี้พร้อมแกนกลางหน้าปัด"},
++    {id:"glass",label:"ฝาครอบใส",description:"ฝาครอบด้านหน้าของชุดหน้าปัด"},
++    {id:"fitting",label:"ข้อต่อ",description:"ข้อต่อเกลียวบริเวณฐานของเกจ"},
++    {id:"screws",label:"สกรูยึด",description:"ชุดสกรูยึดกรอบและฝาครอบ"},
++  ]},
++  { id: "pump", label: "ชุดหัวปั๊มและลูกสูบ", shortLabel: "หัวปั๊ม", subtitle: "เปิดดูชุดฝาสูบ ลูกสูบ และเพลาขับ", anchor: checkpointPositions[1], size: [1.65, 2.1, 1.0], items: [
++    {id:"head",label:"ฝาสูบ",description:"ชุดฝาครอบส่วนบนของกระบอกสูบ"},
++    {id:"valves",label:"แผ่นวาล์ว",description:"ชั้นแผ่นวาล์วระหว่างฝาสูบกับกระบอกสูบ"},
++    {id:"barrel",label:"กระบอกสูบ / ครีบ",description:"กระบอกสูบพร้อมครีบภายนอก"},
++    {id:"piston",label:"ลูกสูบ",description:"ตัวลูกสูบภายในกระบอกสูบ"},
++    {id:"rings",label:"แหวนลูกสูบ",description:"แหวนที่ประกอบรอบตัวลูกสูบ"},
++    {id:"rod",label:"ก้านสูบ",description:"ก้านเชื่อมระหว่างลูกสูบและชุดเพลา"},
++    {id:"crank",label:"เพลาข้อเหวี่ยง",description:"ชุดเพลาข้อเหวี่ยงบริเวณด้านล่าง"},
++    {id:"bolts",label:"นอตและสลัก",description:"ชุดยึดประกอบฝาสูบและกระบอกสูบ"},
++  ]},
++  { id: "motor", label: "ชุดมอเตอร์ไฟฟ้า", shortLabel: "มอเตอร์", subtitle: "แยกดูตัวเรือน โรเตอร์ และชุดระบายอากาศ", anchor: checkpointPositions[2], size: [2.4, 1.4, 1.7], items: [
++    {id:"housing",label:"ตัวเรือน / ครีบ",description:"ตัวเรือนภายนอกและครีบระบายความร้อน"},
++    {id:"stator",label:"สเตเตอร์ / ขดลวด",description:"โครงสร้างจำลองขดลวดภายในตัวเรือน"},
++    {id:"rotor",label:"โรเตอร์ / เพลา",description:"แกนโรเตอร์และเพลาภายในมอเตอร์"},
++    {id:"bearings",label:"ตลับลูกปืน",description:"ชิ้นส่วนรองรับเพลาบริเวณปลายทั้งสองด้าน"},
++    {id:"fan",label:"ใบพัด",description:"ชุดใบพัดระบายอากาศบริเวณท้ายมอเตอร์"},
++    {id:"cover",label:"ฝาครอบพัดลม",description:"ฝาครอบและช่องระบายอากาศ"},
++    {id:"bolts",label:"สกรูยึด",description:"ชุดสกรูยึดฝาครอบกับตัวเรือน"},
++  ]},
++];
++export const inspectionPart = (id: InspectionId) => inspectionParts.find((part) => part.id === id)!;
++
++/** Portrait inspection uses the upper viewport; its detail sheet covers the login below. */
++export function inspectionFraming(width: number, height: number) {
++  if (width >= 1024) return { centerX: 0.29, centerY: 0.32, width: 0.43, height: 0.4 };
++  if (width > height && height <= 540) return { centerX: 0.235, centerY: 0.5, width: 0.39, height: 0.76 };
++  return { centerX: 0.5, centerY: 0.23, width: 0.86, height: 0.35 };
++}
+--- /dev/null
++++ b/src/components/canvas/inspectionGeometry.ts
+@@ -0,0 +1,61 @@
++import { BoxGeometry, BufferGeometry, CircleGeometry, CylinderGeometry, RingGeometry, Shape, ShapeGeometry, TorusGeometry } from "three";
++import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
++import type { InspectionId } from "./inspectionParts";
++
++type Point = [number, number, number];
++export type DetailFinish = "blue" | "steel" | "dark" | "copper" | "red" | "ivory" | "glass";
++export type DetailPiece = { id: string; finish: DetailFinish; geometry: BufferGeometry; assembled: Point; exploded: Point };
++
++function pack(geometries: BufferGeometry[]) {
++  const flat = geometries.map((geometry) => {
++    if (!geometry.index) return geometry;
++    const result = geometry.toNonIndexed(); geometry.dispose(); return result;
++  });
++  const result = mergeGeometries(flat, false)!;
++  flat.forEach((geometry) => geometry.dispose());
++  result.computeBoundingBox(); result.computeBoundingSphere();
++  return result;
++}
++const box = (x: number, y: number, z: number) => new BoxGeometry(x, y, z);
++const cylinder = (r: number, length: number, segments = 32) => new CylinderGeometry(r, r, length, segments);
++const ring = (r: number, tube = 0.018) => new TorusGeometry(r, tube, 8, 36);
++
++export function buildInspectionGeometry(kind: InspectionId): DetailPiece[] {
++  const pieces: DetailPiece[] = [];
++  const add = (id: string, finish: DetailFinish, geometry: BufferGeometry[], assembled: Point, exploded: Point) => pieces.push({id,finish,geometry:pack(geometry),assembled,exploded});
++  if (kind === "gauge") {
++    add("case","blue",[ring(0.285,0.035),cylinder(0.273,0.09).rotateX(Math.PI/2).translate(0,0,-0.055)],[0,0,0],[-0.48,0,-0.15]);
++    add("mechanism","copper",[new TorusGeometry(0.16,0.025,8,32,Math.PI*1.45).rotateZ(-0.4),box(0.06,0.14,0.035).translate(0,-0.1,0)],[0,0,0.015],[-0.42,0,0.05]);
++    const ticks: BufferGeometry[]=[];
++    for(let i=0;i<=30;i++){const a=(-225+i*9)*Math.PI/180;ticks.push(box(i%5===0?0.045:0.025,0.007,0.008).translate(0.22,0,0).rotateZ(a));}
++    add("dial","ivory",[new CircleGeometry(0.255,40)],[0,0,0.065],[-0.05,0,0.12]);
++    add("dial","dark",ticks,[0,0,0.07],[-0.05,0,0.13]);
++    const needle=new Shape();needle.moveTo(-0.015,-0.045);needle.lineTo(0.012,0.21);needle.lineTo(0.02,-0.045);needle.closePath();
++    add("needle","red",[new ShapeGeometry(needle).rotateZ(Math.PI/3.5),cylinder(0.035,0.025).rotateX(Math.PI/2)],[0,0,0.09],[0.27,0,0.36]);
++    add("glass","glass",[new CircleGeometry(0.265,40)],[0,0,0.13],[0.62,0,0.55]);
++    add("glass","steel",[ring(0.272,0.014)],[0,0,0.135],[0.62,0,0.56]);
++    add("fitting","copper",[cylinder(0.055,0.19,6),cylinder(0.04,0.11).translate(0,-0.13,0),...Array.from({length:5},(_,i)=>ring(0.041,0.005).rotateX(Math.PI/2).translate(0,-0.09-i*0.018,0))],[0,-0.34,-0.04],[-0.48,-0.42,-0.19]);
++    add("screws","steel",[-1,1].flatMap(x=>[-1,1].map(y=>cylinder(0.021,0.09,6).rotateX(Math.PI/2).translate(x*0.19,y*0.19,0))),[0,0,0.14],[0.73,0,0.8]);
++  } else if(kind === "pump") {
++    add("head","blue",[box(0.61,0.13,0.54),box(0.49,0.09,0.44).translate(0,0.09,0)],[0,0.46,0],[-0.12,0.91,-0.06]);
++    add("valves","steel",[box(0.55,0.025,0.49),cylinder(0.075,0.015).translate(-0.1,0.02,0),cylinder(0.075,0.015).translate(0.1,0.02,0)],[0,0.365,0],[-0.06,0.65,0]);
++    add("barrel","blue",[new CylinderGeometry(0.25,0.25,0.43,32,1,true),...Array.from({length:8},(_,i)=>new RingGeometry(0.25,0.35,32).rotateX(-Math.PI/2).translate(0,-0.19+i*0.054,0))],[0,0.12,0],[-0.22,0.24,0]);
++    add("piston","steel",[cylinder(0.194,0.19),cylinder(0.06,0.4).rotateX(Math.PI/2).translate(0,-0.06,0)],[0,0.18,0],[0.48,0.11,0.24]);
++    add("rings","dark",[ring(0.196,0.008).rotateX(Math.PI/2),ring(0.196,0.008).rotateX(Math.PI/2).translate(0,0.038,0),ring(0.196,0.011).rotateX(Math.PI/2).translate(0,-0.04,0)],[0,0.23,0],[0.75,0.34,0.38]);
++    add("rod","steel",[box(0.09,0.39,0.06),ring(0.09,0.023).translate(0,-0.23,0),ring(0.045,0.016).translate(0,0.23,0)],[0,-0.15,0],[0.13,-0.37,0.19]);
++    add("crank","dark",[cylinder(0.09,0.65).rotateZ(Math.PI/2),cylinder(0.18,0.06).rotateZ(Math.PI/2).translate(0.14,0.06,0),cylinder(0.075,0.17).rotateZ(Math.PI/2).translate(0.18,0.15,0)],[0,-0.48,0],[-0.12,-0.84,0.04]);
++    add("bolts","steel",[-1,1].flatMap(x=>[-1,1].map(z=>cylinder(0.018,0.46).translate(x*0.24,0,z*0.2))),[0,0.22,0],[-0.43,0.48,0.29]);
++  } else {
++    const ribs=Array.from({length:18},(_,i)=>{const a=i/18*Math.PI*2;return box(0.025,0.045,0.62).translate(0,0.35,0).rotateZ(a);});
++    add("housing","blue",[new CylinderGeometry(0.34,0.34,0.65,40,1,true).rotateX(Math.PI/2),...ribs],[0,0,0],[-0.62,0,-0.12]);
++    add("stator","copper",Array.from({length:12},(_,i)=>{const a=i/12*Math.PI*2;return new TorusGeometry(0.085,0.024,8,22).scale(1,2.4,1).rotateX(Math.PI/2).translate(0,0.24,0).rotateZ(a);}),[0,0,0],[-0.23,0,-0.02]);
++    add("rotor","steel",[cylinder(0.16,0.53).rotateX(Math.PI/2),cylinder(0.045,1.02).rotateX(Math.PI/2),...Array.from({length:10},(_,i)=>{const a=i/10*Math.PI*2;return box(0.013,0.026,0.5).translate(0,0.162,0).rotateZ(a);})],[0,0,0],[0.2,0,0.23]);
++    add("bearings","steel",[ring(0.1,0.023).translate(0,0,-0.31),ring(0.1,0.023).translate(0,0,0.31)],[0,0,0],[0.34,0,0.4]);
++    add("fan","dark",[cylinder(0.055,0.045).rotateX(Math.PI/2),...Array.from({length:8},(_,i)=>box(0.1,0.22,0.025).translate(0,0.13,0).rotateZ(i*Math.PI/4))],[0,0,0.41],[0.64,0,0.71]);
++    const grille:BufferGeometry[]=[ring(0.29,0.02)];
++    for(let i=-4;i<=4;i++){const o=i*0.055;const length=Math.sqrt(0.275**2-o**2)*2;grille.push(box(length,0.012,0.018).translate(0,o,0),box(0.012,length,0.018).translate(o,0,0));}
++    add("cover","blue",grille,[0,0,0.5],[0.99,0,0.94]);
++    add("bolts","steel",[-1,1].flatMap(x=>[-1,1].map(y=>cylinder(0.019,0.12,6).rotateX(Math.PI/2).translate(x*0.2,y*0.2,0))),[0,0,0.54],[1.12,0,1.09]);
++  }
++  return pieces;
++}
+--- /dev/null
++++ b/src/components/canvas/ExplodedPart.tsx
+@@ -0,0 +1,40 @@
++"use client";
++
++import { useFrame, useThree } from "@react-three/fiber";
++import { useEffect, useMemo, useRef } from "react";
++import { Color, DoubleSide, MeshPhysicalMaterial, type Mesh } from "three";
++import { buildInspectionGeometry, type DetailFinish } from "./inspectionGeometry";
++import { inspectionPart, type InspectionId } from "./inspectionParts";
++
++const finishes: Record<DetailFinish,string> = {blue:"#285db9",steel:"#bdc7d3",dark:"#394653",copper:"#c3884d",red:"#ef713a",ivory:"#e1e7e5",glass:"#99d8ec"};
++
++export function ExplodedPart({ selected, highlighted, still }: { selected: InspectionId; highlighted: string | null; still: boolean }) {
++  const definition = inspectionPart(selected);
++  const invalidate = useThree((state) => state.invalidate);
++  useEffect(() => {invalidate();}, [invalidate, highlighted, selected]);
++  const resources = useMemo(() => buildInspectionGeometry(selected).map((piece) => ({...piece,material:new MeshPhysicalMaterial({
++    color:finishes[piece.finish], metalness:piece.finish === "glass" ? 0 : 0.55, roughness:0.32,
++    transparent:true, opacity:piece.finish === "glass" ? 0.16 : 1, depthWrite:piece.finish !== "glass", side:DoubleSide,
++  })})), [selected]);
++  const nodes=useRef<(Mesh|null)[]>([]);
++  const progress=useRef(0);
++  const orange=useMemo(()=>new Color("#ff7628"),[]);
++  useEffect(()=>()=>{resources.forEach(({geometry,material})=>{geometry.dispose();material.dispose();});},[resources]);
++  useFrame((_,delta)=>{
++    progress.current += (1-progress.current)*(still ? 1 : 1-Math.exp(-5*Math.min(delta,0.05)));
++    resources.forEach((piece,index)=>{
++      const node=nodes.current[index];
++      if(node) node.position.set(
++        piece.assembled[0] + (piece.exploded[0] - piece.assembled[0]) * progress.current,
++        piece.assembled[1] + (piece.exploded[1] - piece.assembled[1]) * progress.current,
++        piece.assembled[2] + (piece.exploded[2] - piece.assembled[2]) * progress.current,
++      );
++      const match=highlighted===piece.id;
++      piece.material.emissive.copy(orange).multiplyScalar(match ? 0.45 : 0);
++      piece.material.opacity=piece.finish === "glass" ? match ? 0.28 : 0.16 : highlighted && !match ? 0.45 : 1;
++    });
++  });
++  return <group name="inspection-exploded-part" position={[definition.anchor[0],definition.anchor[1],definition.anchor[2]+0.16]} scale={0.75}>
++    {resources.map((piece,index)=><mesh key={`${piece.id}-${index}`} name={`detail-${piece.id}`} ref={(node)=>{nodes.current[index]=node;}} geometry={piece.geometry} material={piece.material} />)}
++  </group>;
++}
+--- /dev/null
++++ b/src/components/canvas/InspectionOverlay.tsx
+@@ -0,0 +1,36 @@
++"use client";
++
++import { useEffect, useRef, type RefObject } from "react";
++import { inspectionPart, inspectionParts, type InspectionId } from "./inspectionParts";
++
++export function InspectionOverlay({ selected, highlighted, available, inputFocused, targets, onSelect, onHighlight, onClose }: {
++  selected: InspectionId | null; highlighted: string | null; available: boolean; inputFocused: boolean;
++  targets: RefObject<(HTMLButtonElement | null)[]>;
++  onSelect: (id: InspectionId) => void; onHighlight: (id: string | null) => void; onClose: () => void;
++}) {
++  const dialog = useRef<HTMLDialogElement>(null);
++  const definition = selected ? inspectionPart(selected) : null;
++  useEffect(() => {
++    const node = dialog.current;
++    if (!node) return;
++    if (selected && !node.open) node.showModal();
++    else if (!selected && node.open) node.close();
++  }, [selected]);
++  useEffect(() => {const node=dialog.current;return()=>{if(node?.open)node.close();};},[]);
++  return <>
++    <nav className="auth-inspection-hotspots" aria-label="จุดตรวจบนโมเดล" hidden={!available || !!selected || inputFocused}>
++      {inspectionParts.map((part,index)=><button key={part.id} ref={(node)=>{targets.current[index]=node;}} type="button" className="auth-inspection-hotspot" aria-label={`ดูรายละเอียด${part.shortLabel}`} aria-haspopup="dialog" aria-controls="auth-inspection-dialog" onClick={()=>onSelect(part.id)} style={{visibility:"hidden"}}><span className="sr-only">{part.shortLabel}</span></button>)}
++      <p className="auth-inspection-hint">คลิกจุดสีส้มเพื่อสำรวจชิ้นส่วน</p>
++    </nav>
++    <dialog ref={dialog} id="auth-inspection-dialog" className="auth-inspection-dialog" aria-labelledby="auth-inspection-title" aria-describedby="auth-inspection-description" onCancel={(event)=>{event.preventDefault();onClose();}} onClick={(event)=>{if(event.target===event.currentTarget)onClose();}}>
++      {definition && <section className="auth-inspection-card">
++        <header className="auth-inspection-heading"><div><p>สำรวจชิ้นส่วน · แยกชิ้นประกอบ</p><h2 id="auth-inspection-title">{definition.label}</h2></div><button type="button" className="auth-inspection-close" aria-label="กลับไปดูทั้งเครื่อง" onClick={onClose}>×</button></header>
++        <nav className="auth-inspection-tabs" aria-label="เลือกชุดชิ้นส่วน">{inspectionParts.map(part=><button key={part.id} type="button" aria-pressed={selected===part.id} onClick={()=>onSelect(part.id)}>{part.shortLabel}</button>)}</nav>
++        <p id="auth-inspection-description" className="auth-inspection-subtitle">{definition.subtitle}</p>
++        <div className="auth-inspection-items" aria-label="ชิ้นส่วนย่อย">{definition.items.map((item,index)=><button type="button" key={item.id} aria-pressed={highlighted===item.id} onClick={()=>onHighlight(item.id)} onPointerEnter={()=>onHighlight(item.id)} onFocus={()=>onHighlight(item.id)}><span>{String(index+1).padStart(2,"0")}</span>{item.label}</button>)}</div>
++        <p className="auth-inspection-note" aria-live="polite">{definition.items.find(item=>item.id===highlighted)?.description ?? "แตะชื่อชิ้นส่วนเพื่อไฮไลต์บนโมเดล"}</p>
++        <footer><span>โครงสร้างจำลองเพื่อสำรวจชิ้นส่วน</span><button type="button" onClick={onClose}>← ดูทั้งเครื่อง</button></footer>
++      </section>}
++    </dialog>
++  </>;
++}
+--- /dev/null
++++ b/src/components/canvas/inspection.css
+@@ -0,0 +1,50 @@
++html:has(.auth-inspection-dialog[open]) { overflow: hidden; }
++.auth-inspection-hotspots { position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
++.auth-inspection-hotspots[hidden] { display: none; }
++.auth-inspection-hotspot { position: absolute; left: 0; top: 0; width: 44px; height: 44px; border-radius: 50%; pointer-events: auto; cursor: pointer; border: 1px solid transparent; background: transparent; transition: border-color 180ms, background-color 180ms, box-shadow 180ms; }
++.auth-inspection-hotspot:hover, .auth-inspection-hotspot:focus-visible { outline: none; border-color: #ff8a55; background: rgb(255 118 40 / .08); box-shadow: 0 0 0 5px rgb(255 118 40 / .08); }
++.auth-inspection-hint { display: none; position: absolute; left: 29%; bottom: 8%; transform: translateX(-50%); width: max-content; max-width: 46%; text-align: center; color: #9a9890; font-size: 11px; letter-spacing: .02em; }
++.auth-inspection-dialog { position: fixed; inset: 0; width: 100%; height: 100svh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: transparent; color: #f2f1ee; overflow: hidden; }
++.auth-inspection-dialog::backdrop { background: transparent; }
++.auth-inspection-card { position: absolute; left: max(16px,calc(29% - 220px)); bottom: max(28px,5svh); width: min(440px,calc(53vw - 32px)); max-height: 46svh; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #39404a; border-radius: 16px; background: rgb(17 21 26 / .96); box-shadow: 0 16px 60px rgb(0 0 0 / .3); scrollbar-width: thin; scrollbar-color: #4c5159 transparent; }
++.auth-inspection-heading { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; background: #11151a; }
++.auth-inspection-heading p { color: #75b7dc; font-size: 10px; letter-spacing: .06em; }
++.auth-inspection-heading h2 { margin-top: 3px; color: #f2f1ee; font-size: 18px; font-weight: 500; line-height: 1.5; }
++.auth-inspection-close { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid #39404a; border-radius: 10px; color: #cfcdc7; font-size: 26px; cursor: pointer; }
++.auth-inspection-close:hover { border-color: #ff8a55; color: #ff8a55; }
++.auth-inspection-tabs { display: flex; gap: 6px; margin: 0 16px 10px; padding: 4px; border: 1px solid #2e3137; border-radius: 10px; background: #0e0f11; }
++.auth-inspection-tabs button { flex: 1; min-height: 32px; border-radius: 6px; padding: 3px 5px; font-size: 11px; color: #9a9890; cursor: pointer; }
++.auth-inspection-tabs button[aria-pressed="true"] { background: #2b241e; color: #ff9a5c; }
++.auth-inspection-subtitle { margin: 0 16px 10px; font-size: 12px; line-height: 1.7; color: #9a9890; }
++.auth-inspection-items { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; padding: 0 16px; }
++.auth-inspection-items button { display: flex; flex-direction: column; align-items: start; gap: 3px; min-height: 46px; border: 1px solid #2e3540; border-radius: 8px; padding: 7px 8px; text-align: left; font-size: 11px; color: #cfcdc7; line-height: 1.5; cursor: pointer; }
++.auth-inspection-items button span { color: #75b7dc; font-family: monospace; font-size: 10px; }
++.auth-inspection-items button:hover, .auth-inspection-items button[aria-pressed="true"] { border-color: #ff7628; color: #f2f1ee; background: rgb(255 118 40 / .07); }
++.auth-inspection-items button[aria-pressed="true"] span { color: #ff9a5c; }
++.auth-inspection-note { min-height: 2.8em; margin: 10px 16px 0; font-size: 11px; line-height: 1.6; color: #cfcdc7; }
++.auth-inspection-card footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 16px 12px; border-top: 1px solid #2e3137; padding-top: 6px; font-size: 10px; color: #85837c; }
++.auth-inspection-card footer button { min-height: 36px; color: #ff9a5c; font-size: 12px; cursor: pointer; }
++.auth-inspection-dialog button:focus-visible { outline: 2px solid #ff8a55; outline-offset: 2px; }
++/* Static devices retain the same credential composition without loading WebGL. */
++.auth-screen picture img { transform-origin: 29% 52%; transition: transform 900ms cubic-bezier(.16,1,.3,1), opacity 700ms; }
++.auth-screen [data-username-focused="true"] picture img { transform: translate(21vw,-4vh) scale(1.8); opacity: .5; }
++@media (min-width: 1024px) { .auth-inspection-hint { display: block; } }
++@media (max-width: 1023px) and (orientation: portrait) {
++  .auth-screen[data-inspecting] [data-stage-block] { visibility: hidden; }
++  .auth-inspection-dialog { background: linear-gradient(transparent 0%,transparent 38%,rgb(14 15 17 / .96) 46%); }
++  .auth-inspection-card { top: 43svh; bottom: 16px; left: 16px; width: calc(100% - 32px); max-height: none; }
++  .auth-inspection-items { grid-template-columns: repeat(2,minmax(0,1fr)); }
++  .auth-inspection-items button { flex-direction: row; align-items: center; gap: 10px; min-height: 44px; font-size: 12px; }
++  .auth-inspection-heading h2 { font-size: 20px; }
++  .auth-inspection-tabs button { min-height: 40px; font-size: 12px; }
++  .auth-screen picture img { transform-origin: 50% 17%; }
++  .auth-screen [data-username-focused="true"] picture img { transform: translateY(25vh) scale(3); }
++}
++@media (max-width: 1023px) and (orientation: landscape) and (max-height: 540px) {
++  .auth-inspection-card { top: 16px; right: 16px; left: auto; bottom: 16px; width: calc(50% - 32px); max-height: none; }
++  .auth-inspection-items { grid-template-columns: repeat(2,minmax(0,1fr)); }
++  .auth-inspection-card { background: #11151a; }
++}
++@media (prefers-reduced-motion: reduce) {
++  .auth-screen picture img { transition: none; transform: none !important; }
++}
+--- /dev/null
++++ b/src/components/canvas/inspectionGeometry.test.ts
+@@ -0,0 +1,36 @@
++import { describe, expect, it } from "vitest";
++import { Box3, Vector3 } from "three";
++import { buildInspectionGeometry } from "./inspectionGeometry";
++import { inspectionFraming, inspectionParts } from "./inspectionParts";
++
++describe("interactive component anatomy", () => {
++  it.each(inspectionParts)("provides selectable, finite surfaces for $id", (part) => {
++    const pieces = buildInspectionGeometry(part.id);
++    expect(new Set(pieces.map(piece => piece.id))).toEqual(new Set(part.items.map(item => item.id)));
++    const bounds = new Box3();
++    for (const piece of pieces) {
++      const positions = piece.geometry.getAttribute("position");
++      expect(positions.count).toBeGreaterThan(0);
++      expect(Array.from(positions.array).every(Number.isFinite)).toBe(true);
++      expect(Array.from(piece.geometry.getAttribute("normal").array).every(Number.isFinite)).toBe(true);
++      const assembled = new Vector3(...piece.assembled), exploded = new Vector3(...piece.exploded);
++      bounds.union(piece.geometry.boundingBox!.clone().translate(exploded));
++      expect(assembled.distanceTo(exploded)).toBeGreaterThan(0.02);
++      piece.geometry.dispose();
++    }
++    const size = bounds.getSize(new Vector3());
++    expect(size.x).toBeLessThan(part.size[0] + 0.2);
++    expect(size.y).toBeLessThan(part.size[1] + 0.2);
++    expect(size.z).toBeLessThan(part.size[2] + 0.2);
++  });
++
++  it.each([[320,640],[390,844],[820,1180],[844,390],[1024,768],[1440,900]])("fits inspection above or beside its details at %i × %i", (width, height) => {
++    const frame = inspectionFraming(width, height);
++    expect(frame.centerX - frame.width / 2).toBeGreaterThan(0);
++    expect(frame.centerX + frame.width / 2).toBeLessThan(1);
++    expect(frame.centerY - frame.height / 2).toBeGreaterThan(0);
++    expect(frame.centerY + frame.height / 2).toBeLessThan(1);
++    if (width < 1024 && height > width) expect(frame.centerY + frame.height / 2).toBeLessThan(0.43);
++    else expect(frame.centerX + frame.width / 2).toBeLessThan(0.55);
++  });
++});

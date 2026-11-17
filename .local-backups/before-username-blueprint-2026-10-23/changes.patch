@@ -1,0 +1,260 @@
+--- a/src/components/canvas/Scene.tsx
++++ b/src/components/canvas/Scene.tsx
+@@ -13,6 +13,7 @@
+ import { CameraRig } from "./CameraRig";
+ import { ModelInteraction } from "./ModelInteraction";
+ import { Checkpoints } from "./Checkpoints";
++import { advanceUsernameAssembly, usernameAssemblyActive, usernameAssemblyLayouts } from "./usernameAssembly";
+ import { ExplodedPart } from "./ExplodedPart";
+ import type { InspectionId } from "./inspectionParts";
+ import { Dust } from "./Dust";
+@@ -110,8 +111,8 @@
+   return () => document.removeEventListener("visibilitychange", listener);
+ }
+ 
+-function ScanController({ inspecting, still, phase, phaseRound, introSeconds, frameRef, uniformsRef }: {
+-  inspecting: boolean; still: boolean; phase: ScanPhase; phaseRound: number; introSeconds: number;
++function ScanController({ inspecting, usernameExpanded, assemblyRef, still, phase, phaseRound, introSeconds, frameRef, uniformsRef }: {
++  inspecting: boolean; usernameExpanded: boolean; assemblyRef: RefObject<number>; still: boolean; phase: ScanPhase; phaseRound: number; introSeconds: number;
+   frameRef: RefObject<ScanFrame>; uniformsRef: RefObject<ScanUniforms>;
+ }) {
+   const elapsed = useRef(0);
+@@ -147,10 +148,12 @@
+     const frame = blending ? blendScan(blending.from, target, blending.elapsed) : target;
+     frameRef.current = { ...frame, phaseElapsed: signal.current.elapsed };
+     if (transition.current && (still || transition.current.elapsed >= scanTiming.phaseTransitionSeconds)) transition.current = null;
+-    uniformsRef.current.scanY.value = inspecting ? scanBounds.minY : frameRef.current.scanY;
+-    uniformsRef.current.reveal.value = inspecting ? 0 : frameRef.current.reveal;
++    assemblyRef.current = advanceUsernameAssembly(assemblyRef.current, step, usernameAssemblyActive(phase, usernameExpanded, still), still, phase);
++    const blueprint = inspecting ? 1 : assemblyRef.current;
++    uniformsRef.current.scanY.value = frame.scanY + (scanBounds.minY - frame.scanY) * blueprint;
++    uniformsRef.current.reveal.value = frame.reveal * (1 - blueprint);
+     // The surface band follows the ring: on while it sweeps, off when it fades (locked, success).
+-    uniformsRef.current.glow.value = inspecting || phase === "success" ? 0 : Math.min(1, frameRef.current.ringOpacity / 0.75);
++    uniformsRef.current.glow.value = phase === "success" ? 0 : (1 - blueprint) * Math.min(1, frameRef.current.ringOpacity / 0.75);
+   }, -2);
+   return null;
+ }
+@@ -187,6 +190,7 @@
+   const uniforms = useMemo(() => createScanUniforms(), []);
+   const uniformsRef = useRef(uniforms);
+   const frameRef = useRef(sampleScan(0, { still, introSeconds }));
++  const assemblyRef = useRef(0);
+ 
+   function handleCreated(state: RootState) {
+     // Dev only: lets scripts read draw calls and memory (gl.info) while tuning.
+@@ -205,17 +209,18 @@
+     >
+       {/* Sustained low fps steps the level down (high → medium → low); it never climbs back. */}
+       <PerformanceMonitor onDecline={() => setQuality(degrade)} />
+-      <ScanController inspecting={!!selected} still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
++      <ScanController inspecting={!!selected} usernameExpanded={usernameExpanded} assemblyRef={assemblyRef} still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
+       <CameraRig frameRef={frameRef} phase={phase} still={still} usernameExpanded={usernameExpanded} selected={selected} eventSource={eventSource} onFade={onFade} />
+       <StaticStudio />
+       <ambientLight intensity={0.35} />
+       <ModelInteraction still={still} active={visible && !selected} pointerEnabled={!inputFocused && !selected} phase={phase}>
+-        <AirCompressor uniforms={uniforms} inspecting={!!selected} still={still} />
++        <AirCompressor uniforms={uniforms} inspecting={!!selected} still={still} assemblyRef={assemblyRef} />
++        {usernameAssemblyLayouts.map(({id, offset}) => <ExplodedPart key={`username-${id}`} selected={id} highlighted={null} still={still} spreadRef={assemblyRef} offset={offset} />)}
+         {selected && <ExplodedPart key={selected} selected={selected} highlighted={highlighted} still={still} />}
+         <Checkpoints frameRef={frameRef} phase={phase} still={still} hotspots={hotspots} enabled={!selected && !inputFocused} />
+       </ModelInteraction>
+       <Dust still={still} count={qualitySettings(quality).dust} />
+-      <ScanRing inspecting={!!selected} frameRef={frameRef} phase={phase} still={still} typing={typing} inputFocused={inputFocused} />
++      <ScanRing inspecting={!!selected} assemblyRef={assemblyRef} frameRef={frameRef} phase={phase} still={still} typing={typing} inputFocused={inputFocused} />
+       <FirstFrame onReady={onReady} onLost={onLost} />
+     </Canvas>
+   );
+--- a/src/components/canvas/AirCompressor.tsx
++++ b/src/components/canvas/AirCompressor.tsx
+@@ -1,7 +1,7 @@
+ "use client";
+ 
+ import { useFrame } from "@react-three/fiber";
+-import { useEffect, useMemo, useRef } from "react";
++import { useEffect, useMemo, useRef, type RefObject } from "react";
+ import { CanvasTexture, MeshPhysicalMaterial, MeshStandardMaterial, SRGBColorSpace } from "three";
+ import { buildCompressorGeometry, disposeCompressorGeometry } from "./compressorGeometry";
+ import { applyScanReveal, type ScanUniforms } from "./scanReveal";
+@@ -55,12 +55,12 @@
+ }
+ 
+ /** Photo-inspired V-twin machine, built locally with nine batched finishes and two small labels. */
+-export function AirCompressor({ uniforms, inspecting, still }: { uniforms: ScanUniforms; inspecting: boolean; still: boolean }) {
++export function AirCompressor({ uniforms, inspecting, still, assemblyRef }: { uniforms: ScanUniforms; inspecting: boolean; still: boolean; assemblyRef: RefObject<number> }) {
+   const resources = useMemo(() => createResources(uniforms), [uniforms]);
+   const opacity = useRef(1);
+   useFrame((_, delta) => {
+     opacity.current += ((inspecting ? 0.16 : 1) - opacity.current) * (still ? 1 : 1 - Math.exp(-7 * Math.min(delta, 0.05)));
+-    Object.values(resources.materials).forEach((material) => {material.opacity = opacity.current;material.depthWrite = !inspecting;});
++    Object.values(resources.materials).forEach((material) => {material.opacity = opacity.current;material.depthWrite = !inspecting && assemblyRef.current < 0.001;});
+   });
+   useEffect(() => () => {
+     disposeCompressorGeometry(resources.parts);
+--- a/src/components/canvas/ExplodedPart.tsx
++++ b/src/components/canvas/ExplodedPart.tsx
+@@ -1,14 +1,14 @@
+ "use client";
+ 
+ import { useFrame, useThree } from "@react-three/fiber";
+-import { useEffect, useMemo, useRef } from "react";
+-import { Color, DoubleSide, MeshPhysicalMaterial, type Mesh } from "three";
++import { useEffect, useMemo, useRef, type RefObject } from "react";
++import { Color, DoubleSide, MeshPhysicalMaterial, type Group, type Mesh } from "three";
+ import { buildInspectionGeometry, type DetailFinish } from "./inspectionGeometry";
+ import { inspectionPart, type InspectionId } from "./inspectionParts";
+ 
+ const finishes: Record<DetailFinish,string> = {blue:"#285db9",steel:"#bdc7d3",dark:"#394653",copper:"#c3884d",red:"#ef713a",ivory:"#e1e7e5",glass:"#99d8ec"};
+ 
+-export function ExplodedPart({ selected, highlighted, still }: { selected: InspectionId; highlighted: string | null; still: boolean }) {
++export function ExplodedPart({ selected, highlighted, still, spreadRef, offset = [0, 0, 0] }: { selected: InspectionId; highlighted: string | null; still: boolean; spreadRef?: RefObject<number>; offset?: readonly [number, number, number] }) {
+   const definition = inspectionPart(selected);
+   const invalidate = useThree((state) => state.invalidate);
+   useEffect(() => {invalidate();}, [invalidate, highlighted, selected]);
+@@ -16,12 +16,20 @@
+     color:finishes[piece.finish], metalness:piece.finish === "glass" ? 0 : 0.55, roughness:0.32,
+     transparent:true, opacity:piece.finish === "glass" ? 0.16 : 1, depthWrite:piece.finish !== "glass", side:DoubleSide,
+   })})), [selected]);
++  const root = useRef<Group>(null);
+   const nodes=useRef<(Mesh|null)[]>([]);
+   const progress=useRef(0);
+   const orange=useMemo(()=>new Color("#ff7628"),[]);
+   useEffect(()=>()=>{resources.forEach(({geometry,material})=>{geometry.dispose();material.dispose();});},[resources]);
+   useFrame((_,delta)=>{
+-    progress.current += (1-progress.current)*(still ? 1 : 1-Math.exp(-5*Math.min(delta,0.05)));
++    if (spreadRef) progress.current = spreadRef.current;
++    else progress.current += (1-progress.current)*(still ? 1 : 1-Math.exp(-5*Math.min(delta,0.05)));
++    const amount = progress.current;
++    if (root.current) {
++      root.current.visible = !spreadRef || amount > 0.001;
++      root.current.position.set(definition.anchor[0] + offset[0] * amount, definition.anchor[1] + offset[1] * amount, definition.anchor[2] + 0.16 + offset[2] * amount);
++    }
++    if (spreadRef && amount <= 0.001) return;
+     resources.forEach((piece,index)=>{
+       const node=nodes.current[index];
+       if(node) node.position.set(
+@@ -31,10 +39,12 @@
+       );
+       const match=highlighted===piece.id;
+       piece.material.emissive.copy(orange).multiplyScalar(match ? 0.45 : 0);
+-      piece.material.opacity=piece.finish === "glass" ? match ? 0.28 : 0.16 : highlighted && !match ? 0.45 : 1;
++      const opacity = piece.finish === "glass" ? match ? 0.28 : 0.16 : highlighted && !match ? 0.45 : 1;
++      piece.material.opacity = opacity * (spreadRef ? amount : 1);
++      piece.material.depthWrite = piece.finish !== "glass" && (!spreadRef || amount > 0.99);
+     });
+   });
+-  return <group name="inspection-exploded-part" position={[definition.anchor[0],definition.anchor[1],definition.anchor[2]+0.16]} scale={0.75}>
++  return <group ref={root} name={spreadRef ? `username-assembly-${selected}` : "inspection-exploded-part"} renderOrder={spreadRef ? 2 : 0} visible={!spreadRef} position={[definition.anchor[0],definition.anchor[1],definition.anchor[2]+0.16]} scale={spreadRef ? 0.65 : 0.75}>
+     {resources.map((piece,index)=><mesh key={`${piece.id}-${index}`} name={`detail-${piece.id}`} ref={(node)=>{nodes.current[index]=node;}} geometry={piece.geometry} material={piece.material} />)}
+   </group>;
+ }
+--- a/src/components/canvas/ScanRing.tsx
++++ b/src/components/canvas/ScanRing.tsx
+@@ -8,7 +8,7 @@
+ import { advanceScanOrbit, focusOrbitEnvelope, scanOrbitActive } from "./scanOrbit";
+ 
+ /** The scan plane becomes a face-on green seal during the existing success hold. */
+-export function ScanRing({ inspecting, frameRef, phase, still, typing, inputFocused }: { inspecting: boolean; frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
++export function ScanRing({ inspecting, assemblyRef, frameRef, phase, still, typing, inputFocused }: { inspecting: boolean; assemblyRef: RefObject<number>; frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
+   const group = useRef<Group>(null);
+   const core = useRef<MeshBasicMaterial>(null);
+   const glow = useRef<MeshBasicMaterial>(null);
+@@ -51,7 +51,7 @@
+     orbitAmountRef.current += ((orbitActive ? 1 : 0) - orbitAmountRef.current) * damping;
+     if (group.current) {
+       group.current.visible = !inspecting;
+-      group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY;
++      group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY - assemblyRef.current * 0.45;
+       // The elliptical orbit turns with the horizontal tank, including drag and idle yaw.
+       const yaw = scene.getObjectByName("compressor-interaction")?.rotation.y ?? 0;
+       orientation.yaw.setFromAxisAngle(orientation.up, yaw);
+--- /dev/null
++++ b/src/components/canvas/usernameAssembly.ts
+@@ -0,0 +1,23 @@
++import type { InspectionId } from "./inspectionParts";
++import type { ScanPhase } from "./scanTimeline";
++
++/** Small outward moves preserve the tank silhouette and keep the upper components in view. */
++export const usernameAssemblyLayouts: readonly { id: InspectionId; offset: readonly [number, number, number] }[] = [
++  { id: "gauge", offset: [-0.35, 0.05, 0.45] },
++  { id: "pump", offset: [0, -0.05, 0.4] },
++  { id: "motor", offset: [-0.25, -0.1, 0.38] },
++];
++
++export function usernameAssemblyActive(phase: ScanPhase, usernameFocused: boolean, still: boolean) {
++  return usernameFocused && !still && phase !== "submitting" && phase !== "success" && phase !== "locked";
++}
++
++/** Reversible, bounded motion: rapid switches resume from the currently drawn assembly. */
++export function advanceUsernameAssembly(current: number, delta: number, active: boolean, still: boolean, phase: ScanPhase) {
++  if (still) return 0;
++  const start = Math.max(0, Math.min(1, Number.isFinite(current) ? current : 0));
++  const step = Number.isFinite(delta) ? Math.max(0, Math.min(0.05, delta)) : 0;
++  const critical = phase === "submitting" || phase === "success" || phase === "locked";
++  const target = active && !critical ? 1 : 0;
++  return start + (target - start) * (1 - Math.exp(-(critical ? 16 : 4.5) * step));
++}
+--- /dev/null
++++ b/src/components/canvas/usernameAssembly.test.ts
+@@ -0,0 +1,61 @@
++import { describe, expect, it } from "vitest";
++import { buildInspectionGeometry } from "./inspectionGeometry";
++import { inspectionPart } from "./inspectionParts";
++import { scanBounds, type ScanPhase } from "./scanTimeline";
++import { advanceUsernameAssembly, usernameAssemblyActive, usernameAssemblyLayouts } from "./usernameAssembly";
++
++const phases: ScanPhase[] = ["reveal", "idle", "focus", "submitting", "success", "error", "locked", "offline"];
++
++describe("Username blueprint composition", () => {
++  it.each(phases)("respects credential focus and authentication priority during %s", (phase) => {
++    expect(usernameAssemblyActive(phase, false, false)).toBe(false);
++    expect(usernameAssemblyActive(phase, true, true)).toBe(false);
++    expect(usernameAssemblyActive(phase, true, false)).toBe(!["submitting", "success", "locked"].includes(phase));
++  });
++
++  it("reverses from the current spread when switching fields quickly", () => {
++    let amount = 0;
++    for (let i = 0; i < 12; i++) amount = advanceUsernameAssembly(amount, 1 / 60, true, false, "focus");
++    const opening = amount;
++    amount = advanceUsernameAssembly(amount, 1 / 60, false, false, "focus");
++    expect(amount).toBeLessThan(opening);
++    expect(amount).toBeGreaterThan(0);
++    const closing = amount;
++    amount = advanceUsernameAssembly(amount, 1 / 60, true, false, "focus");
++    expect(amount).toBeGreaterThan(closing);
++    expect(amount).toBeLessThan(1);
++    for (let i = 0; i < 120; i++) amount = advanceUsernameAssembly(amount, 1 / 60, false, false, "focus");
++    expect(amount).toBeLessThan(0.001);
++  });
++
++  it("reassembles before the login fly-through finishes and holds still for reduced motion", () => {
++    let amount = 1;
++    for (let i = 0; i < 18; i++) amount = advanceUsernameAssembly(amount, 1 / 60, true, false, "success");
++    expect(amount).toBeLessThan(0.01);
++    expect(advanceUsernameAssembly(1, 1 / 60, true, true, "focus")).toBe(0);
++  });
++
++  it.each([NaN, Infinity, -Infinity, -1, 0, 60])("keeps frame time %s finite and bounded", (delta) => {
++    const amount = advanceUsernameAssembly(0.4, delta, true, false, "focus");
++    expect(Number.isFinite(amount)).toBe(true);
++    expect(amount).toBeGreaterThanOrEqual(0.4);
++    expect(amount).toBeLessThanOrEqual(advanceUsernameAssembly(0.4, 0.05, true, false, "focus"));
++  });
++
++  it("keeps all three detailed assemblies above the lowered laser and inside the upper model silhouette", () => {
++    expect(new Set(usernameAssemblyLayouts.map(layout => layout.id))).toEqual(new Set(["gauge", "pump", "motor"]));
++    for (const layout of usernameAssemblyLayouts) {
++      const part = inspectionPart(layout.id);
++      const pieces = buildInspectionGeometry(layout.id);
++      try {
++        for (const piece of pieces) {
++          const bounds = piece.geometry.boundingBox!;
++          const low = part.anchor[1] + layout.offset[1] + (piece.exploded[1] + bounds.min.y) * 0.65;
++          const high = part.anchor[1] + layout.offset[1] + (piece.exploded[1] + bounds.max.y) * 0.65;
++          expect(low).toBeGreaterThan(scanBounds.midY - 0.45 + 0.06);
++          expect(high).toBeLessThan(scanBounds.maxY);
++        }
++      } finally { pieces.forEach(piece => piece.geometry.dispose()); }
++    }
++  });
++});

@@ -1,0 +1,321 @@
+--- before/src/components/shell/nav.ts
++++ after/src/components/shell/nav.ts
+@@ -5,7 +5,7 @@
+  * App-shell navigation (docs/09). Pure data so the tab rules can be tested without React;
+  * the components map `icon` to an SVG.
+  */
+-export type NavIcon = "dashboard" | "plans" | "jobs" | "scan" | "alerts" | "more" | "master" | "reports" | "settings" | "users";
++export type NavIcon = "home" | "dashboard" | "plans" | "jobs" | "scan" | "alerts" | "more" | "master" | "reports" | "settings" | "users";
+ 
+ export type NavItem = {
+   label: string;
+@@ -22,6 +22,7 @@
+   return [...PRIMARY_ORDER, ...ROLES].find((role) => roles.includes(role)) ?? null;
+ }
+ 
++const home: NavItem = { label: "หน้าหลัก", href: "/home", icon: "home" };
+ const alerts: NavItem = { label: "แจ้งเตือน", href: "/alerts", icon: "alerts" };
+ const more: NavItem = { label: "เพิ่มเติม", href: "/more", icon: "more" };
+ const scan: NavItem = { label: "สแกน", href: "/scan", icon: "scan" };
+@@ -35,22 +36,23 @@
+   );
+ }
+ 
+-/** Exactly four bottom tabs, chosen by the primary role (docs/09 §2.1–2.3). */
++/** Five bottom tabs: a dedicated Home, two role shortcuts, Alerts and More. */
+ export function bottomTabs(roles: readonly Role[]): NavItem[] {
+   switch (primaryRole(roles)) {
+     case "QC_INSPECTOR":
+-      return [{ label: "งานของฉัน", href: "/jobs", icon: "jobs", also: ["/home"] }, scan, alerts, more];
++      return [home, { label: "งานของฉัน", href: "/jobs", icon: "jobs" }, scan, alerts, more];
+     case "QA_INSPECTOR":
+-      return [{ label: "คิว QA", href: "/home", also: ["/qa-queue"], icon: "jobs" }, scan, alerts, more];
++      return [home, { label: "คิว QA", href: "/qa-queue", icon: "jobs" }, scan, alerts, more];
+     case "QC_HEAD":
+       return [
+-        { label: "แผน", href: "/plans", icon: "plans", also: ["/home"] },
+-        { label: "งาน", href: "/jobs", icon: "jobs", also: ["/qa-queue"] },
++        home,
++        { label: "แผน", href: "/plans", icon: "plans" },
++        { label: "งาน", href: "/jobs", icon: "jobs" },
+         alerts,
+         more,
+       ];
+     case "QA_HEAD":
+-      return [{ label: "แผน", href: "/plans", also: ["/home"], icon: "plans" }, { label: "คิว QA", href: "/qa-queue", icon: "jobs" }, alerts, more];
++      return [home, { label: "แผน", href: "/plans", icon: "plans" }, { label: "คิว QA", href: "/qa-queue", icon: "jobs" }, alerts, more];
+     default: {
+       if (!canAccessPage(roles, "home")) return [];
+       const secondary: NavItem = canAccessPage(roles, "settings")
+@@ -58,7 +60,14 @@
+         : canAccessPage(roles, "reports")
+           ? { label: "รายงาน", href: "/reports", icon: "reports" }
+           : { label: "ข้อมูลหลัก", href: "/master", icon: "master" };
+-      return [{ label: "หน้าหลัก", href: "/home", icon: "dashboard" }, secondary, alerts, more];
++      // The checklist module is already permitted for every role; ShellLink keeps
++      // its shortcut disabled until the page exists. Do not duplicate Home to fill a slot.
++      const extra: NavItem = canAccessPage(roles, "plans")
++        ? { label: "แผน", href: "/plans", icon: "plans" }
++        : secondary.href !== "/master" && canAccessPage(roles, "master")
++          ? { label: "ข้อมูลหลัก", href: "/master", icon: "master" }
++          : { label: "เช็กลิสต์", href: "/checklists", icon: "jobs" };
++      return [home, secondary, extra, alerts, more];
+     }
+   }
+ }
+--- before/src/components/shell/BottomTabBar.tsx
++++ after/src/components/shell/BottomTabBar.tsx
+@@ -16,14 +16,14 @@
+ 
+   return (
+     <nav
+-      aria-label="หน้าหลัก"
++      aria-label="เมนูหลัก"
+       className="app-navigation md:hidden fixed bottom-0 inset-x-0 z-40 bg-carbon-950 border-t border-carbon-700/80 pb-[env(safe-area-inset-bottom)] select-none"
+     >
+       <ul className="flex h-14 items-stretch">
+         {bottomTabs(roles).map((tab) => {
+           const active = isActive(pathname, tab);
+           return (
+-            <li key={tab.href} className="flex-1">
++            <li key={tab.href} className="min-w-0 flex-1 basis-0">
+               <ShellLink
+                 href={tab.href}
+                 aria-current={active ? "page" : undefined}
+@@ -35,7 +35,7 @@
+                     window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+                   }
+                 }}
+-                className={`flex h-full min-h-11 flex-col items-center justify-center gap-1 transition-colors ${
++                className={`flex h-full min-h-11 w-full flex-col items-center justify-center gap-1 px-0.5 transition-colors ${
+                   active ? "text-ember-500 font-medium" : "text-ti-500 hover:text-ti-200"
+                 }`}
+               >
+@@ -43,7 +43,7 @@
+                   <NavIcon name={tab.icon} className={`size-6 ${active ? "stroke-[2.2]" : "stroke-[1.75]"}`} />
+                   {tab.href === "/alerts" && <NotificationBadge className="absolute -right-2 -top-1" />}
+                 </span>
+-                <span className="text-xs leading-none">{tab.label}</span>
++                <span className="whitespace-nowrap text-[11px] leading-none min-[375px]:text-xs">{tab.label}</span>
+               </ShellLink>
+             </li>
+           );
+--- before/src/components/shell/NavIcon.tsx
++++ after/src/components/shell/NavIcon.tsx
+@@ -2,6 +2,7 @@
+ import {
+   AlertIcon,
+   DashboardIcon,
++  HomeIcon,
+   JobsIcon,
+   MasterDataIcon,
+   MoreIcon,
+@@ -14,6 +15,7 @@
+ import type { NavIcon as NavIconName } from "./nav";
+ 
+ const ICONS = {
++  home: HomeIcon,
+   dashboard: DashboardIcon,
+   plans: PlansIcon,
+   jobs: JobsIcon,
+--- before/src/components/dom/Icons.tsx
++++ after/src/components/dom/Icons.tsx
+@@ -1,4 +1,13 @@
+ import type { SVGProps } from "react";
++
++export function HomeIcon(props: SVGProps<SVGSVGElement>) {
++  return (
++    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" {...props}>
++      <path d="m3 10 9-7 9 7M5 8.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5" />
++      <path d="M9 21v-8h6v8" />
++    </svg>
++  );
++}
+ 
+ export function DashboardIcon(props: SVGProps<SVGSVGElement>) {
+   return (
+--- before/src/components/shell/shell.test.ts
++++ after/src/components/shell/shell.test.ts
+@@ -3,12 +3,32 @@
+ import { bottomTabs, canOpenPlan, canSeeMaster, isActive, isAvailable, primaryRole } from "./nav";
+ 
+ describe("app navigation", () => {
+-  it("keeps four mobile destinations and a selected home tab for every role", () => {
++  it("keeps five unique mobile destinations with a dedicated Home for every role", () => {
+     for (const role of ROLES) {
+       const tabs = bottomTabs([role]);
+-      expect(tabs).toHaveLength(4);
+-      expect(tabs.filter(tab => isActive("/home", tab))).toHaveLength(1);
++      expect(tabs).toHaveLength(5);
++      expect(new Set(tabs.map(tab => tab.href)).size).toBe(5);
++      expect(tabs[0]).toMatchObject({ label: "หน้าหลัก", href: "/home", icon: "home" });
++      expect(tabs.filter(tab => isActive("/home", tab))).toEqual([tabs[0]]);
++      expect(tabs.slice(-2).map(tab => tab.href)).toEqual(["/alerts", "/more"]);
+     }
++  });
++
++  it("selects the destination being viewed without also selecting Home", () => {
++    for (const role of ROLES) {
++      const tabs = bottomTabs([role]);
++      for (const tab of tabs) {
++        expect(tabs.filter(item => isActive(tab.href, item))).toEqual([tab]);
++      }
++    }
++    const tabs = bottomTabs(["QC_HEAD"]);
++    expect(tabs.filter(tab => isActive("/plans/12/work-orders/new", tab)).map(tab => tab.href)).toEqual(["/plans"]);
++  });
++
++  it("gives QA a separate queue shortcut without routing it back to Home", () => {
++    const queue = bottomTabs(["QA_INSPECTOR"]).find(tab => tab.label === "คิว QA");
++    expect(queue?.href).toBe("/qa-queue");
++    expect(isAvailable(queue!.href)).toBe(false);
+   });
+ 
+   it("prioritizes the inspection role consistently across navigation and account labels", () => {
+@@ -28,12 +48,12 @@
+ 
+   it("only enables destinations that have pages", () => {
+     for (const path of ["/home", "/more", "/alerts", "/admin/users", "/master", "/plans", "/plans/new", "/plans/12", "/plans/12?tab=history", "/plans/12/work-orders/new", "/jobs"]) expect(isAvailable(path)).toBe(true);
+-    for (const path of ["/plans/plan-001", "/scan", "/settings"]) expect(isAvailable(path)).toBe(false);
++    for (const path of ["/plans/plan-001", "/scan", "/settings", "/checklists", "/qa-queue"]) expect(isAvailable(path)).toBe(false);
+   });
+ 
+   it("sends the plan and job tabs to the real pages on mobile (docs/16 §0)", () => {
+-    expect(bottomTabs(["QC_HEAD"]).map((tab) => tab.href)).toEqual(["/plans", "/jobs", "/alerts", "/more"]);
+-    expect(bottomTabs(["QA_HEAD"])[0].href).toBe("/plans");
+-    expect(bottomTabs(["QC_INSPECTOR"])[0].href).toBe("/jobs");
++    expect(bottomTabs(["QC_HEAD"]).map((tab) => tab.href)).toEqual(["/home", "/plans", "/jobs", "/alerts", "/more"]);
++    expect(bottomTabs(["QA_HEAD"])[1].href).toBe("/plans");
++    expect(bottomTabs(["QC_INSPECTOR"])[1].href).toBe("/jobs");
+   });
+ });
+--- before/src/lib/auth/page-access.test.ts
++++ after/src/lib/auth/page-access.test.ts
+@@ -40,6 +40,7 @@
+       "/home": "home", "/alerts": "alerts", "/more": "account", "/plans": "plans",
+       "/jobs": "jobs", "/qa-queue": "qa-queue", "/scan": "scan", "/master": "master",
+       "/reports": "reports", "/settings": "settings", "/admin/users": "users",
++      "/checklists": "checklists",
+     };
+     for (const role of ROLES) {
+       const desktop = sidebarSections([role]).flatMap(section => section.items);
+--- before/docs/09-app-shell.md
++++ after/docs/09-app-shell.md
+@@ -13,7 +13,7 @@
+ 
+ 1. **Top app bar** — ชื่อหน้าปัจจุบัน + สถานะซิงค์ถ้ามี
+ 2. **เนื้อหาเต็มความกว้าง** — เลื่อนในพื้นที่ระหว่างแถบบนกับแถบล่าง
+-3. **Bottom tab bar** — 4 แท็บหลัก ติดขอบล่าง ไอคอน + คำไทย สั้น ๆ (โทนเดียวกับแอปมือถือทั่วไป เช่น Instagram: แถบคงที่ tap แล้วสลับหน้า ไม่ใช่เมนูแฮมเบอร์เกอร์อย่างเดียว)
++3. **Bottom tab bar** — 5 แท็บหลัก ติดขอบล่าง ไอคอน + คำไทย สั้น ๆ (โทนเดียวกับแอปมือถือทั่วไป เช่น Instagram: แถบคงที่ tap แล้วสลับหน้า ไม่ใช่เมนูแฮมเบอร์เกอร์อย่างเดียว)
+ 
+ บนจอ ≥ 768 px ใช้ **sidebar ซ้าย** แทนแท็บล่าง (รายการเดียวกัน) — ไม่โชว์สองอันพร้อมกัน
+ 
+@@ -23,37 +23,28 @@
+ 
+ ## 2. แท็บ (ค่าตั้งต้น)
+ 
+-จำนวน **4 แท็บ** เสมอ (ห้าม 6+ เพราะนิ้วโป้งเอื้อมไม่ถึงและตัดคำไทย) · ลำดับซ้าย → ขวา · ป้ายไม่ใส่ภาษาอังกฤษในแถบ
++จำนวน **5 แท็บ** เสมอ (ปรับตามคำขอ 21 ต.ค. 2026: Home แยกเป็นแท็บแรก) (ห้าม 6+ เพราะนิ้วโป้งเอื้อมไม่ถึงและตัดคำไทย) · ลำดับซ้าย → ขวา · ป้ายไม่ใส่ภาษาอังกฤษในแถบ
+ 
+ ชุดตามบทบาท **หลัก** ของผู้ใช้ใน session (ถ้ามีหลายบทบาท ใช้บทบาทที่เลือก "ตรวจในฐานะ" ล่าสุด ถ้ายังไม่เลือกใช้บทบาทแรกตามลำดับ QC Insp. → QA Insp. → QC Head → QA Head → อื่น)
+ 
+-### 2.1 ผู้ตรวจ QC (R1.0)
++### 2.1 แท็บปัจจุบัน (21 ต.ค. 2026)
+ 
+-| # | ป้าย | หน้า | หมายเหตุ |
+-|---|---|---|---|
+-| 1 | งานของฉัน | S02 / S04 | แท็บแรกหลัง login (`authPolicy.homePath`) — การ์ดใบงาน + Rework ค้าง (FR-JOB-04) |
+-| 2 | สแกน | S05 | เริ่มเครื่องใหม่จากใบงานที่กำลังทำ · ถ้ายังไม่กดรับงาน แสดงข้อความให้ไปแท็บงานของฉัน |
+-| 3 | แจ้งเตือน | S03 | R1.0 โชว์แท็บและหน้าว่าง/"ยังไม่มีแจ้งเตือน" · เนื้อหาจริง R1.1 (FR-NTF-*) · badge เมื่อมีรายการยังไม่อ่าน |
+-| 4 | เพิ่มเติม | S31 | บัญชี, ออกจากระบบ, สถานะซิงค์, เวอร์ชันแอป, เครื่องส่วนกลาง (ถ้าเป็น) |
++ทุกบทบาทมี **หน้าหลัก** เป็นไอคอนรูปบ้านทางซ้ายสุด ตามด้วยทางลัด 2 ช่องตามสิทธิ์ และจบด้วย **แจ้งเตือน · เพิ่มเติม**:
+ 
+-ตรงกับโครงใน wireframe: `งานของฉัน · สแกน · แจ้งเตือน · เพิ่มเติม`
++| บทบาทหลัก | 5 แท็บจากซ้ายไปขวา |
++|---|---|
++| QC Inspector | หน้าหลัก · งานของฉัน · สแกน · แจ้งเตือน · เพิ่มเติม |
++| QA Inspector | หน้าหลัก · คิว QA · สแกน · แจ้งเตือน · เพิ่มเติม |
++| QC Head | หน้าหลัก · แผน · งาน · แจ้งเตือน · เพิ่มเติม |
++| QA Head | หน้าหลัก · แผน · คิว QA · แจ้งเตือน · เพิ่มเติม |
++| Admin | หน้าหลัก · ตั้งค่า · แผน · แจ้งเตือน · เพิ่มเติม |
++| Master Admin | หน้าหลัก · ข้อมูลหลัก · เช็กลิสต์ · แจ้งเตือน · เพิ่มเติม |
++| Purchasing | หน้าหลัก · รายงาน · เช็กลิสต์ · แจ้งเตือน · เพิ่มเติม |
++| PM / Management | หน้าหลัก · รายงาน · ข้อมูลหลัก · แจ้งเตือน · เพิ่มเติม |
+ 
+-### 2.2 ผู้ตรวจ QA (R1.1)
++หลายบทบาทใช้ลำดับบทบาทหลักเดิมและสิทธิ์รวมกัน โมดูลที่ยังไม่มีหน้า (คิว QA, สแกน, ตั้งค่า, รายงาน, เช็กลิสต์) คงแสดงแบบ disabled ผ่าน `ShellLink` และไม่พาไป 404; ไม่เพิ่มสิทธิ์หรือสร้างโมดูลใหม่เพื่อเติมแถบ
+ 
+-แท็บ 1 เปลี่ยนเป็น **คิว QA** (S28) แทนงานของฉัน · สแกน / แจ้งเตือน / เพิ่มเติม คงเดิม · ผู้ที่มีทั้ง QC และ QA สลับชุดแท็บเมื่อเลือก "ตรวจในฐานะ"
+-
+-### 2.3 หัวหน้า / จัดซื้อ / Admin (มือถือ)
+-
+-| # | ป้าย | หน้า |
+-|---|---|---|
+-| 1 | แผน | S10 |
+-| 2 | งาน | S04 หรือ S28 ตามบทบาทที่ตรวจได้ ถ้าตรวจไม่ได้ → ทางลัดเปิดแผน (S11) |
+-| 3 | แจ้งเตือน | S03 |
+-| 4 | เพิ่มเติม | S31 (รวมทางลัด Master / ตั้งค่า / Audit ที่สิทธิ์ถึง — หน้ารายการบนมือถืออ่านอย่างเดียวตาม 02 §5.2) |
+-
+-ค้นหาทั่วระบบ (S30) อยู่ใน **เพิ่มเติม** จนถึง R1.1 ไม่แยกเป็นแท็บที่ 5
+-
+----
++Home ใช้ `/home` โดยตรง ไม่ผูก active กับแท็บงาน/แผน และคิว QA ใช้ `/qa-queue` แยกจาก Home
+ 
+ ## 3. พฤติกรรมแถบล่าง
+ 
+@@ -62,7 +53,7 @@
+ 3. แต่ละแท็บ: ไอคอนบน (≈ 22–24 px) คำไทยล่าง (≈ 11 px) · เป้ากดเต็มคอลัมน์สูงอย่างน้อย 44 px ไม่นับ safe-area
+ 4. **แท็บที่เลือก:** สีตัวอักษร/ไอคอนเข้มขึ้น (token `ti-50` หรือ `ember-500`) · **แท็บอื่น:** `ti-500` · ไม่ใช้สีอย่างเดียว (ไอคอนเปลี่ยนน้ำหนัก/เส้น vs เติม)
+ 5. กดแท็บที่เปิดอยู่แล้ว → เลื่อนเนื้อหาขึ้นบนสุดของหน้านั้น (ไม่รีโหลดทั้งแอป)
+-6. Badge แจ้งเตือนเป็นตัวเลขบนไอคอน แท็บ 3 · สูงสุด "9+" · อ่านแล้วหาย · สี `ember-500` พื้นกลม
++6. Badge แจ้งเตือนเป็นตัวเลขบนไอคอน แท็บ 4 · สูงสุด "9+" · อ่านแล้วหาย · สี `ember-500` พื้นกลม
+ 7. เนื้อหาทุกหน้าที่มีแท็บต้องมี `padding-bottom` พอให้การ์ดสุดท้ายไม่ถูกแถบบัง
+ 8. แนวนอนมือถือ: แท็บยังอยู่ล่าง ความสูงอย่างน้อย 48 px + safe-area — ห้ามย้ายไปข้างจอใน R1.0
+ 9. คีย์บอร์ดเปิด (`visualViewport` หด): **ซ่อนแท็บ** ชั่วคราว เพื่อไม่ให้ทับช่องกรอก แล้วโชว์กลับเมื่อปิดคีย์บอร์ด
+@@ -92,12 +83,12 @@
+ 
+ ไม่ใช้หน้าเว็บทักทายอย่างเดียวแบบ placeholder ปัจจุบัน
+ 
+-โครงเนื้อหา (บนลงล่าง) เมื่อมีแท็บ งานของฉัน เป็นแท็บ 1:
++โครงเนื้อหา Home (แท็บ 1) จากบนลงล่าง:
+ 
+ 1. ทักทายสั้นหนึ่งบรรทัด + รหัสพนักงาน (mono)
+ 2. สรุปงาน: จำนวนรอรับ / กำลังทำ / Rework ค้าง (กดไปจุดนั้นในหน้า)
+ 3. รายการการ์ดใบงานตาม FR-JOB-04
+-4. ทางลัดที่ไม่มีแท็บ (เช่น สถานะซิงค์) เป็นปุ่มในหน้า ไม่ซ้ำกับ 4 แท็บล่าง
++4. ทางลัดที่ไม่มีแท็บ (เช่น สถานะซิงค์) เป็นปุ่มในหน้า ไม่ซ้ำกับ 5 แท็บล่าง
+ 
+ แท็บ **เพิ่มเติม (S31)** รับของที่เคยอยู่บนหน้า placeholder: ออกจากระบบ, บทบาท, โหมดเครื่องส่วนกลาง, เวอร์ชัน (`QCheck v…`)
+ 
+@@ -119,7 +110,7 @@
+ 
+ ## 6. Accessibility และ PWA
+ 
+-- แท็บเป็น `nav` + `aria-label="หน้าหลัก"` · รายการเป็นลิงก์/`role="tab"` ที่ระบุ `aria-current="page"` เมื่อเลือก
++- แท็บเป็น `nav` + `aria-label="เมนูหลัก"` · รายการเป็นลิงก์/`role="tab"` ที่ระบุ `aria-current="page"` เมื่อเลือก
+ - เป้าหมายรู้สึกเป็นแอปเมื่อติดตั้ง Home Screen (`display-mode: standalone`) — ในเบราว์เซอร์แถบ URL ของระบบยังอยู่ได้ ตามข้อจำกัด iOS ใน 04 §4.4
+ - ห้ามซ่อนแถบด้วย `position: fixed` แล้วเนื้อหาไม่มีช่องว่าง — ต้องจองที่ใน layout
+ - Reduced motion: สลับแท็บทันที ไม่สไลด์ทั้งหน้า
+@@ -133,14 +124,14 @@
+ | `(app)/layout.tsx` | ตรวจ session ใน Suspense; top bar รับ roles, sidebar รับ user; fallback เป็นสีพื้นพร้อมข้อความโหลดสำหรับ screen reader และ shell ทั้งหน้าเฟดเข้า 560 ms |
+ | Home | ข้อมูลตัวอย่าง 5 แผน/3 ข้อบกพร่อง มีป้าย Demo; KPI คำนวณจากชุดข้อมูลเดียวกับตาราง; ค้นหาแผน/Invoice/รุ่นแล้วกด Enter |
+ | เมนูตามบทบาท | `components/shell/nav.ts` ใช้กติกาเดียวกับ `lib/auth/page-access.ts`; sidebar/mobile ซ่อนเมนูที่บทบาทเข้าไม่ได้ · ปุ่มเปิดแผน/ข้อมูลหลักตามสิทธิ์ |
+-| Mobile tabs | 4 รายการ, active state, safe-area, กดซ้ำเลื่อนบนสุด; ซ่อนเมื่อ viewport หดจากคีย์บอร์ด |
++| Mobile tabs | 5 รายการ, Home แยกชัดเจน, active state, safe-area, กดซ้ำเลื่อนบนสุด; ซ่อนเมื่อ viewport หดจากคีย์บอร์ด |
+ | Sidebar | แสดงตั้งแต่ 768 px, รายการเพิ่มเติมตามบทบาท, ข้อมูลบัญชีและ logout |
+ | `/alerts` | หน้าว่าง “ยังไม่มีแจ้งเตือน” ตาม R1.0; ยังไม่เชื่อมบริการแจ้งเตือน |
+ | `/more` | โปรไฟล์/บทบาทและ logout แบบ POST; มือถือออกจากระบบได้ |
+ | หน้าอนาคต | แผน/งาน/สแกน/รายงาน/Master/settings ยังไม่มี business flow; เมนูและปุ่มสีจางพร้อม aria-disabled ไม่พาไป 404 |
+ | กลุ่ม `(app)` | ไม่มี WebGL |
+ 
+-ความต่างจากเป้าหมาย §2–4: QA ใช้ `/home` เป็น landing ชั่วคราวจนมี `/qa-queue`; หน้า Home ยังเป็น dashboard ชุดข้อมูลตัวอย่าง ไม่ใช่รายการใบงานจริงตามผู้ใช้ · ยังไม่มี “ตรวจในฐานะ”, badge แจ้งเตือนจริง, sync/outbox หรือการรับงาน/ตรวจ Checklist
++ความต่างจากเป้าหมาย §2–4: คิว QA ยัง disabled จนมี `/qa-queue`; หน้า Home ยังเป็น dashboard ชุดข้อมูลตัวอย่าง ไม่ใช่รายการใบงานจริงตามผู้ใช้ · ยังไม่มี “ตรวจในฐานะ”, badge แจ้งเตือนจริง, sync/outbox หรือการรับงาน/ตรวจ Checklist
+ 
+ ผลตรวจอ้างอิง [login-progress.md](login-progress.md); ตรวจเพิ่มเติมด้วยบัญชีทดสอบบนระบบกลางจริง TEST001–TEST009 ครบ 9 บทบาทแล้ว ทั้ง Login, desktop/mobile menus, โปรไฟล์, Logout และป้องกันเข้าหน้าปัจจุบันหลัง Logout · กรณี API ล่ม/permission ผิดยังใช้ fixture
+ 
+@@ -165,4 +156,4 @@
+ 
+ โมดูลนอก Home/แจ้งเตือน/บัญชียังไม่เปิดใช้: ตารางนี้กำหนด page admission สำหรับต่อยอด ไม่ได้หมายความว่ามี business flow หรือกรองข้อมูลรายแถวแล้ว ผู้ตรวจต้องเห็นเฉพาะรายงานของตัวเอง, Purchasing ดูเฉพาะรายงานที่ออกแล้ว, หัวหน้า QC ดู Audit ของแผนก และสิทธิ์แก้ไข/อนุมัติต้องตรวจซ้ำใน data query/Server Action/API ของแต่ละโมดูลตาม docs/02 เมื่อเริ่มสร้าง ห้ามใช้แค่เมนูหรือ layout เป็นตัวป้องกัน
+ 
+-Mobile: QC Inspector → งานของฉัน/สแกน, QA Inspector → คิว QA/สแกน, QC Head → แผน/งาน, QA Head → แผน/คิว QA; บทบาทอื่น → หน้าหลัก/ตั้งค่า (Admin), ข้อมูลหลัก (Master Admin), รายงาน (Purchasing/PM/Management); ทุกคนมีแจ้งเตือน/เพิ่มเติม รวม 4 แท็บ เมนูอนาคตยัง disabled เหมือนเดิม
++Mobile: ทุกบทบาทมี Home แยกเป็นแท็บแรก รวม 5 แท็บตาม §2.1 เมนูอนาคตยัง disabled เหมือนเดิม

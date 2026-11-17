@@ -1,0 +1,19 @@
+{
+  "src/components/canvas/CompressorCylinder.tsx": "f3bd826654102f0676ad7337c4a871c47dac5a5b59db9d7795f6172cf9986748",
+  "src/components/canvas/compressorGeometry.ts": "b70a7dfd13ee98ba586fa7d4c2db9d2d50fe4eb67dd2b2a2f68779107f80775e",
+  "src/components/canvas/Checkpoints.tsx": "3dfbd47f11278e436f316eecb3acd9365a02b38b46a63f50221dd920f3a54771",
+  "src/components/canvas/Checkpoints.test.ts": "38238b16c87f9928a4e7fdd54e3e092302f0abcafaac1edb2e5e72904e1832ef",
+  "src/components/canvas/stage.test.ts": "42a1209570d114a3b4dd05b1fba5193dec2a63635efb459f523779c1236495d6",
+  "src/components/canvas/Scene.tsx": "eccd7fa54257a1a708c1a9c4e5cf82e05258ab9ef9d0bd2dbde186606932600c",
+  "src/components/canvas/CameraRig.tsx": "6768efa8908a2bb40799172ca1787041b822c2a0e928bd5922ff27244497d3d8",
+  "src/components/canvas/framing.ts": "c34d8152beddd6e80c881e90e3d18334252a513ada52b94303956bb70eb1ff0f",
+  "src/components/canvas/cameraMotion.ts": "5df6f9b0373ba79193535d47e97f7cd588dade791b5489ffbaa64b396c4b3df2",
+  "src/components/canvas/cameraMotion.test.ts": "9610bea7e5438ed7c62da54804c393c448314c9d7b70b9943c2dbd344412bf86",
+  "src/components/canvas/scanTimeline.ts": "244fdeed13008742838850822dc2d71c2c745b646fb7ab7fb431946717fb05c5",
+  "src/components/canvas/scanTimeline.test.ts": "02ecbfb8906ef679b6c6a2b2264f1bb9d4bd2009c962f91b9f3a9ac4b8f49095",
+  "src/components/canvas/ScanRing.tsx": "b6f6fced8f1d26370b1a8ad6bc3c434b3302970c46521f55dbee942ca15fd5d5",
+  "src/config/experience.ts": "8cbc53cc295c0cea9526698a676af36eea719e5c0ca2b0a39f0f5234b1b3493c",
+  "public/auth/poster-landscape.avif": "f12057e772e3e74bb3bba9529720f32f8c662dfb684f132539b49cabdee56add",
+  "public/auth/poster-portrait.avif": "cde21423df1d684428816dc649450b775e984a39cb0269e3b6791fa1d9305ce9",
+  "src/components/canvas/AuthStage.tsx": "976175cac2c7c6b4f60040b65c0e55b9cc0d1dae340b3bf3eb3452830a02ec97"
+}

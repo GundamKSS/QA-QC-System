@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-24",
+  "lint": "pass",
+  "typecheck": "pass",
+  "productionBuild": "pass",
+  "tests": {
+    "passed": 456,
+    "skipped": 8
+  },
+  "browser": {
+    "sizes": [
+      [
+        1280,
+        720
+      ],
+      [
+        820,
+        1180
+      ],
+      [
+        844,
+        390
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "glassLayers": 1,
+    "expandedItems": 1,
+    "labelBackground": "transparent",
+    "blurMatchesHeader": "blur(18px) saturate(1.6)",
+    "horizontalOverflow": false,
+    "keyboardFocus": "pass",
+    "accountEscapeAndReopen": "pass",
+    "mobileTabs": 5,
+    "shortViewportAccountVisible": true
+  },
+  "undo": "rehearsed; original hashes restored and three added files removed"
+}

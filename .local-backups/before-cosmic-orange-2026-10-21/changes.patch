@@ -1,0 +1,34 @@
+--- before/src/app/app-theme.css
++++ after/src/app/app-theme.css
+@@ -16,9 +16,10 @@
+     --color-ti-500: #cbbfaf;
+     --color-ti-600: #9b8a76;
+ 
+-    --color-ember-400: #ffc791;
+-    --color-ember-500: #efa86f;
+-    --color-ember-600: #df945b;
++    /* Cosmic Orange: brighter text highlights, vivid controls, deeper press. */
++    --color-ember-400: #ff9a5c;
++    --color-ember-500: #ff7628;
++    --color-ember-600: #ed6620;
+     --color-pass: #91e0ad;
+     --color-fail: #ffadb8;
+   }
+@@ -64,7 +65,7 @@
+   }
+ 
+   .app-theme-sand .app-primary-action:focus-visible {
+-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 0 14px rgb(239 168 111 / 0.18);
++    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 0 14px color-mix(in srgb, var(--color-ember-500) 18%, transparent);
+   }
+ 
+   .app-theme-sand .app-metal-action {
+@@ -74,7 +75,7 @@
+ 
+   @media (hover: hover) {
+     .app-theme-sand .app-primary-action:not(:disabled, [aria-disabled="true"]):hover {
+-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), 0 0 14px rgb(239 168 111 / 0.16);
++      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), 0 0 14px color-mix(in srgb, var(--color-ember-500) 16%, transparent);
+     }
+   }
+ }

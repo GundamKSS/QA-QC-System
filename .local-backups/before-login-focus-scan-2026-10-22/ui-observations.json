@@ -1,0 +1,100 @@
+[
+  {
+    "state": "username",
+    "sample": {
+      "angle": 5.25528611085285,
+      "visible": true,
+      "arcOpacity": 0.7999999999999994,
+      "coreOpacity": 0.4,
+      "headVisible": true,
+      "frame": 7050,
+      "calls": 29
+    }
+  },
+  {
+    "state": "password-empty",
+    "sample": {
+      "angle": 5.781876879454565,
+      "visible": true,
+      "arcOpacity": 0.7999999999999994,
+      "coreOpacity": 0.4,
+      "headVisible": true,
+      "frame": 7093,
+      "calls": 29
+    }
+  },
+  {
+    "state": "password-typed",
+    "sample": {
+      "angle": 5.919807756916631,
+      "visible": true,
+      "arcOpacity": 0.9499999999999992,
+      "coreOpacity": 0.4,
+      "headVisible": true,
+      "frame": 7104,
+      "calls": 29
+    }
+  },
+  {
+    "state": "password-cleared",
+    "sample": {
+      "angle": 4.43548002791609,
+      "visible": true,
+      "arcOpacity": 0.7999999999999995,
+      "coreOpacity": 0.4,
+      "headVisible": true,
+      "frame": 10010,
+      "calls": 29
+    }
+  },
+  {
+    "state": "password-empty-again",
+    "sample": {
+      "angle": 3.201282914005814,
+      "visible": true,
+      "arcOpacity": 0.7999999999999995,
+      "coreOpacity": 0.4,
+      "headVisible": true,
+      "frame": 13943,
+      "calls": 29
+    }
+  },
+  {
+    "state": "password-held",
+    "sample": {
+      "angle": 2.627717855252647,
+      "visible": true,
+      "arcOpacity": 0.7999999999999995,
+      "coreOpacity": 0.4,
+      "headVisible": true,
+      "frame": 14905,
+      "calls": 29
+    }
+  },
+  {
+    "state": "blur-start",
+    "phase": "idle",
+    "sample": {
+      "angle": 2.6648185684905825,
+      "visible": true,
+      "arcOpacity": 0.12589040509854243,
+      "coreOpacity": 0.38853144584258104,
+      "headVisible": true,
+      "frame": 14963,
+      "calls": 29
+    }
+  },
+  {
+    "state": "blur-settled",
+    "phase": "idle",
+    "sample": {
+      "angle": 2.6648185684905825,
+      "visible": false,
+      "arcOpacity": 3.554852556921588e-23,
+      "coreOpacity": 0.0009902329331555157,
+      "headVisible": true,
+      "frame": 16452,
+      "calls": 26
+    }
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "lint": "passed",
+  "typecheck": "passed",
+  "tests": {
+    "passed": 398,
+    "skipped": 8
+  },
+  "targeted_scan_orbit_tests": 28,
+  "production_build": "passed; isolated preview without real DB",
+  "browser": [
+    "Username focus: orbit angle advances",
+    "Empty Password: orbit remains visible and advances",
+    "Typing Password: coreOpacity0.4 and arcOpacity0.95",
+    "Clearing fields: orbit continues",
+    "Blur: orbit angle holds and arc fades to invisible"
+  ],
+  "undo_rehearsal": "7 originals match exactly;2 added files removed",
+  "preview_diagnostics": "Only in temporary preview; removed before production build"
+}

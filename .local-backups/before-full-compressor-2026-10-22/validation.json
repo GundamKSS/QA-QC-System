@@ -1,0 +1,59 @@
+{
+  "lint": "passed",
+  "typecheck": "passed",
+  "production_build": "passed",
+  "tests": {
+    "passed": 407,
+    "skipped": 8
+  },
+  "geometry": {
+    "surfaces": 9,
+    "triangles": 30346,
+    "peak_observed_draw_calls": 31,
+    "elliptical_scanner": "aligned to model yaw, full geometry fits orbit"
+  },
+  "visual": {
+    "live_actual_app": "http://localhost:3000/login",
+    "viewports_checked": [
+      [
+        320,
+        640
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        820,
+        1180
+      ],
+      [
+        844,
+        390
+      ],
+      [
+        1024,
+        768
+      ],
+      [
+        1280,
+        720
+      ],
+      [
+        1440,
+        900
+      ]
+    ],
+    "horizontal_overflow": false,
+    "focus_fields": [
+      "username",
+      "password"
+    ],
+    "signal_wave_animation": "two expanding/fading wavefronts per station, staggered; observed different scales/opacity in running preview",
+    "reduced_motion": "renderer still flag verified in isolated preview; wave scale fixed1 and opacity0; model yaw fixed",
+    "mock_auth": "invalid credentials showed error; correct mock login showed success and welcome",
+    "static_fallback": "all five image sources selected correctly, zero canvases in forced static tier"
+  },
+  "restore": "rehearsed in temporary copy including removal of five new files and restoration of removed original component",
+  "database": "no changes"
+}

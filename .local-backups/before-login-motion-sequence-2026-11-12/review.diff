@@ -1,0 +1,478 @@
+--- before/lib/config/experience.ts
++++ lib/config/experience.ts
+@@ -67,6 +67,8 @@
+     successSeconds: 0.6,
+     phaseTransitionSeconds: 0.18,
+     ringRadius: 2.2,
++    /** Credential views show the completed blueprint instead of another orbiting scanner. */
++    focusOrbitEnabled: false,
+     /** A visible scanner head circles the model while a credential input has focus. */
+     focusOrbitSeconds: 4.2,
+   },
+@@ -98,8 +100,6 @@
+   },
+ 
+   interaction: {
+-    /** Credential focus keeps the composition stable; inspection remains available separately. */
+-    credentialEffects: false,
+     maxDragDeg: 35,
+     parallaxDeg: 2.5,
+     dragRadiansPerPx: 0.006,
+@@ -108,12 +108,16 @@
+     inertiaDamping: 7,
+     cameraDamping: 7,
+     focusPush: 0.06,
+-    /** Username becomes a large, subdued backdrop; Password returns to the full machine. */
++    /** Both credential steps share a close view, so Password can open the assemblies in place. */
+     usernameBackdrop: {
+       height: 0.94,
+       centerX: 0.5,
+       centerY: 0.48,
+       opacity: 0.5,
++      /** Portrait screens keep the expanded assemblies in the area above the form. */
++      compactHeight: 0.32,
++      compactWidth: 0.98,
++      compactCenterY: 0.18,
+     },
+     /**
+      * Stiffness (rad/s) of the critically damped spring that moves framing, zoom and fade
+--- before/components/canvas/AuthStage.tsx
++++ components/canvas/AuthStage.tsx
+@@ -38,7 +38,7 @@
+   const settled = useAfterLoadIdle();
+   const reducedMotion = useReducedMotion();
+   const signal = useAuthStage();
+-  const usernameExpanded = stage.interaction.credentialEffects && signal.usernameFocused;
++  const credentialExpanded = signal.usernameFocused || signal.passwordFocused;
+   const root = useRef<HTMLDivElement>(null);
+   const hotspots = useRef<(HTMLButtonElement | null)[]>([]);
+   const [selected, setSelected] = useState<InspectionId | null>(null);
+@@ -87,7 +87,7 @@
+ 
+   return (
+     <>
+-    <div ref={attachRoot} aria-hidden="true" data-phase={signal.phase} data-username-focused={(usernameExpanded && !["submitting", "success", "locked"].includes(signal.phase)) || undefined} className="group/stage pointer-events-none absolute inset-0 -z-10 overflow-hidden">
++    <div ref={attachRoot} aria-hidden="true" data-phase={signal.phase} data-credential-focused={(credentialExpanded && signal.phase !== "locked") || undefined} className="group/stage pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+       {children}
+       {tier === "static" && <StaticPoster />}
+       {tier === "3d" && settled && eventSource && (
+@@ -96,7 +96,7 @@
+             className="absolute inset-x-0 top-0 h-svh opacity-0 transition-opacity ease-out group-data-ready/stage:opacity-[var(--stage-opacity,1)] group-data-faded-in/stage:transition-none"
+             style={{ transitionDuration: signal.phase === "success" ? "0ms" : `${stage.fadeInMs}ms` }}
+           >
+-            <Scene still={reducedMotion} phase={signal.phase} phaseRound={signal.round} typing={signal.typing} inputFocused={signal.inputFocused} usernameExpanded={usernameExpanded} eventSource={eventSource} onFade={setFade} onReady={() => setReady(true)} onLost={() => setReady(false)} selected={inspection} highlighted={highlighted} hotspots={hotspots} />
++            <Scene still={reducedMotion} phase={signal.phase} phaseRound={signal.round} typing={signal.typing} inputFocused={signal.inputFocused} usernameExpanded={signal.usernameFocused} passwordExpanded={signal.passwordFocused} eventSource={eventSource} onFade={setFade} onReady={() => setReady(true)} onLost={() => setReady(false)} selected={inspection} highlighted={highlighted} hotspots={hotspots} />
+           </div>
+         </StageBoundary>
+       )}
+--- before/components/canvas/CameraRig.tsx
++++ components/canvas/CameraRig.tsx
+@@ -4,15 +4,15 @@
+ import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+ import { Euler, Quaternion, Vector3, type PerspectiveCamera, type PointLight } from "three";
+ import { palette, stage } from "@/lib/config/experience";
+-import { clampParallax, sampleCamera, sampleUsernameBackdrop, springStep, successEntryBlend, type Spring } from "./cameraMotion";
++import { clampParallax, sampleCamera, sampleUsernameBackdrop, springStep, type Spring } from "@/components/canvas/cameraMotion";
+ import { inspectionFraming, inspectionPart, type InspectionId } from "./inspectionParts";
+ import { dims } from "./compressorGeometry";
+ import { framingFor, placeCamera } from "./framing";
+ import type { ScanFrame, ScanPhase } from "./scanTimeline";
+ 
+-export function CameraRig({ frameRef, phase, still, usernameExpanded, selected, eventSource, onFade }: {
++export function CameraRig({ frameRef, phase, still, credentialExpanded, selected, eventSource, onFade }: {
+   frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean;
+-  usernameExpanded: boolean; selected: InspectionId | null;
++  credentialExpanded: boolean; selected: InspectionId | null;
+   eventSource: HTMLElement; onFade: (opacity: number) => void;
+ }) {
+   const get = useThree((state) => state.get);
+@@ -25,7 +25,7 @@
+   const parallaxRef = useRef({ x: 0, y: 0 });
+   const lightRef = useRef<PointLight>(null);
+   const viewRef = useRef({ offsetX: placement.offsetX, offsetY: placement.offsetY, opacity: 1 });
+-  const entryRef = useRef({ phase: null as ScanPhase | null, offsetX: placement.offsetX, offsetY: placement.offsetY });
++  const entryRef = useRef({ phase: null as ScanPhase | null, offsetX: placement.offsetX, offsetY: placement.offsetY, opacity: 1 });
+   // Framing, zoom and fade ride critically damped springs: they start from rest and keep their
+   // speed when the target flips mid-way (e.g. code field → password field), so the view never kicks.
+   const springsRef = useRef<Record<"zoom" | "centerX" | "centerY" | "opacity", Spring>>({
+@@ -36,7 +36,7 @@
+   });
+   const vectors = useMemo(() => ({ offset: new Vector3(), position: new Vector3(), aim: new Vector3(), look: new Vector3(...stage.camera.target), entryPosition: new Vector3(), entryLook: new Vector3(), rotation: new Euler(), modelRotation: new Quaternion() }), []);
+ 
+-  useEffect(() => { get().invalidate(); }, [get, usernameExpanded, selected, still]);
++  useEffect(() => { get().invalidate(); }, [get, credentialExpanded, selected, still]);
+ 
+   useEffect(() => {
+     const hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+@@ -79,7 +79,7 @@
+   useFrame(({ camera, scene }, delta) => {
+     const elapsed = frameRef.current.phaseElapsed ?? 0;
+     const beat = sampleCamera(phase, elapsed, frameRef.current.introProgress, still);
+-    const backdrop = sampleUsernameBackdrop(framing, phase, usernameExpanded, still);
++    const backdrop = sampleUsernameBackdrop(framing, phase, credentialExpanded, still);
+     const view = viewRef.current;
+     const entry = entryRef.current;
+     if (entry.phase !== phase) {
+@@ -89,6 +89,7 @@
+         vectors.entryLook.copy(vectors.look);
+         entry.offsetX = view.offsetX;
+         entry.offsetY = view.offsetY;
++        entry.opacity = view.opacity;
+       }
+     }
+     const step = Math.min(Math.max(delta, 0), 0.05);
+@@ -127,11 +128,13 @@
+     const offsetX = width * (0.5 - spring("centerX", centerX));
+     const offsetY = height * (0.5 - spring("centerY", centerY));
+     if (phase === "success" && !still) {
+-      const blend = successEntryBlend(elapsed);
+-      camera.position.lerpVectors(vectors.entryPosition, vectors.position, blend);
+-      vectors.look.lerpVectors(vectors.entryLook, vectors.aim, blend);
+-      view.offsetX = entry.offsetX + (offsetX - entry.offsetX) * blend;
+-      view.offsetY = entry.offsetY + (offsetY - entry.offsetY) * blend;
++      // Scale the distance actually on screen, so a close credential view never pulls back first.
++      vectors.aim.set(vectors.entryLook.x, vectors.entryLook.y + beat.aimY - stage.camera.target[1], vectors.entryLook.z);
++      vectors.offset.copy(vectors.entryPosition).sub(vectors.entryLook).multiplyScalar(beat.zoom);
++      camera.position.copy(vectors.aim).add(vectors.offset);
++      vectors.look.copy(vectors.aim);
++      view.offsetX = entry.offsetX * beat.zoom;
++      view.offsetY = entry.offsetY * beat.zoom;
+     } else {
+       camera.position.lerp(vectors.position, direct ? 1 : damping);
+       vectors.look.lerp(vectors.aim, direct ? 1 : damping);
+@@ -146,7 +149,7 @@
+       const intensity = phase === "focus" ? 0.85 : phase === "locked" ? 0.05 : 0.6;
+       lightRef.current.intensity += (intensity - lightRef.current.intensity) * (still ? 1 : damping);
+     }
+-    view.opacity = spring("opacity", selected ? 1 : backdrop.opacity);
++    view.opacity = phase === "success" && !still ? entry.opacity : spring("opacity", selected ? 1 : backdrop.opacity);
+     onFade(beat.opacity * view.opacity);
+   }, -1);
+ 
+--- before/components/canvas/Scene.tsx
++++ components/canvas/Scene.tsx
+@@ -13,7 +13,8 @@
+ import { CameraRig } from "./CameraRig";
+ import { ModelInteraction } from "./ModelInteraction";
+ import { Checkpoints } from "./Checkpoints";
+-import { advanceUsernameAssembly, usernameAssemblyActive, usernameAssemblyLayouts } from "./usernameAssembly";
++import { advanceUsernameAssembly, usernameAssemblyLayouts } from "@/components/canvas/usernameAssembly";
++import { sampleCredentialPresentation } from "@/components/canvas/credentialPresentation";
+ import { ExplodedPart } from "./ExplodedPart";
+ import type { InspectionId } from "./inspectionParts";
+ import { Dust } from "./Dust";
+@@ -30,6 +31,8 @@
+   inputFocused: boolean;
+   /** Presentation-only username focus; no input text enters the scene. */
+   usernameExpanded: boolean;
++  /** Presentation-only password focus opens the detailed assemblies. */
++  passwordExpanded: boolean;
+   eventSource: HTMLElement;
+   onFade: (opacity: number) => void;
+   /** Reduced motion: no idle turn, and frames render only when something changes. */
+@@ -111,8 +114,8 @@
+   return () => document.removeEventListener("visibilitychange", listener);
+ }
+ 
+-function ScanController({ inspecting, usernameExpanded, assemblyRef, still, phase, phaseRound, introSeconds, frameRef, uniformsRef }: {
+-  inspecting: boolean; usernameExpanded: boolean; assemblyRef: RefObject<number>; still: boolean; phase: ScanPhase; phaseRound: number; introSeconds: number;
++function ScanController({ inspecting, blueprintActive, exploded, blueprintRef, assemblyRef, still, phase, phaseRound, introSeconds, frameRef, uniformsRef }: {
++  inspecting: boolean; blueprintActive: boolean; exploded: boolean; blueprintRef: RefObject<number>; assemblyRef: RefObject<number>; still: boolean; phase: ScanPhase; phaseRound: number; introSeconds: number;
+   frameRef: RefObject<ScanFrame>; uniformsRef: RefObject<ScanUniforms>;
+ }) {
+   const elapsed = useRef(0);
+@@ -131,7 +134,7 @@
+       window.removeEventListener("keydown", skip);
+     };
+   }, [invalidate]);
+-  useEffect(() => { invalidate(); }, [still, phase, phaseRound, invalidate]);
++  useEffect(() => { invalidate(); }, [still, phase, phaseRound, blueprintActive, exploded, invalidate]);
+ 
+   useFrame((_, delta) => {
+     const step = Math.min(Math.max(delta, 0), 0.05);
+@@ -148,8 +151,12 @@
+     const frame = blending ? blendScan(blending.from, target, blending.elapsed) : target;
+     frameRef.current = { ...frame, phaseElapsed: signal.current.elapsed };
+     if (transition.current && (still || transition.current.elapsed >= scanTiming.phaseTransitionSeconds)) transition.current = null;
+-    assemblyRef.current = advanceUsernameAssembly(assemblyRef.current, step, usernameAssemblyActive(phase, usernameExpanded, still), still, phase);
+-    const blueprint = inspecting ? 1 : assemblyRef.current;
++    // Preserve the drawn composition while authentication is pending; success starts from this view.
++    if (phase !== "submitting" || still) {
++      assemblyRef.current = advanceUsernameAssembly(assemblyRef.current, step, exploded, still, phase);
++      blueprintRef.current = advanceUsernameAssembly(blueprintRef.current, step, blueprintActive, still, phase);
++    }
++    const blueprint = inspecting ? 1 : blueprintRef.current;
+     uniformsRef.current.scanY.value = frame.scanY + (scanBounds.minY - frame.scanY) * blueprint;
+     uniformsRef.current.reveal.value = frame.reveal * (1 - blueprint);
+     // The surface band follows the ring: on while it sweeps, off when it fades (locked, success).
+@@ -199,7 +206,7 @@
+ }
+ 
+ /** The auth stage's WebGL scene. Loaded on demand by <AuthStage>; never server-rendered. */
+-export default function Scene({ selected, highlighted, hotspots, still, phase, phaseRound, typing, inputFocused, usernameExpanded, eventSource, onFade, onReady, onLost }: SceneProps) {
++export default function Scene({ selected, highlighted, hotspots, still, phase, phaseRound, typing, inputFocused, usernameExpanded, passwordExpanded, eventSource, onFade, onReady, onLost }: SceneProps) {
+   const [quality, setQuality] = useState<QualityLevel>(detectQuality);
+   const dpr = dprFor(quality, window.devicePixelRatio);
+   const [introSeconds] = useState(introDuration);
+@@ -208,6 +215,8 @@
+   const uniformsRef = useRef(uniforms);
+   const frameRef = useRef(sampleScan(0, { still, introSeconds }));
+   const assemblyRef = useRef(0);
++  const blueprintRef = useRef(0);
++  const presentation = sampleCredentialPresentation(phase, usernameExpanded, passwordExpanded, still);
+ 
+   function handleCreated(state: RootState) {
+     // Dev only: lets scripts read draw calls and memory (gl.info) while tuning.
+@@ -226,8 +235,8 @@
+     >
+       {/* Sustained low fps steps the level down (high → medium → low); it never climbs back. */}
+       <PerformanceMonitor onDecline={() => setQuality(degrade)} />
+-      <ScanController inspecting={!!selected} usernameExpanded={usernameExpanded} assemblyRef={assemblyRef} still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
+-      <CameraRig frameRef={frameRef} phase={phase} still={still} usernameExpanded={usernameExpanded} selected={selected} eventSource={eventSource} onFade={onFade} />
++      <ScanController inspecting={!!selected} blueprintActive={presentation.blueprint} exploded={presentation.exploded} blueprintRef={blueprintRef} assemblyRef={assemblyRef} still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
++      <CameraRig frameRef={frameRef} phase={phase} still={still} credentialExpanded={presentation.zoomed} selected={selected} eventSource={eventSource} onFade={onFade} />
+       <StaticStudio />
+       <ambientLight intensity={0.35} />
+       <ModelInteraction still={still} active={visible && !selected} pointerEnabled={!inputFocused && !selected} phase={phase}>
+@@ -237,7 +246,7 @@
+         <Checkpoints frameRef={frameRef} phase={phase} still={still} hotspots={hotspots} enabled={!selected && !inputFocused} />
+       </ModelInteraction>
+       <Dust still={still} count={qualitySettings(quality).dust} />
+-      <ScanRing inspecting={!!selected} assemblyRef={assemblyRef} frameRef={frameRef} phase={phase} still={still} typing={typing} inputFocused={inputFocused} />
++      <ScanRing inspecting={!!selected} blueprintRef={blueprintRef} frameRef={frameRef} phase={phase} still={still} typing={typing} inputFocused={inputFocused} />
+       <FirstFrame onReady={onReady} onLost={onLost} />
+     </Canvas>
+   );
+--- before/components/canvas/ScanRing.tsx
++++ components/canvas/ScanRing.tsx
+@@ -8,7 +8,7 @@
+ import { advanceScanOrbit, focusOrbitEnvelope, scanOrbitActive } from "./scanOrbit";
+ 
+ /** The scan plane becomes a face-on green seal during the existing success hold. */
+-export function ScanRing({ inspecting, assemblyRef, frameRef, phase, still, typing, inputFocused }: { inspecting: boolean; assemblyRef: RefObject<number>; frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
++export function ScanRing({ inspecting, blueprintRef, frameRef, phase, still, typing, inputFocused }: { inspecting: boolean; blueprintRef: RefObject<number>; frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean; typing: boolean; inputFocused: boolean }) {
+   const group = useRef<Group>(null);
+   const core = useRef<MeshBasicMaterial>(null);
+   const glow = useRef<MeshBasicMaterial>(null);
+@@ -46,12 +46,12 @@
+     const time = sample.phaseElapsed ?? 0;
+     const raw = Math.max(0, Math.min(1, (time - stage.interaction.sealStartSeconds) / (stage.interaction.sealEndSeconds - stage.interaction.sealStartSeconds)));
+     const seal = success ? still ? 1 : raw * raw * (3 - 2 * raw) : 0;
+-    const orbitActive = stage.interaction.credentialEffects && scanOrbitActive(phase, inputFocused);
++    const orbitActive = stage.scan.focusOrbitEnabled && scanOrbitActive(phase, inputFocused);
+     const damping = still ? 1 : 1 - Math.exp(-4 * Math.min(delta, 0.05));
+     orbitAmountRef.current += ((orbitActive ? 1 : 0) - orbitAmountRef.current) * damping;
+     if (group.current) {
+       group.current.visible = !inspecting;
+-      group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY - assemblyRef.current * 0.45;
++      group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY;
+       // The elliptical orbit turns with the horizontal tank, including drag and idle yaw.
+       const yaw = scene.getObjectByName("compressor-interaction")?.rotation.y ?? 0;
+       orientation.yaw.setFromAxisAngle(orientation.up, yaw);
+@@ -62,8 +62,9 @@
+       const depthScale = 0.52 + (focusOrbitEnvelope.radiusZ / stage.scan.ringRadius - 0.52) * focus;
+       group.current.scale.set(shrink * widthScale, shrink * (depthScale + (1 - depthScale) * seal), shrink);
+     }
+-    if (core.current) core.current.opacity = success ? (1 - seal) * 0.8 : sample.ringOpacity;
+-    if (glow.current) glow.current.opacity = (success ? (1 - seal) * 0.8 : sample.ringOpacity) * 0.13;
++    const ringOpacity = sample.ringOpacity * (1 - blueprintRef.current);
++    if (core.current) core.current.opacity = success ? (1 - seal) * 0.8 : ringOpacity;
++    if (glow.current) glow.current.opacity = (success ? (1 - seal) * 0.8 : ringOpacity) * 0.13;
+     if (tickRef.current) { tickRef.current.visible = success; tickRef.current.scale.setScalar(0.75 + seal * 0.25); }
+     if (tickMaterialRef.current) tickMaterialRef.current.opacity = seal;
+     if (orbitRef.current) {
+--- before/components/canvas/inspection.css
++++ components/canvas/inspection.css
+@@ -27,7 +27,7 @@
+ .auth-inspection-dialog button:focus-visible { outline: 2px solid #ff8a55; outline-offset: 2px; }
+ /* Static devices retain the same credential composition without loading WebGL. */
+ .auth-screen picture img { transform-origin: 29% 52%; transition: transform 900ms cubic-bezier(.16,1,.3,1), opacity 700ms; }
+-.auth-screen [data-username-focused="true"] picture img { transform: translate(21vw,-4vh) scale(1.8); opacity: .5; }
++.auth-screen [data-credential-focused="true"] picture img { transform: translate(21vw,-4vh) scale(1.8); opacity: .5; }
+ @media (min-width: 1024px) { .auth-inspection-hint { display: block; } }
+ @media (max-width: 1023px) and (orientation: portrait) {
+   .auth-screen[data-inspecting] [data-stage-block] { visibility: hidden; }
+@@ -38,7 +38,7 @@
+   .auth-inspection-heading h2 { font-size: 20px; }
+   .auth-inspection-tabs button { min-height: 40px; font-size: 12px; }
+   .auth-screen picture img { transform-origin: 50% 17%; }
+-  .auth-screen [data-username-focused="true"] picture img { transform: translateY(25vh) scale(3); }
++  .auth-screen [data-credential-focused="true"] picture img { transform: translateY(25vh) scale(3); }
+ }
+ @media (max-width: 1023px) and (orientation: landscape) and (max-height: 540px) {
+   .auth-inspection-card { top: 16px; right: 16px; left: auto; bottom: 16px; width: calc(50% - 32px); max-height: none; }
+--- before/tests/canvas-camera-motion.test.ts
++++ tests/canvas-camera-motion.test.ts
+@@ -1,7 +1,7 @@
+ import { describe, expect, it } from "vitest";
+ import { motion, stage } from "@/lib/config/experience";
+ import { Euler, Quaternion } from "three";
+-import { clampParallax, sampleCamera, sampleUsernameBackdrop, springStep, successEntryBlend, type Spring } from "@/components/canvas/cameraMotion";
++import { clampParallax, sampleCamera, sampleUsernameBackdrop, springStep, type Spring } from "@/components/canvas/cameraMotion";
+ 
+ describe("camera parallax budget", () => {
+   it("keeps diagonal and edge rotations within one 2.5 degree budget", () => {
+@@ -48,10 +48,21 @@
+       expect(backdrop.active).toBe(true);
+       expect(backdrop.zoom).toBeGreaterThan(0);
+       expect(backdrop.zoom).toBeLessThan(1);
+-      expect(backdrop.zoom).toBeCloseTo(framing.height / config.height);
++      const compact = framing.height < 0.4;
++      expect(backdrop.zoom).toBeCloseTo(compact
++        ? Math.max(framing.height / config.compactHeight, framing.width / config.compactWidth)
++        : framing.height / config.height);
+       expect(backdrop.centerX).toBe(config.centerX);
+-      expect(backdrop.centerY).toBe(config.centerY);
++      expect(backdrop.centerY).toBe(compact ? config.compactCenterY : config.centerY);
+       expect(backdrop.opacity).toBeLessThan(0.6);
++    }
++  });
++
++  it("keeps portrait assemblies within the screen width and above the form", () => {
++    for (const framing of [stage.framing.phone, stage.framing.phoneShort, stage.framing.tablet]) {
++      const backdrop = sampleUsernameBackdrop(framing, "focus", true, false);
++      expect(framing.width / backdrop.zoom).toBeLessThanOrEqual(stage.interaction.usernameBackdrop.compactWidth);
++      expect(backdrop.centerY).toBeLessThan(0.25);
+     }
+   });
+ 
+@@ -64,8 +75,16 @@
+     expect(sampleCamera("focus", 0, 1, false).zoom).toBe(1);
+   });
+ 
+-  it.each(["submitting", "success", "locked"] as const)("gives %s priority over username focus", (phase) => {
++  it.each(["success", "locked"] as const)("gives %s priority over username focus", (phase) => {
+     expect(sampleUsernameBackdrop(stage.framing.phone, phase, true, false).active).toBe(false);
++  });
++
++  it("holds the close framing while authentication is pending", () => {
++    for (const framing of Object.values(stage.framing)) {
++      expect(sampleUsernameBackdrop(framing, "submitting", true, false)).toEqual(
++        sampleUsernameBackdrop(framing, "focus", true, false),
++      );
++    }
+   });
+ 
+   it("keeps reduced motion at the original size and framing", () => {
+@@ -82,11 +101,15 @@
+     }
+   });
+ 
+-  it("joins success from the visible view before the fly-through without extending the hold", () => {
+-    expect(successEntryBlend(0)).toBe(0);
+-    expect(successEntryBlend(0.075)).toBeCloseTo(0.5);
+-    expect(successEntryBlend(0.15)).toBe(1);
+-    expect(successEntryBlend(stage.interaction.successFlyStartSeconds)).toBe(1);
++  it("only moves forward from the current distance, finishing within the navigation hold", () => {
++    let previousZoom = 1;
++    for (let time = 0; time <= motion.successHoldMs / 1000; time += 1 / 120) {
++      const frame = sampleCamera("success", time, 1, false);
++      expect(frame.zoom).toBeGreaterThan(0);
++      expect(frame.zoom).toBeLessThanOrEqual(previousZoom);
++      previousZoom = frame.zoom;
++    }
++    expect(sampleCamera("success", stage.interaction.successFlyStartSeconds, 1, false).zoom).toBe(1);
+     expect(sampleCamera("success", motion.successHoldMs / 1000, 1, false).opacity).toBe(0);
+   });
+ });
+--- before/lib/auth-stage.ts
++++ lib/auth-stage.ts
+@@ -3,15 +3,15 @@
+ import { useSyncExternalStore } from "react";
+ import type { ScanPhase } from "@/components/canvas/scanTimeline";
+ 
+-type StageSignal = { phase: ScanPhase; round: number; typing: boolean; usernameFocused: boolean; inputFocused: boolean };
+-const initial: StageSignal = { phase: "idle", round: 0, typing: false, usernameFocused: false, inputFocused: false };
++type StageSignal = { phase: ScanPhase; round: number; typing: boolean; usernameFocused: boolean; passwordFocused: boolean; inputFocused: boolean };
++const initial: StageSignal = { phase: "idle", round: 0, typing: false, usernameFocused: false, passwordFocused: false, inputFocused: false };
+ let current = initial;
+ const listeners = new Set<() => void>();
+ 
+ /** Only presentation state crosses this boundary; no form values or credentials. */
+-export function publishAuthStage(phase: ScanPhase, round = 0, typing = false, usernameFocused = false, inputFocused = false) {
+-  if (current.phase === phase && current.round === round && current.typing === typing && current.usernameFocused === usernameFocused && current.inputFocused === inputFocused) return;
+-  current = { phase, round, typing, usernameFocused, inputFocused };
++export function publishAuthStage(phase: ScanPhase, round = 0, typing = false, usernameFocused = false, inputFocused = false, passwordFocused = false) {
++  if (current.phase === phase && current.round === round && current.typing === typing && current.usernameFocused === usernameFocused && current.passwordFocused === passwordFocused && current.inputFocused === inputFocused) return;
++  current = { phase, round, typing, usernameFocused, passwordFocused, inputFocused };
+   listeners.forEach((listener) => listener());
+ }
+ 
+--- before/components/dom/LoginForm.tsx
++++ components/dom/LoginForm.tsx
+@@ -77,7 +77,8 @@
+   const [showPassword, setShowPassword] = useState(false);
+   const [capsLock, setCapsLock] = useState(false);
+   const [focused, setFocused] = useState(false);
+-  const [usernameFocused, setUsernameFocused] = useState(false);
++  // Keep the last credential view while moving to Show Password or submitting the form.
++  const [activeCredential, setActiveCredential] = useState<"username" | "password" | null>(null);
+   const [passwordActivity, setPasswordActivity] = useState<{ at: number; hasContent: boolean } | null>(null);
+   const [editedAfter, setEditedAfter] = useState<number | null>(null);
+   // Bumped when a submit is blocked offline, so the banner is announced again.
+@@ -111,8 +112,8 @@
+       state.status === "unreachable");
+   const stagePhase = !online ? "offline" : pending ? "submitting" : succeeded ? "success" : locked ? "locked" : stageError ? "error" : focused ? "focus" : "idle";
+   useEffect(() => {
+-    publishAuthStage(stagePhase, stateAt, typing, usernameFocused, focused);
+-  }, [stagePhase, stateAt, typing, usernameFocused, focused]);
++    publishAuthStage(stagePhase, stateAt, typing, activeCredential === "username", focused, activeCredential === "password");
++  }, [stagePhase, stateAt, typing, activeCredential, focused]);
+   useEffect(() => () => publishAuthStage("idle"), []);
+ 
+   // Next.js keeps hidden pages alive with <Activity>, which re-runs effects when a page is
+@@ -252,12 +253,13 @@
+       onFocusCapture={(event) => {
+         const target = event.target as HTMLElement;
+         setFocused(target === codeRef.current || target === passwordRef.current);
+-        setUsernameFocused(target === codeRef.current);
++        if (target === codeRef.current) setActiveCredential("username");
++        else if (target === passwordRef.current) setActiveCredential("password");
+       }}
+       onBlurCapture={(event) => {
+         if (!event.currentTarget.contains(event.relatedTarget)) {
+           setFocused(false);
+-          setUsernameFocused(false);
++          setActiveCredential(null);
+         }
+       }}
+       noValidate={hydrated}
+--- before/components/canvas/cameraMotion.ts
++++ components/canvas/cameraMotion.ts
+@@ -24,27 +24,26 @@
+   return { x: x / scale, y: y / scale };
+ }
+ 
+-/** Username focus enlarges the machine behind the form; authentication and reduced motion take priority. */
++/** Credential steps share a close backdrop, held through submit until the success fly-through. */
+ export function sampleUsernameBackdrop(
+-  framing: { height: number; centerX: number; centerY: number },
++  framing: { height: number; width?: number; centerX: number; centerY: number },
+   phase: ScanPhase,
+   expanded: boolean,
+   still: boolean,
+ ) {
+   const config = stage.interaction.usernameBackdrop;
+-  const active = expanded && !still && phase !== "submitting" && phase !== "success" && phase !== "locked";
++  const active = expanded && !still && phase !== "success" && phase !== "locked";
++  const compact = framing.height < 0.4;
++  const zoom = compact
++    ? Math.max(framing.height / config.compactHeight, (framing.width ?? config.compactWidth) / config.compactWidth)
++    : framing.height / config.height;
+   return {
+     active,
+-    zoom: active ? framing.height / config.height : 1,
++    zoom: active ? zoom : 1,
+     centerX: active ? config.centerX : framing.centerX,
+-    centerY: active ? config.centerY : framing.centerY,
++    centerY: active ? compact ? config.compactCenterY : config.centerY : framing.centerY,
+     opacity: active ? config.opacity : 1,
+   };
+-}
+-
+-/** Join the success path from the view currently on screen before its fly-through begins. */
+-export function successEntryBlend(elapsed: number) {
+-  return smooth(elapsed / 0.15);
+ }
+ 
+ /** A bounded camera beat that always finishes inside the login action's welcome hold. */

@@ -1,0 +1,1351 @@
+--- before/src/components/shell/TopAppBar.tsx
++++ after/src/components/shell/TopAppBar.tsx
+@@ -24,7 +24,7 @@
+         <QMark className="h-6 w-auto" />
+       </Link>
+       <div className="app-location"><span lang="en">QCHECK / WORKSPACE</span><p className="text-base font-medium text-ti-50 truncate">{pageTitle(pathname, roles)}</p></div>
+-      <Link href="/alerts" className="relative ml-auto flex size-11 shrink-0 items-center justify-center rounded-lg text-ti-200 hover:bg-carbon-700">
++      <Link href="/alerts" className="relative ml-auto flex size-11 shrink-0 items-center justify-center rounded-full text-ti-200 hover:bg-carbon-700">
+         <span className="sr-only">แจ้งเตือน</span>
+         <NotificationBell />
+         <NotificationBadge className="absolute right-0.5 top-0.5" />
+--- before/src/components/dom/SignOutButton.tsx
++++ after/src/components/dom/SignOutButton.tsx
+@@ -6,7 +6,7 @@
+     <form method="post" action={authPolicy.logoutPath}>
+       <button
+         type="submit"
+-        className={`h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 transition-colors hover:border-ti-400 hover:text-ti-50 ${className}`}
++        className={`h-11 rounded-control border border-ti-600 px-4 text-sm text-ti-200 transition-colors hover:border-ti-400 hover:text-ti-50 ${className}`}
+       >
+         {sessionCopy.signOut}
+       </button>
+--- before/src/components/dom/LoginForm.tsx
++++ after/src/components/dom/LoginForm.tsx
+@@ -15,7 +15,7 @@
+ // Focus beats the invalid border so the focused field is always ember (WCAG 1.4.11);
+ // outline-hidden keeps a real outline in Windows contrast themes, where shadows are dropped.
+ const inputClass =
+-  "block h-[52px] w-full rounded-[10px] border border-ti-600 bg-carbon-700 px-4 text-base text-ti-50 " +
++  "block h-[52px] w-full rounded-control border border-ti-600 bg-carbon-700 px-4 text-base text-ti-50 " +
+   "placeholder:text-ti-400 transition-[border-color,box-shadow] duration-200 " +
+   "focus:border-ember-500 focus:ring-3 focus:ring-ember-500/25 focus:outline-hidden " +
+   "aria-[invalid=true]:not-focus:border-fail";
+@@ -253,7 +253,7 @@
+       {/* Live regions stay mounted (never display:none) so screen readers announce changes. */}
+       <div role="status">
+         {!online && (
+-          <p className="mb-5 flex items-center gap-2 rounded-[10px] border border-carbon-600 bg-carbon-900/60 px-4 py-3 text-sm text-ti-200">
++          <p className="mb-5 flex items-center gap-2 rounded-control border border-carbon-600 bg-carbon-900/60 px-4 py-3 text-sm text-ti-200">
+             <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-ti-500" />
+             <span key={offlineRound}>{copy.offline}</span>
+           </p>
+@@ -341,7 +341,7 @@
+               // Keep focus (and the phone keyboard) in the password field; Tab still reaches it.
+               onMouseDown={(event) => event.preventDefault()}
+               onClick={() => setShowPassword((visible) => !visible)}
+-              className="absolute inset-y-0 right-1 my-auto grid size-11 place-items-center rounded-lg text-ti-400 transition-colors hover:text-ti-50 aria-pressed:text-ember-400"
++              className="absolute inset-y-0 right-1 my-auto grid size-11 place-items-center rounded-inset text-ti-400 transition-colors hover:text-ti-50 aria-pressed:text-ember-400"
+             >
+               <EyeIcon open={showPassword} />
+             </button>
+@@ -375,7 +375,7 @@
+         disabled={locked}
+         aria-disabled={pending || succeeded ? true : undefined}
+         aria-busy={pending || undefined}
+-        className="mt-7 flex h-[52px] w-full items-center justify-center gap-3 rounded-[10px] bg-ember-500 text-base font-semibold text-carbon-900 transition-colors duration-200 hover:bg-ember-400 active:bg-ember-600 aria-disabled:cursor-progress disabled:cursor-not-allowed disabled:bg-carbon-600 disabled:text-ti-400"
++        className="mt-7 flex h-[52px] w-full items-center justify-center gap-3 rounded-control bg-ember-500 text-base font-semibold text-carbon-900 transition-colors duration-200 hover:bg-ember-400 active:bg-ember-600 aria-disabled:cursor-progress disabled:cursor-not-allowed disabled:bg-carbon-600 disabled:text-ti-400"
+       >
+         {pending || succeeded ? (
+           <>
+@@ -397,7 +397,7 @@
+ 
+ function FormMessage({ line, detail }: { line: string; detail?: string }) {
+   return (
+-    <div className="mt-5 flex gap-3 rounded-[10px] border border-fail/40 bg-fail/10 px-4 py-3 text-sm text-ti-50">
++    <div className="mt-5 flex gap-3 rounded-control border border-fail/40 bg-fail/10 px-4 py-3 text-sm text-ti-50">
+       <svg viewBox="0 0 20 20" aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-fail">
+         <circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
+         <path d="M10 5.75v5.5M10 13.75v.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+--- before/src/components/notifications/AlertsList.tsx
++++ after/src/components/notifications/AlertsList.tsx
+@@ -25,7 +25,7 @@
+     <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6 lg:p-8">
+       <header className="space-y-4 border-b border-carbon-700/70 pb-5">
+         <div className="flex items-start gap-3">
+-          <span className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-xl border border-carbon-700 bg-carbon-800 text-ember-400">
++          <span className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-control border border-carbon-700 bg-carbon-800 text-ember-400">
+             <NavIcon name="alerts" className="size-5" />
+           </span>
+           <div className="min-w-0 space-y-1">
+@@ -48,7 +48,7 @@
+               type="button"
+               onClick={refresh}
+               disabled={loading}
+-              className="app-metal-action min-h-11 rounded-[10px] border border-carbon-600 bg-carbon-800 px-3 text-sm text-ti-200 transition-colors hover:border-ti-400 hover:text-ti-50 disabled:cursor-wait disabled:opacity-50"
++              className="app-metal-action min-h-11 rounded-control border border-carbon-600 bg-carbon-800 px-3 text-sm text-ti-200 transition-colors hover:border-ti-400 hover:text-ti-50 disabled:cursor-wait disabled:opacity-50"
+             >
+               {loading ? "กำลังอัปเดต…" : "รีเฟรช"}
+             </button>
+@@ -56,7 +56,7 @@
+               type="button"
+               onClick={markAllRead}
+               disabled={unreadCount === 0}
+-              className="min-h-11 rounded-[10px] border border-carbon-600 px-3 text-sm text-ti-200 transition-colors hover:border-ember-400 hover:text-ember-400 disabled:cursor-default disabled:opacity-40"
++              className="min-h-11 rounded-control border border-carbon-600 px-3 text-sm text-ti-200 transition-colors hover:border-ember-400 hover:text-ember-400 disabled:cursor-default disabled:opacity-40"
+             >
+               อ่านทั้งหมดแล้ว
+             </button>
+@@ -65,7 +65,7 @@
+       </header>
+ 
+       {error && (
+-        <div role="alert" className="flex items-start gap-3 rounded-xl border border-fail/40 bg-carbon-800 p-4">
++        <div role="alert" className="flex items-start gap-3 rounded-panel border border-fail/40 bg-carbon-800 p-4">
+           <WarningIcon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-fail" />
+           <div className="space-y-1">
+             <p className="text-sm text-fail">{error}</p>
+@@ -79,7 +79,7 @@
+       {loading && items.length === 0 ? (
+         <div role="status" aria-label="กำลังโหลดแจ้งเตือน" className="space-y-3">
+           {[0, 1, 2].map((index) => (
+-            <div key={index} aria-hidden="true" className="app-panel space-y-3 rounded-xl border border-carbon-700 bg-carbon-800 p-5">
++            <div key={index} aria-hidden="true" className="app-panel space-y-3 rounded-panel border border-carbon-700 bg-carbon-800 p-5">
+               <div className="h-3 w-24 animate-pulse rounded bg-carbon-700" />
+               <div className="h-4 w-2/3 animate-pulse rounded bg-carbon-700" />
+               <div className="h-3 w-5/6 animate-pulse rounded bg-carbon-700" />
+@@ -93,13 +93,13 @@
+             const returned = item.kind === "returned";
+             const dateText = notificationDate(item.createdAt);
+             return (
+-              <li key={item.id} className={`app-panel overflow-hidden rounded-xl border bg-carbon-800 ${read ? "border-carbon-700" : "border-ember-400/50"}`}>
++              <li key={item.id} className={`app-panel overflow-hidden rounded-panel border bg-carbon-800 ${read ? "border-carbon-700" : "border-ember-400/50"}`}>
+                 <Link
+                   href={item.href}
+                   onClick={() => markRead(item.id)}
+                   className="group flex items-start gap-3 p-4 transition-colors hover:bg-carbon-700/35 sm:gap-4 sm:p-5"
+                 >
+-                  <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-[10px] border ${read ? "border-carbon-700 text-ti-400" : "border-ember-400/30 bg-ember-500/10 text-ember-400"}`}>
++                  <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-control border ${read ? "border-carbon-700 text-ti-400" : "border-ember-400/30 bg-ember-500/10 text-ember-400"}`}>
+                     {returned ? <WarningIcon aria-hidden="true" className="size-5" /> : <JobsIcon aria-hidden="true" className="size-5" />}
+                   </span>
+                   <div className="min-w-0 flex-1 space-y-2">
+@@ -125,7 +125,7 @@
+           })}
+         </ul>
+       ) : !error ? (
+-        <div className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 px-6 py-12 text-center">
++        <div className="app-panel rounded-panel border border-carbon-700 bg-carbon-800 px-6 py-12 text-center">
+           <span className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full border border-carbon-700 bg-carbon-900/50 text-ti-400">
+             <NavIcon name="alerts" className="size-6" />
+           </span>
+--- before/src/components/notifications/NotificationProvider.tsx
++++ after/src/components/notifications/NotificationProvider.tsx
+@@ -154,14 +154,14 @@
+   return <NotificationContext.Provider value={{ items, unreadCount: items.filter((item) => !readIds.has(item.id)).length, loading, error, refresh: () => { void load(); }, markRead, markAllRead, isRead: (id) => readIds.has(id) }}>
+     {children}
+     <div className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 md:inset-x-auto md:bottom-auto md:right-6 md:top-20 md:w-96" role="status" aria-live="polite" aria-atomic="true">
+-      {toast && <div className="app-panel flex items-start gap-3 rounded-xl border border-ember-500/60 bg-carbon-800 p-4 shadow-xl">
++      {toast && <div className="app-panel flex items-start gap-3 rounded-panel border border-ember-500/60 bg-carbon-800 p-4 shadow-xl">
+         <NavIcon name="alerts" className="mt-0.5 size-5 shrink-0 text-ember-400" />
+         <div className="min-w-0 flex-1">
+           <p className="text-sm font-medium text-ti-50">{toast.title}</p>
+           <p className="mt-1 text-xs text-ti-400">{toast.body}</p>
+           <Link href={toast.href} onClick={() => { if (toast.ids.length === 1) markRead(toast.ids[0]); setToast(null); }} className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-ember-400 underline underline-offset-4">ดูงาน</Link>
+         </div>
+-        <button type="button" onClick={() => setToast(null)} aria-label="ปิดการแจ้งเตือน" className="-mr-2 -mt-2 flex size-11 shrink-0 items-center justify-center rounded-lg text-xl text-ti-400 hover:bg-carbon-700">×</button>
++        <button type="button" onClick={() => setToast(null)} aria-label="ปิดการแจ้งเตือน" className="-mr-2 -mt-2 flex size-11 shrink-0 items-center justify-center rounded-control text-xl text-ti-400 hover:bg-carbon-700">×</button>
+       </div>}
+     </div>
+   </NotificationContext.Provider>;
+--- before/src/app/(auth)/change-password/PinChangeForm.tsx
++++ after/src/app/(auth)/change-password/PinChangeForm.tsx
+@@ -4,7 +4,7 @@
+ import { changePinAction, type PinChangeState } from "./actions";
+ 
+ const idle: PinChangeState = { status: "idle" };
+-const inputClass = "h-12 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 font-mono text-lg tracking-[0.3em] text-ti-50 focus:border-ember-500";
++const inputClass = "h-12 w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 font-mono text-lg tracking-[0.3em] text-ti-50 focus:border-ember-500";
+ 
+ export function PinChangeForm() {
+   const [state, action, pending] = useActionState(changePinAction, idle);
+@@ -21,7 +21,7 @@
+       {pin("confirm", "ยืนยัน PIN ใหม่", "new-password")}
+       <p className="text-xs text-ti-500">ตัวเลข 6 หลัก ไม่ซ้ำกันทั้งหมด และไม่เรียงต่อกัน (เช่น 111111, 123456)</p>
+       {state.status === "error" && <p role="alert" className="text-sm text-red-300">{state.message}</p>}
+-      <button type="submit" disabled={pending} className="h-[52px] w-full rounded-[10px] bg-ember-500 text-base font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60">
++      <button type="submit" disabled={pending} className="h-[52px] w-full rounded-control bg-ember-500 text-base font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60">
+         {pending ? "กำลังบันทึก…" : "บันทึก PIN ใหม่"}
+       </button>
+     </form>
+--- before/src/app/(auth)/change-password/page.tsx
++++ after/src/app/(auth)/change-password/page.tsx
+@@ -18,7 +18,7 @@
+     <main className="grid min-h-dvh place-items-center px-safe py-10">
+       <section
+         aria-labelledby="change-password-title"
+-        className="ti-hairline w-full max-w-[440px] rounded-[20px] border border-carbon-600 bg-carbon-800/85 p-8"
++        className="ti-hairline w-full max-w-[440px] rounded-surface border border-carbon-600 bg-carbon-800/85 p-8"
+       >
+         <Wordmark />
+         <h1 id="change-password-title" className="mt-6 text-2xl font-light text-ti-50">
+--- before/src/app/(auth)/login/error.tsx
++++ after/src/app/(auth)/login/error.tsx
+@@ -13,7 +13,7 @@
+ 
+   return (
+     <main className="grid min-h-dvh place-items-center px-safe">
+-      <section className="ti-hairline w-full max-w-[440px] rounded-[20px] border border-carbon-600 bg-carbon-800/85 p-8 text-center">
++      <section className="ti-hairline w-full max-w-[440px] rounded-surface border border-carbon-600 bg-carbon-800/85 p-8 text-center">
+         <Wordmark className="justify-center" />
+         <div role="alert">
+           <h1 className="mt-6 text-xl font-normal text-ti-50">{copy.unexpected}</h1>
+@@ -22,7 +22,7 @@
+           ref={retryRef}
+           type="button"
+           onClick={() => retry()}
+-          className="mt-6 h-[52px] w-full rounded-[10px] bg-ember-500 font-semibold text-carbon-900 transition-colors hover:bg-ember-400 active:bg-ember-600"
++          className="mt-6 h-[52px] w-full rounded-control bg-ember-500 font-semibold text-carbon-900 transition-colors hover:bg-ember-400 active:bg-ember-600"
+         >
+           {copy.retry}
+         </button>
+--- before/src/app/(auth)/login/page.tsx
++++ after/src/app/(auth)/login/page.tsx
+@@ -28,7 +28,7 @@
+         <section
+           data-stage-block
+           aria-labelledby="login-title"
+-          className="ti-hairline rounded-t-[28px] border border-b-0 border-carbon-600 bg-carbon-800/85 px-safe pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-8 sm:[--gutter:2rem] md:mx-auto md:w-full md:max-w-[480px] phone-landscape:rounded-[20px] phone-landscape:border-b phone-landscape:px-6 phone-landscape:pb-6 phone-landscape:pt-6 lg:mx-0 lg:max-w-none lg:rounded-[20px] lg:border-b lg:px-10 lg:pb-10 lg:pt-10 motion-safe:animate-rise"
++          className="ti-hairline rounded-t-surface border border-b-0 border-carbon-600 bg-carbon-800/85 px-safe pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-8 sm:[--gutter:2rem] md:mx-auto md:w-full md:max-w-[480px] phone-landscape:rounded-surface phone-landscape:border-b phone-landscape:px-6 phone-landscape:pb-6 phone-landscape:pt-6 lg:mx-0 lg:max-w-none lg:rounded-surface lg:border-b lg:px-10 lg:pb-10 lg:pt-10 motion-safe:animate-rise"
+         >
+           <p lang="en" className="font-mono text-[11px] tracking-[0.14em] text-ti-400 uppercase">
+             {copy.eyebrow}
+--- before/src/app/(app)/home/page.tsx
++++ after/src/app/(app)/home/page.tsx
+@@ -38,7 +38,7 @@
+   );
+ }
+ 
+-const cardClass = "app-panel rounded-xl border border-carbon-700/80 bg-carbon-800";
++const cardClass = "app-panel rounded-panel border border-carbon-700/80 bg-carbon-800";
+ 
+ async function HomeContent({ searchParams }: { searchParams: HomeSearch }) {
+   const user = await requirePageAccess("home", authPolicy.homePath);
+@@ -80,7 +80,7 @@
+           {canOpenPlan(user.roles) && (
+           <ShellLink
+             href="/plans/new"
+-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg app-primary-action bg-ember-500 hover:bg-ember-400 active:bg-ember-600 text-carbon-950 font-medium text-sm transition-all duration-150"
++            className="flex items-center gap-2 px-4 py-2.5 rounded-control app-primary-action bg-ember-500 hover:bg-ember-400 active:bg-ember-600 text-carbon-950 font-medium text-sm transition-all duration-150"
+           >
+             <PlusIcon className="size-4" />
+             <span>เปิดแผนตรวจใหม่</span>
+@@ -89,7 +89,7 @@
+           {canSeeMaster(user.roles) && (
+           <ShellLink
+             href="/master"
+-            className="app-metal-action flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-carbon-600 hover:border-ti-400 bg-carbon-800 hover:bg-carbon-700/80 text-ti-200 hover:text-ti-50 text-sm transition-colors"
++            className="app-metal-action flex items-center gap-2 px-3.5 py-2.5 rounded-control border border-carbon-600 hover:border-ti-400 bg-carbon-800 hover:bg-carbon-700/80 text-ti-200 hover:text-ti-50 text-sm transition-colors"
+           >
+             <span>ข้อมูลหลัก</span>
+           </ShellLink>
+@@ -123,7 +123,7 @@
+   } catch (error) {
+     if (!isDbError(error)) throw error;
+     console.error("[db] home dashboard failed", error.message);
+-    return <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>;
++    return <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>;
+   }
+ 
+   const progress = summary.qcRequired ? Math.min(100, Math.round((summary.qcDone / summary.qcRequired) * 100)) : 0;
+@@ -185,7 +185,7 @@
+                     defaultValue={query}
+                     maxLength={200}
+                     placeholder="ค้นหาแผน, Invoice, รุ่น..."
+-                    className="h-9 pl-9 pr-3 rounded-lg bg-carbon-800 border border-carbon-600 text-xs text-ti-50 placeholder:text-ti-500 focus:outline-hidden focus:border-ember-500 focus:ring-1 focus:ring-ember-500 w-48 sm:w-56"
++                    className="h-9 pl-9 pr-3 rounded-control bg-carbon-800 border border-carbon-600 text-xs text-ti-50 placeholder:text-ti-500 focus:outline-hidden focus:border-ember-500 focus:ring-1 focus:ring-ember-500 w-48 sm:w-56"
+                   />
+                 </div>
+               </form>
+@@ -271,7 +271,7 @@
+               <ul className="space-y-2.5">
+                 {deadlines.map((plan) => (
+                   <li key={plan.id}>
+-                    <ShellLink href={`/plans/${plan.id}`} className="block p-3 rounded-lg border border-carbon-700 bg-carbon-900 hover:border-carbon-600 space-y-1">
++                    <ShellLink href={`/plans/${plan.id}`} className="block p-3 rounded-panel border border-carbon-700 bg-carbon-900 hover:border-carbon-600 space-y-1">
+                       <div className="flex items-center justify-between gap-2 text-xs">
+                         <span className="font-mono text-ti-50 font-semibold">{plan.planNo}</span>
+                         <Deadline deadline={plan.qcDeadline} today={today} docType={plan.docType} compact />
+@@ -299,7 +299,7 @@
+     <div className={`${cardClass} home-kpi p-4.5 space-y-3`}>
+       <div className="flex items-center justify-between">
+         <span className="text-xs text-ti-400 font-medium">{label}</span>
+-        <div className={`size-8 rounded-lg bg-carbon-700 border border-carbon-600 grid place-items-center ${iconTone}`}>{icon}</div>
++        <div className={`size-8 rounded-control bg-carbon-700 border border-carbon-600 grid place-items-center ${iconTone}`}>{icon}</div>
+       </div>
+       <div>{children}</div>
+     </div>
+@@ -315,7 +315,7 @@
+       </div>
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         {[1, 2, 3, 4].map((i) => (
+-          <div key={i} className="h-28 app-panel rounded-xl border border-carbon-700/80 bg-carbon-800 p-4 animate-pulse" />
++          <div key={i} className="h-28 app-panel rounded-panel border border-carbon-700/80 bg-carbon-800 p-4 animate-pulse" />
+         ))}
+       </div>
+     </div>
+--- before/src/app/(app)/plans/MoreFilters.tsx
++++ after/src/app/(app)/plans/MoreFilters.tsx
+@@ -15,7 +15,7 @@
+         aria-expanded={open}
+         aria-controls="plan-filters"
+         onClick={() => setOpen((value) => !value)}
+-        className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 md:hidden"
++        className="h-11 rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 md:hidden"
+       >
+         ตัวกรอง{active > 0 && <span className="ml-1 rounded-full bg-ember-500 px-1.5 text-xs font-semibold text-carbon-900">{active}</span>}
+       </button>
+--- before/src/app/(app)/plans/page.tsx
++++ after/src/app/(app)/plans/page.tsx
+@@ -15,7 +15,7 @@
+ type SearchParams = Record<string, string | string[] | undefined>;
+ 
+ const SORT_LABELS: Record<PlanSort, string> = { opened: "เปิดล่าสุดก่อน", plan_no: "เลขแผน น้อย → มาก", deadline: "กำหนด 90 วัน ใกล้สุดก่อน" };
+-const fieldClass = "h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 focus:border-ember-500 md:w-auto";
++const fieldClass = "h-11 w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 focus:border-ember-500 md:w-auto";
+ 
+ export default function PlansPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+   return (
+@@ -39,7 +39,7 @@
+     console.error("[db] plan list failed", error.message);
+     return (
+       <Shell canOpen={canOpen}>
+-        <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
++        <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
+       </Shell>
+     );
+   }
+@@ -53,7 +53,7 @@
+       <Filters values={values} options={data.options} filtered={filtered} />
+ 
+       {data.rows.length === 0 ? (
+-        <p className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">
++        <p className="app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">
+           {filtered ? "ไม่พบแผนที่ตรงกับเงื่อนไข" : "ยังไม่มีแผนตรวจ"}
+           {!filtered && canOpen && (
+             <>
+@@ -92,7 +92,7 @@
+     <form method="get" action="/plans" role="search" className="flex flex-wrap items-end gap-3">
+       <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-sm text-ti-400">
+         <span>ค้นหา</span>
+-        <input name="q" type="search" defaultValue={values.q} maxLength={100} placeholder="เลขแผน / Invoice / PO / Model / Vendor" className="h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500" />
++        <input name="q" type="search" defaultValue={values.q} maxLength={100} placeholder="เลขแผน / Invoice / PO / Model / Vendor" className="h-11 w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500" />
+       </label>
+       <MoreFilters active={activeFilterCount(values)}>
+         <label className="flex flex-col gap-1 text-sm text-ti-400">
+@@ -133,7 +133,7 @@
+         </label>
+       </MoreFilters>
+       <div className="flex gap-2">
+-        <button type="submit" className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">ค้นหา</button>
++        <button type="submit" className="h-11 rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">ค้นหา</button>
+         {filtered && <Link href={planListHref(values, { q: "", status: "", vendor: "", ptype: "", from: "", to: "", page: 1 })} className="inline-flex h-11 items-center px-2 text-sm text-ti-400 underline-offset-4 hover:underline">ล้าง</Link>}
+       </div>
+     </form>
+@@ -153,7 +153,7 @@
+ 
+ function PlanTable({ rows, values, today }: { rows: PlanListRow[]; values: PlanListValues; today: string }) {
+   return (
+-    <div className="hidden overflow-x-auto app-panel rounded-xl border border-carbon-700 bg-carbon-800 md:block">
++    <div className="hidden overflow-x-auto app-panel rounded-panel border border-carbon-700 bg-carbon-800 md:block">
+       <table className="w-full min-w-[900px] text-sm">
+         <caption className="sr-only">รายการแผนตรวจ — คลิกแถวเพื่อดูรายละเอียด</caption>
+         <thead className="bg-carbon-900 text-left text-xs text-ti-400">
+@@ -205,7 +205,7 @@
+ function PlanCard({ row, today }: { row: PlanListRow; today: string }) {
+   return (
+     <li>
+-      <Link href={`/plans/${row.id}`} className="block space-y-2 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4 hover:border-carbon-600">
++      <Link href={`/plans/${row.id}`} className="block space-y-2 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4 hover:border-carbon-600">
+         <div className="flex items-start justify-between gap-2">
+           <span className="font-mono font-semibold text-ti-50">{row.planNo}</span>
+           {row.status === "CANCELLED" ? <ChecklistBadge status={row.status} /> : <ProgressBadge progress={planProgress(row)} />}
+@@ -242,7 +242,7 @@
+           <p className="text-sm text-ti-400">1 แผน = 1 Invoice/PO × 1 Model — คลิกแผนเพื่อดูรายละเอียด</p>
+         </div>
+         {canOpen && (
+-          <Link href="/plans/new" className="inline-flex h-11 items-center rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
++          <Link href="/plans/new" className="inline-flex h-11 items-center rounded-control app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
+             ＋ เปิดแผน
+           </Link>
+         )}
+--- before/src/app/(app)/more/page.tsx
++++ after/src/app/(app)/more/page.tsx
+@@ -24,7 +24,7 @@
+   const menu = MORE_MENU.filter((item) => canAccessPage(user.roles, item.page));
+   return <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+     <h1 className="text-2xl text-ti-50">บัญชีของฉัน</h1>
+-    <section className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5">
++    <section className="space-y-3 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-5">
+       <h2 className="text-lg font-medium">{user.fullName}</h2>
+       <p className="font-mono text-ti-200">{user.employeeCode}</p>
+       <p className="text-sm text-ti-400">บทบาท: {user.roles.map(role => roleLabels[role] ?? role).join(" · ")}</p>
+@@ -34,7 +34,7 @@
+     {menu.length > 0 && (
+       <nav aria-label="เมนูอื่น" className="space-y-2">
+         <h2 className="text-sm font-medium text-ti-400">เมนูอื่น</h2>
+-        <ul className="divide-y divide-carbon-700 app-panel rounded-xl border border-carbon-700 bg-carbon-800">
++        <ul className="divide-y divide-carbon-700 app-panel rounded-panel border border-carbon-700 bg-carbon-800">
+           {menu.map((item) => <li key={item.href}><Link href={item.href} className="flex h-12 items-center px-5 text-ti-200 hover:text-ti-50">{item.label}</Link></li>)}
+         </ul>
+       </nav>
+--- before/src/app/(app)/master/page.tsx
++++ after/src/app/(app)/master/page.tsx
+@@ -43,13 +43,13 @@
+         <h1 className="text-2xl text-ti-50">ข้อมูลหลัก</h1>
+         <p className="text-sm text-ti-400">{canEdit ? "Master Admin เพิ่ม แก้ไข และปิดใช้งานได้ (ไม่มีการลบ)" : "ดูได้อย่างเดียว — การแก้ไขทำโดย Master Admin"}</p>
+       </header>
+-      {"error" in loaded && <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{loaded.error}</p>}
++      {"error" in loaded && <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{loaded.error}</p>}
+       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+         {MASTERS.map((def, index) => {
+           const count = "counts" in loaded ? loaded.counts[index] : null;
+           return (
+             <li key={def.slug}>
+-              <Link href={`/master/${def.slug}`} className="block h-full space-y-2 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 transition-colors hover:border-ti-500">
++              <Link href={`/master/${def.slug}`} className="block h-full space-y-2 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-5 transition-colors hover:border-ti-500">
+                 <span className="flex items-baseline justify-between gap-3">
+                   <span className="text-base font-medium text-ti-50">{def.label}</span>
+                   {count && <span className="shrink-0 font-mono text-sm text-ti-400">{count.active}<span className="text-ti-500">/{count.total}</span></span>}
+--- before/src/app/(app)/history/page.tsx
++++ after/src/app/(app)/history/page.tsx
+@@ -42,7 +42,7 @@
+     console.error("[db] history page failed", error.message);
+     return (
+       <Shell isHead={isHead} values={values}>
+-        <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
++        <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
+       </Shell>
+     );
+   }
+@@ -55,7 +55,7 @@
+     <Shell isHead={isHead} values={values} total={data.total}>
+       {!everyone && !me && <p role="alert" className="text-sm text-red-300">ไม่พบบัญชีของคุณในฐานข้อมูล QCheck — กรุณาออกจากระบบแล้วเข้าใหม่</p>}
+       {data.rows.length === 0 ? (
+-        <p className="rounded-xl border border-dashed border-carbon-600 p-5 text-sm text-ti-400">ยังไม่มีประวัติในช่วงนี้</p>
++        <p className="rounded-panel border border-dashed border-carbon-600 p-5 text-sm text-ti-400">ยังไม่มีประวัติในช่วงนี้</p>
+       ) : (
+         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="ประวัติใบงาน">
+           {data.rows.map((job) => <Row key={job.id} job={job} me={me} href={canOpenPlan ? `/plans/${job.planId}?tab=work` : null} />)}
+@@ -92,14 +92,14 @@
+     </>
+   );
+   return (
+-    <li className={`rounded-xl border border-carbon-700 bg-carbon-800 p-4 ${cancelled ? "opacity-80" : ""}`}>
++    <li className={`rounded-panel border border-carbon-700 bg-carbon-800 p-4 ${cancelled ? "opacity-80" : ""}`}>
+       {href ? <Link href={href} className="block space-y-2 hover:opacity-90">{body}</Link> : <div className="space-y-2">{body}</div>}
+     </li>
+   );
+ }
+ 
+ function Shell({ isHead, values, total, children }: { isHead: boolean; values: HistoryValues; total?: number; children: React.ReactNode }) {
+-  const pill = (active: boolean) => `rounded-[10px] px-3 py-2 ${active ? "bg-carbon-700 text-ti-50" : "text-ti-400 hover:text-ti-200"}`;
++  const pill = (active: boolean) => `rounded-control px-3 py-2 ${active ? "bg-carbon-700 text-ti-50" : "text-ti-400 hover:text-ti-200"}`;
+   return (
+     <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
+       <header className="space-y-1">
+@@ -107,18 +107,18 @@
+         <p className="text-sm text-ti-400">ใบงานที่ส่งแล้ว ปิดแล้ว หรือยกเลิก — ใบงานที่กำลังทำอยู่ที่ “งานของฉัน”</p>
+       </header>
+       <div className="flex flex-wrap items-center gap-3 text-sm">
+-        <nav aria-label="สถานะ" className="flex rounded-[12px] border border-carbon-600 bg-carbon-900 p-1">
++        <nav aria-label="สถานะ" className="flex rounded-panel border border-carbon-600 bg-carbon-900 p-1">
+           {(Object.keys(HISTORY_KINDS) as (keyof typeof HISTORY_KINDS)[]).map((kind) => (
+             <Link key={kind} href={historyHref(values, { kind, page: 1 })} aria-current={values.kind === kind ? "page" : undefined} className={pill(values.kind === kind)}>{HISTORY_KINDS[kind]}</Link>
+           ))}
+         </nav>
+-        <nav aria-label="ช่วงเวลา" className="flex rounded-[12px] border border-carbon-600 bg-carbon-900 p-1">
++        <nav aria-label="ช่วงเวลา" className="flex rounded-panel border border-carbon-600 bg-carbon-900 p-1">
+           {(Object.keys(HISTORY_RANGES) as (keyof typeof HISTORY_RANGES)[]).map((range) => (
+             <Link key={range} href={historyHref(values, { range, page: 1 })} aria-current={values.range === range ? "page" : undefined} className={pill(values.range === range)}>{HISTORY_RANGES[range]}</Link>
+           ))}
+         </nav>
+         {isHead && (
+-          <nav aria-label="มุมมอง" className="flex rounded-[12px] border border-carbon-600 bg-carbon-900 p-1">
++          <nav aria-label="มุมมอง" className="flex rounded-panel border border-carbon-600 bg-carbon-900 p-1">
+             <Link href={historyHref(values, { mine: false, page: 1 })} aria-current={values.mine ? undefined : "page"} className={pill(!values.mine)}>ทั้งหมด</Link>
+             <Link href={historyHref(values, { mine: true, page: 1 })} aria-current={values.mine ? "page" : undefined} className={pill(values.mine)}>ของฉัน</Link>
+           </nav>
+--- before/src/app/(app)/jobs/page.tsx
++++ after/src/app/(app)/jobs/page.tsx
+@@ -47,7 +47,7 @@
+     console.error("[db] jobs page failed", error.message);
+     return (
+       <Shell isHead={isHead} all={all}>
+-        <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
++        <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
+       </Shell>
+     );
+   }
+@@ -61,7 +61,7 @@
+       <section aria-labelledby="jobs-open" className="space-y-3">
+         <h2 id="jobs-open" className="text-base font-medium text-ti-50">กำลังทำ ({open.length})</h2>
+         {open.length === 0 ? (
+-          <p className="rounded-xl border border-dashed border-carbon-600 p-5 text-sm text-ti-400">{all ? "ยังไม่มีใบงานที่กำลังทำ" : "ยังไม่มีใบงานที่มอบให้คุณ"}</p>
++          <p className="rounded-panel border border-dashed border-carbon-600 p-5 text-sm text-ti-400">{all ? "ยังไม่มีใบงานที่กำลังทำ" : "ยังไม่มีใบงานที่มอบให้คุณ"}</p>
+         ) : (
+           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+             {open.map((job) => <Card key={job.id} job={job} me={me} linkToPlan={isHead} />)}
+@@ -97,7 +97,7 @@
+       </p>
+       <p className="text-xs text-ti-400">เรียกเข้า {job.calledQty.toLocaleString("th-TH")} เครื่อง · {dateText(job.calledDate)} · {WORK_ORDER_TYPE_LABELS[job.type]}</p>
+       {fix ? (
+-        <p className="rounded-[10px] border border-ember-500/40 px-3 py-2 text-xs text-ember-400">เรียกเข้าแก้ไข — ไม่ต้องตรวจในแอป (ตรวจเพิ่มได้)</p>
++        <p className="rounded-control border border-ember-500/40 px-3 py-2 text-xs text-ember-400">เรียกเข้าแก้ไข — ไม่ต้องตรวจในแอป (ตรวจเพิ่มได้)</p>
+       ) : (
+         <div className="space-y-1">
+           <p className="font-mono text-sm text-ti-200">ต้องตรวจ {job.qtyNeed} · ตรวจแล้ว {job.qtyDone}</p>
+@@ -110,14 +110,14 @@
+     </>
+   );
+   return (
+-    <li id={`work-order-${job.id}`} className="scroll-mt-20 space-y-2 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4 target:border-ember-500">
++    <li id={`work-order-${job.id}`} className="scroll-mt-20 space-y-2 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4 target:border-ember-500">
+       {linkToPlan ? (
+         <Link href={`/plans/${job.planId}?tab=work`} className="block space-y-2 hover:opacity-90">{body}</Link>
+       ) : (
+         body
+       )}
+       {OPEN_WORK_ORDER_STATUSES.includes(job.status) && (
+-        <button type="button" disabled title="มาพร้อมโมดูลตรวจรายเครื่อง" className="h-11 w-full rounded-[10px] border border-carbon-600 text-sm text-ti-500">
++        <button type="button" disabled title="มาพร้อมโมดูลตรวจรายเครื่อง" className="h-11 w-full rounded-control border border-carbon-600 text-sm text-ti-500">
+           เริ่มตรวจ — มาพร้อมโมดูลตรวจ
+         </button>
+       )}
+@@ -134,9 +134,9 @@
+           <p className="text-sm text-ti-400">ใบงานขึ้นทันทีที่หัวหน้าเลือกผู้ตรวจ — ไม่ต้องกดรับงาน</p>
+         </div>
+         {isHead && (
+-          <nav aria-label="มุมมอง" className="flex rounded-[12px] border border-carbon-600 bg-carbon-900 p-1 text-sm">
+-            <Link href="/jobs" aria-current={all ? "page" : undefined} className={`rounded-[10px] px-3 py-2 ${all ? "bg-carbon-700 text-ti-50" : "text-ti-400 hover:text-ti-200"}`}>ทั้งหมด</Link>
+-            <Link href="/jobs?view=mine" aria-current={all ? undefined : "page"} className={`rounded-[10px] px-3 py-2 ${all ? "text-ti-400 hover:text-ti-200" : "bg-carbon-700 text-ti-50"}`}>ของฉัน</Link>
++          <nav aria-label="มุมมอง" className="flex rounded-panel border border-carbon-600 bg-carbon-900 p-1 text-sm">
++            <Link href="/jobs" aria-current={all ? "page" : undefined} className={`rounded-control px-3 py-2 ${all ? "bg-carbon-700 text-ti-50" : "text-ti-400 hover:text-ti-200"}`}>ทั้งหมด</Link>
++            <Link href="/jobs?view=mine" aria-current={all ? undefined : "page"} className={`rounded-control px-3 py-2 ${all ? "text-ti-400 hover:text-ti-200" : "bg-carbon-700 text-ti-50"}`}>ของฉัน</Link>
+           </nav>
+         )}
+       </header>
+--- before/src/app/(app)/master/[table]/MasterForms.tsx
++++ after/src/app/(app)/master/[table]/MasterForms.tsx
+@@ -8,7 +8,7 @@
+ 
+ export type FieldOptions = Record<string, { value: number; label: string; isActive: boolean }[]>;
+ 
+-const inputClass = "h-11 min-w-0 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-invalid:border-red-400";
++const inputClass = "h-11 min-w-0 w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-invalid:border-red-400";
+ const idle: MasterFormState = { status: "idle" };
+ 
+ function Control({ field, value, options, invalid, describedBy }: { field: MasterField; value: MasterValues[string]; options: FieldOptions; invalid: boolean; describedBy?: string }) {
+@@ -53,7 +53,7 @@
+   const title = id === null ? `เพิ่ม${def.singular}` : `แก้ไข${def.singular}`;
+   return (
+     // React resets a form after its action; re-keying restores what was typed when the server says no.
+-    <form key={state.status === "error" ? state.at : "initial"} action={action} aria-labelledby={`${base}-t`} className="@container min-w-0 space-y-5 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4 sm:p-5">
++    <form key={state.status === "error" ? state.at : "initial"} action={action} aria-labelledby={`${base}-t`} className="@container min-w-0 space-y-5 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4 sm:p-5">
+       <h2 id={`${base}-t`} className="text-lg font-medium text-ti-50">{title}</h2>
+       <input type="hidden" name="slug" value={def.slug} />
+       {id !== null && <input type="hidden" name="id" value={id} />}
+@@ -63,7 +63,7 @@
+           const helpId = `${base}-${field.key}-h`;
+           const describedBy = [errors[field.key] ? errorId : "", field.help ? helpId : ""].filter(Boolean).join(" ") || undefined;
+           return field.kind === "bool" ? (
+-            <label key={field.key} className="flex min-h-11 min-w-0 items-center gap-3 self-end rounded-[10px] border border-carbon-700 bg-carbon-900/50 px-3 py-3 text-sm text-ti-200">
++            <label key={field.key} className="flex min-h-11 min-w-0 items-center gap-3 self-end rounded-control border border-carbon-700 bg-carbon-900/50 px-3 py-3 text-sm text-ti-200">
+               <Control field={field} value={current[field.key] ?? null} options={options} invalid={false} />
+               {field.label}
+             </label>
+@@ -82,10 +82,10 @@
+       </div>
+       {state.status === "error" && <p role="alert" className="text-sm text-red-300">{state.message}</p>}
+       <div className="flex flex-col gap-3 border-t border-carbon-700 pt-4 @min-[28rem]:flex-row">
+-        <button type="submit" disabled={pending} className="min-h-11 w-full rounded-[10px] app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60 @min-[28rem]:w-auto">
++        <button type="submit" disabled={pending} className="min-h-11 w-full rounded-control app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60 @min-[28rem]:w-auto">
+           {pending ? "กำลังบันทึก…" : "บันทึก"}
+         </button>
+-        <Link href={cancelHref} className="inline-flex min-h-11 w-full items-center justify-center rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 @min-[28rem]:w-auto">ยกเลิก</Link>
++        <Link href={cancelHref} className="inline-flex min-h-11 w-full items-center justify-center rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 @min-[28rem]:w-auto">ยกเลิก</Link>
+       </div>
+     </form>
+   );
+@@ -106,7 +106,7 @@
+       <input type="hidden" name="slug" value={slug} />
+       <input type="hidden" name="id" value={id} />
+       <input type="hidden" name="active" value={active ? "0" : "1"} />
+-      <button type="submit" disabled={pending} aria-busy={pending} aria-label={`${pending ? "กำลังเปลี่ยนสถานะ" : active ? "ปิดใช้งาน" : "เปิดใช้งาน"} ${label}`} className={`inline-flex min-h-11 max-w-full items-center justify-center rounded-[10px] border border-ti-600 px-3 text-xs text-ti-200 hover:border-ti-400 disabled:opacity-50 ${className}`}>
++      <button type="submit" disabled={pending} aria-busy={pending} aria-label={`${pending ? "กำลังเปลี่ยนสถานะ" : active ? "ปิดใช้งาน" : "เปิดใช้งาน"} ${label}`} className={`inline-flex min-h-11 max-w-full items-center justify-center rounded-control border border-ti-600 px-3 text-xs text-ti-200 hover:border-ti-400 disabled:opacity-50 ${className}`}>
+         {pending ? "กำลังเปลี่ยน…" : active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+       </button>
+       {state.status === "error" && <span role="alert" className="mt-2 block text-xs text-red-300">{state.message}</span>}
+--- before/src/app/(app)/master/[table]/page.tsx
++++ after/src/app/(app)/master/[table]/page.tsx
+@@ -75,7 +75,7 @@
+ 
+   return (
+     <Shell def={def} total={data.total} action={canEdit && !creating && !data.editing ? <Link href={link({ new: "1" })} className={`app-primary-action bg-ember-500 text-carbon-900 hover:bg-ember-400 master-add`}><span aria-hidden="true" className="text-xl font-normal">+</span>เพิ่ม{def.singular}</Link> : null}>
+-      {saved !== null && <p role="status" className="rounded-[10px] border border-green-500/40 bg-carbon-800 px-3 py-2 text-sm text-green-300">บันทึกแล้ว{savedRow ? ` — ${displayValue(def.fields[0], savedRow.values[def.fields[0].key])}` : ""}</p>}
++      {saved !== null && <p role="status" className="rounded-control border border-green-500/40 bg-carbon-800 px-3 py-2 text-sm text-green-300">บันทึกแล้ว{savedRow ? ` — ${displayValue(def.fields[0], savedRow.values[def.fields[0].key])}` : ""}</p>}
+ 
+       {canEdit && creating && <MasterForm def={def} id={null} values={defaultValues(def)} options={data.options} cancelHref={link({})} />}
+       {canEdit && data.editing && <MasterForm def={def} id={data.editing.id} values={data.editing.values} options={data.options} cancelHref={link({})} />}
+@@ -126,7 +126,7 @@
+ }
+ 
+ function Alert({ children }: { children: React.ReactNode }) {
+-  return <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{children}</p>;
++  return <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{children}</p>;
+ }
+ 
+ function Shell({ def, total, action, children }: { def: MasterDef; total?: number; action?: React.ReactNode; children: React.ReactNode }) {
+--- before/src/app/(app)/admin/users/UserAdminForms.tsx
++++ after/src/app/(app)/admin/users/UserAdminForms.tsx
+@@ -6,9 +6,9 @@
+ 
+ const idle: AdminState = { status: "idle" };
+ 
+-const inputClass = "h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500";
+-const buttonClass = "h-10 rounded-[10px] border border-ti-600 px-3 text-sm text-ti-200 transition-colors hover:border-ti-400 hover:text-ti-50 disabled:opacity-50";
+-const primaryClass = "h-11 rounded-[10px] app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-50";
++const inputClass = "h-11 w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500";
++const buttonClass = "h-10 rounded-control border border-ti-600 px-3 text-sm text-ti-200 transition-colors hover:border-ti-400 hover:text-ti-50 disabled:opacity-50";
++const primaryClass = "h-11 rounded-control app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-50";
+ 
+ export type FieldRole = { value: string; label: string };
+ 
+@@ -20,7 +20,7 @@
+     <div role="status" className="mt-3 space-y-2 text-sm text-ti-200">
+       <p>{state.message}</p>
+       {state.tempPin && (
+-        <p className="rounded-[10px] border border-ember-500/60 bg-carbon-900 px-4 py-3">
++        <p className="rounded-control border border-ember-500/60 bg-carbon-900 px-4 py-3">
+           <span className="text-ti-400">{state.employeeCode} · PIN ชั่วคราว: </span>
+           <span className="font-mono text-2xl tracking-[0.3em] text-ember-400" data-testid="temp-pin">{state.tempPin}</span>
+           <span className="mt-1 block text-xs text-ti-500">ปิดหน้านี้แล้วจะดูอีกไม่ได้ — ถ้าลืมให้กด “ออก PIN ใหม่”</span>
+@@ -54,7 +54,7 @@
+   const [state, action, pending] = useActionState(createUserAction, idle);
+   const id = useId();
+   return (
+-    <form action={action} key={state.status === "done" ? "done" : "open"} className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5" aria-labelledby={`${id}-t`}>
++    <form action={action} key={state.status === "done" ? "done" : "open"} className="space-y-4 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-5" aria-labelledby={`${id}-t`}>
+       <h2 id={`${id}-t`} className="text-lg font-medium text-ti-50">เพิ่มผู้ใช้หน้างาน</h2>
+       <div className="grid gap-4 sm:grid-cols-2">
+         <Field label="ชื่อ-นามสกุล *"><input name="fullName" required maxLength={200} autoComplete="off" className={inputClass} /></Field>
+@@ -114,7 +114,7 @@
+ function EditUser({ user, roles }: { user: RowUser; roles: FieldRole[] }) {
+   const [state, action, pending] = useActionState(updateUserAction, idle);
+   return (
+-    <details className="basis-full rounded-[10px] border border-carbon-700">
++    <details className="basis-full rounded-control border border-carbon-700">
+       <summary className="cursor-pointer px-3 py-2 text-sm text-ti-400">แก้ไขข้อมูล / บทบาท</summary>
+       <form action={action} className="space-y-3 border-t border-carbon-700 p-3">
+         <input type="hidden" name="id" value={user.id} />
+--- before/src/app/(app)/admin/users/page.tsx
++++ after/src/app/(app)/admin/users/page.tsx
+@@ -42,7 +42,7 @@
+           พนักงานที่ไม่มีบัญชีระบบกลาง เข้าด้วยรหัส F… + PIN 6 หลัก · {canManage ? "Admin จัดการได้ทั้งหมด" : "หัวหน้า QC ปลดล็อก PIN ของ QC Inspector ได้"}
+         </p>
+         {!dbConfigured() && (
+-          <p role="note" className="rounded-[10px] border border-ember-500/50 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
++          <p role="note" className="rounded-control border border-ember-500/50 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
+             ยังไม่ได้ตั้งค่าฐานข้อมูล (DB_SERVER) — ข้อมูลอยู่ในหน่วยความจำและจะหายเมื่อรีสตาร์ทเซิร์ฟเวอร์
+           </p>
+         )}
+@@ -53,11 +53,11 @@
+       <section aria-labelledby="list-title" className="space-y-3">
+         <h2 id="list-title" className="text-lg font-medium text-ti-50">รายชื่อ ({users.length})</h2>
+         {users.length === 0 ? (
+-          <p className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">ยังไม่มีผู้ใช้หน้างาน</p>
++          <p className="app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">ยังไม่มีผู้ใช้หน้างาน</p>
+         ) : (
+           <ul className="space-y-3">
+             {users.map((user) => (
+-              <li key={user.id} className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++              <li key={user.id} className="space-y-3 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4">
+                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                   <span className="font-mono text-ti-200">{user.employeeCode}</span>
+                   <span className="text-ti-50">{user.fullName}</span>
+@@ -92,7 +92,7 @@
+   return (
+     <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
+       <h1 className="text-2xl text-ti-50">ผู้ใช้หน้างาน</h1>
+-      <p role="alert" className="rounded-xl border border-red-500/50 bg-carbon-800 p-5 text-sm text-red-300">
++      <p role="alert" className="rounded-panel border border-red-500/50 bg-carbon-800 p-5 text-sm text-red-300">
+         {message} — ยังแสดงหรือแก้ไขผู้ใช้หน้างานไม่ได้ ติดต่อผู้ดูแลระบบ
+       </p>
+     </div>
+--- before/src/app/(app)/plans/new/page.tsx
++++ after/src/app/(app)/plans/new/page.tsx
+@@ -43,7 +43,7 @@
+     console.error("[db] open-plan page failed", error.message);
+     return (
+       <Shell>
+-        <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
++        <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
+       </Shell>
+     );
+   }
+@@ -58,22 +58,22 @@
+   return (
+     <Shell>
+       {opened && nextHref && (
+-        <div role="status" className="flex flex-wrap items-center gap-3 rounded-xl border border-pass/40 bg-carbon-800 px-4 py-3 text-sm">
++        <div role="status" className="flex flex-wrap items-center gap-3 rounded-panel border border-pass/40 bg-carbon-800 px-4 py-3 text-sm">
+           <p className="min-w-0 flex-1 text-ti-200">
+             เปิดแผน <span className="whitespace-nowrap font-mono font-semibold text-pass">{opened.planNo}</span> แล้ว — {opened.model.code} · QC ต้องตรวจ {opened.qcRequired} จาก {opened.lotQty.toLocaleString("th-TH")} เครื่อง
+           </p>
+           <div className="flex flex-wrap gap-2">
+-            <Link href={`/plans/${opened.id}`} className="inline-flex h-10 items-center rounded-[10px] border border-ti-600 px-3 text-sm text-ti-200 hover:border-ti-400">
++            <Link href={`/plans/${opened.id}`} className="inline-flex h-10 items-center rounded-control border border-ti-600 px-3 text-sm text-ti-200 hover:border-ti-400">
+               ดูแผน
+             </Link>
+-            <Link href={nextHref} className="inline-flex h-10 items-center rounded-[10px] border border-ember-500/70 px-3 text-sm text-ember-400 hover:bg-ember-500/10">
++            <Link href={nextHref} className="inline-flex h-10 items-center rounded-control border border-ember-500/70 px-3 text-sm text-ember-400 hover:bg-ember-500/10">
+               เปิด Model ถัดไปใน{opened.doc.docType === "INVOICE" ? " Invoice" : " PO"} นี้
+             </Link>
+           </div>
+         </div>
+       )}
+       {data.options.vendors.length === 0 || data.options.models.length === 0 ? (
+-        <p role="alert" className="rounded-[10px] border border-ember-500/50 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
++        <p role="alert" className="rounded-control border border-ember-500/50 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
+           {data.options.vendors.length === 0 && "ยังไม่มี Vendor จาก Demand Planning — รอฝ่าย Demand ลงแผนก่อนจึงเปิดแผนได้ "}
+           {data.options.models.length === 0 && "ยังไม่มี Model ที่ใช้งานอยู่ — เพิ่มที่หน้าข้อมูลหลักก่อนเปิดแผน"}
+         </p>
+--- before/src/app/(app)/plans/new/OpenPlanForm.tsx
++++ after/src/app/(app)/plans/new/OpenPlanForm.tsx
+@@ -15,8 +15,8 @@
+ 
+ const idle: OpenPlanFormState = { status: "idle" };
+ const inputClass =
+-  "h-11 w-full scroll-mb-52 rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-invalid:border-red-400 disabled:opacity-60 lg:scroll-mb-0";
+-const sectionClass = "space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4 sm:p-5";
++  "h-11 w-full scroll-mb-52 rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-invalid:border-red-400 disabled:opacity-60 lg:scroll-mb-0";
++const sectionClass = "space-y-4 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4 sm:p-5";
+ const DEPARTMENTS = ["408", "409"];
+ const dateText = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—");
+ const lotOf = (raw: string) => {
+@@ -131,10 +131,10 @@
+       <h2 id={`${base}-title`} className="sr-only">ฟอร์มเปิดแผนตรวจ</h2>
+       <div className="min-w-0 space-y-5">
+         {state.status === "error" && (
+-          <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{state.message}</p>
++          <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{state.message}</p>
+         )}
+         {state.status === "duplicate" && (
+-          <p role="alert" className="rounded-[10px] border border-ember-500/60 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
++          <p role="alert" className="rounded-control border border-ember-500/60 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
+             แผนนี้เปิดแล้ว: <span className="font-mono font-semibold">{state.planNo}</span> — 1 Model เปิดได้ 1 แผนต่อเอกสาร ·{" "}
+             <Link href={`/plans/${state.planId}`} className="underline underline-offset-4 hover:text-ember-500">ไปที่แผนเดิม</Link>
+           </p>
+@@ -144,7 +144,7 @@
+           <h3 id={`${base}-s1`} className="text-base font-medium text-ti-50">1 · หัวเอกสารรับเข้า</h3>
+           <fieldset className="space-y-1">
+             <legend className="text-sm text-ti-400">แหล่งที่มา</legend>
+-            <div className="grid grid-cols-2 gap-1 rounded-[12px] border border-carbon-600 bg-carbon-900 p-1 sm:max-w-md">
++            <div className="grid grid-cols-2 gap-1 rounded-panel border border-carbon-600 bg-carbon-900 p-1 sm:max-w-md">
+               {(
+                 [
+                   ["INVOICE", "ปั๊มนำเข้า (Invoice)"],
+@@ -153,7 +153,7 @@
+               ).map(([value, label]) => (
+                 <label key={value} className="relative">
+                   <input type="radio" name="docType" value={value} checked={docType === value} onChange={() => changeDocType(value)} className="peer sr-only" />
+-                  <span className="flex h-10 cursor-pointer items-center justify-center rounded-[9px] px-2 text-center text-sm text-ti-400 transition-colors peer-checked:bg-ember-500 peer-checked:font-semibold peer-checked:text-carbon-900 peer-focus-visible:ring-2 peer-focus-visible:ring-ember-400">
++                  <span className="flex h-10 cursor-pointer items-center justify-center rounded-control px-2 text-center text-sm text-ti-400 transition-colors peer-checked:bg-ember-500 peer-checked:font-semibold peer-checked:text-carbon-900 peer-focus-visible:ring-2 peer-focus-visible:ring-ember-400">
+                     {label}
+                   </span>
+                 </label>
+@@ -265,7 +265,7 @@
+             )}
+           </div>
+ 
+-          <dl className="grid gap-x-4 gap-y-2 rounded-[10px] border border-carbon-700 bg-carbon-900/60 p-3 text-sm sm:grid-cols-3">
++          <dl className="grid gap-x-4 gap-y-2 rounded-control border border-carbon-700 bg-carbon-900/60 p-3 text-sm sm:grid-cols-3">
+             <Info term="Brand" value={model?.brandName ?? "—"} />
+             <Info term="ประเภทปั๊ม" value={model?.pumpType ?? "—"} />
+             <Info term="Checklist QC / QA" value={model ? `${model.qcChecklist ?? "ยังไม่ผูก"} / ${model.qaChecklist ?? "ยังไม่ผูก"}` : "—"} />
+@@ -305,7 +305,7 @@
+       {/* Always in view while filling in: above the tab bar on mobile, below the sticky 56px top bar (+50px gap) on laptop. */}
+       <aside
+         aria-label="สรุปแผน"
+-        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 app-panel rounded-xl border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg lg:space-y-3 lg:p-4 shadow-black/30 backdrop-blur md:bottom-4 lg:top-[calc(4.5rem+50px)] lg:bottom-auto"
++        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 app-panel rounded-panel border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg lg:space-y-3 lg:p-4 shadow-black/30 backdrop-blur md:bottom-4 lg:top-[calc(4.5rem+50px)] lg:bottom-auto"
+       >
+         <div className="flex items-end justify-between gap-3 lg:block lg:space-y-4">
+           <div aria-live="polite">
+@@ -330,7 +330,7 @@
+           <Info term="เลขที่แผน" value="ออกอัตโนมัติเมื่อบันทึก (QP-YYMM-NNNN)" />
+           <Info term="QA (AQL)" value="R1.1 — ยังไม่ใช้ใน Pilot" />
+         </dl>
+-        <button type="submit" disabled={blocked} className="h-11 w-full rounded-[10px] app-primary-action bg-ember-500 lg:h-12 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:cursor-not-allowed disabled:opacity-50">
++        <button type="submit" disabled={blocked} className="h-11 w-full rounded-control app-primary-action bg-ember-500 lg:h-12 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:cursor-not-allowed disabled:opacity-50">
+           {pending ? "กำลังบันทึก…" : "บันทึกแผน"}
+         </button>
+         <p className="text-xs text-ti-500" aria-live="polite">
+@@ -389,7 +389,7 @@
+     );
+   }
+   return (
+-    <div role="status" className={`rounded-[10px] border bg-carbon-900/60 px-3 py-2 text-sm ${tone}`}>
++    <div role="status" className={`rounded-control border bg-carbon-900/60 px-3 py-2 text-sm ${tone}`}>
+       {body}
+     </div>
+   );
+--- before/src/app/(app)/plans/[id]/WorkOrderActions.tsx
++++ after/src/app/(app)/plans/[id]/WorkOrderActions.tsx
+@@ -7,8 +7,8 @@
+ import { AssigneePicker } from "./work-orders/AssigneePicker";
+ 
+ const idle: PlanActionState = { status: "idle" };
+-const buttonClass = "inline-flex h-9 items-center rounded-[10px] border px-3 text-xs";
+-const dialogClass = "m-auto w-[min(40rem,calc(100vw-2rem))] app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70";
++const buttonClass = "inline-flex h-9 items-center rounded-control border px-3 text-xs";
++const dialogClass = "m-auto w-[min(40rem,calc(100vw-2rem))] app-panel rounded-panel border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70";
+ 
+ /** W4: change the 2–5 people of an open work order, with the same picker as when it was opened. */
+ export function EditAssigneesButton({ planId, workOrderId, woNo, assignees, inspectors }: { planId: number; workOrderId: string; woNo: string; assignees: WorkOrderAssignee[]; inspectors: Inspector[] }) {
+@@ -42,10 +42,10 @@
+           <input type="hidden" name="workOrderId" value={workOrderId} />
+           <AssigneePicker inspectors={inspectors} value={picked} onChange={setPicked} current={assignees} error={state.status === "error" ? state.message : undefined} />
+           <div className="flex flex-wrap justify-end gap-2">
+-            <button type="button" onClick={() => dialogRef.current?.close()} className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
++            <button type="button" onClick={() => dialogRef.current?.close()} className="h-11 rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
+               ไม่บันทึก
+             </button>
+-            <button type="submit" disabled={pending || picked.length < 2} className="h-11 rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
++            <button type="submit" disabled={pending || picked.length < 2} className="h-11 rounded-control app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
+               {pending ? "กำลังบันทึก…" : "บันทึกผู้ตรวจ"}
+             </button>
+           </div>
+@@ -67,7 +67,7 @@
+       <button type="button" onClick={() => dialogRef.current?.showModal()} className={`${buttonClass} border-fail/60 text-fail hover:bg-fail/10`}>
+         ยกเลิก
+       </button>
+-      <dialog ref={dialogRef} aria-labelledby={`${base}-title`} className="m-auto w-[min(28rem,calc(100vw-2rem))] app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70">
++      <dialog ref={dialogRef} aria-labelledby={`${base}-title`} className="m-auto w-[min(28rem,calc(100vw-2rem))] app-panel rounded-panel border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70">
+         <form action={action} className="space-y-4 p-5">
+           <h2 id={`${base}-title`} className="text-lg text-ti-50">
+             ยกเลิกใบงาน <span className="font-mono">{woNo}</span>?
+@@ -84,15 +84,15 @@
+               maxLength={MAX_CANCEL_REASON}
+               value={reason}
+               onChange={(event) => setReason(event.target.value)}
+-              className="w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 py-2 text-sm text-ti-50 focus:border-ember-500"
++              className="w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 py-2 text-sm text-ti-50 focus:border-ember-500"
+             />
+           </label>
+           {state.status === "error" && <p role="alert" className="text-sm text-red-300">{state.message}</p>}
+           <div className="flex flex-wrap justify-end gap-2">
+-            <button type="button" onClick={() => dialogRef.current?.close()} className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
++            <button type="button" onClick={() => dialogRef.current?.close()} className="h-11 rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
+               ไม่ยกเลิก
+             </button>
+-            <button type="submit" disabled={pending || !reason.trim()} className="h-11 rounded-[10px] bg-fail px-4 text-sm font-semibold text-carbon-900 hover:opacity-90 disabled:opacity-50">
++            <button type="submit" disabled={pending || !reason.trim()} className="h-11 rounded-control bg-fail px-4 text-sm font-semibold text-carbon-900 hover:opacity-90 disabled:opacity-50">
+               {pending ? "กำลังยกเลิก…" : "ยืนยันยกเลิกใบงาน"}
+             </button>
+           </div>
+--- before/src/app/(app)/plans/[id]/PlanActions.tsx
++++ after/src/app/(app)/plans/[id]/PlanActions.tsx
+@@ -19,14 +19,14 @@
+       <button
+         type="button"
+         onClick={() => dialogRef.current?.showModal()}
+-        className="h-11 rounded-[10px] border border-fail/60 px-4 text-sm text-fail hover:bg-fail/10"
++        className="h-11 rounded-control border border-fail/60 px-4 text-sm text-fail hover:bg-fail/10"
+       >
+         ยกเลิกแผน
+       </button>
+       <dialog
+         ref={dialogRef}
+         aria-labelledby={`${base}-title`}
+-        className="m-auto w-[min(28rem,calc(100vw-2rem))] app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70"
++        className="m-auto w-[min(28rem,calc(100vw-2rem))] app-panel rounded-panel border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70"
+       >
+         <form action={action} className="space-y-4 p-5">
+           <h2 id={`${base}-title`} className="text-lg text-ti-50">ยกเลิกแผน <span className="font-mono">{planNo}</span>?</h2>
+@@ -43,18 +43,18 @@
+               maxLength={MAX_CANCEL_REASON}
+               value={reason}
+               onChange={(event) => setReason(event.target.value)}
+-              className="w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 py-2 text-sm text-ti-50 focus:border-ember-500"
++              className="w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 py-2 text-sm text-ti-50 focus:border-ember-500"
+             />
+           </label>
+           {state.status === "error" && <p role="alert" className="text-sm text-red-300">{state.message}</p>}
+           <div className="flex flex-wrap justify-end gap-2">
+-            <button type="button" onClick={() => dialogRef.current?.close()} className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
++            <button type="button" onClick={() => dialogRef.current?.close()} className="h-11 rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
+               ไม่ยกเลิก
+             </button>
+             <button
+               type="submit"
+               disabled={pending || !reason.trim()}
+-              className="h-11 rounded-[10px] bg-fail px-4 text-sm font-semibold text-carbon-900 hover:opacity-90 disabled:opacity-50"
++              className="h-11 rounded-control bg-fail px-4 text-sm font-semibold text-carbon-900 hover:opacity-90 disabled:opacity-50"
+             >
+               {pending ? "กำลังยกเลิก…" : "ยืนยันยกเลิกแผน"}
+             </button>
+@@ -132,15 +132,15 @@
+               name="vendorId"
+               defaultValue={vendorId ?? ""}
+               aria-labelledby={`${base}-term`}
+-              className="h-11 min-w-0 flex-1 rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 focus:border-ember-500"
++              className="h-11 min-w-0 flex-1 rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 focus:border-ember-500"
+             >
+               <option value="">— ยังไม่ระบุ —</option>
+               {choices.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}
+             </select>
+-            <button type="submit" disabled={pending} className="h-11 rounded-[10px] bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
++            <button type="submit" disabled={pending} className="h-11 rounded-control bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
+               {pending ? "กำลังบันทึก…" : "บันทึก"}
+             </button>
+-            <button type="button" onClick={() => setEditing(false)} className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
++            <button type="button" onClick={() => setEditing(false)} className="h-11 rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
+               ยกเลิก
+             </button>
+           </form>
+--- before/src/app/(app)/plans/[id]/page.tsx
++++ after/src/app/(app)/plans/[id]/page.tsx
+@@ -64,7 +64,7 @@
+     console.error("[db] plan page failed", error.message);
+     return (
+       <Back>
+-        <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
++        <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
+       </Back>
+     );
+   }
+@@ -95,7 +95,7 @@
+       </header>
+ 
+       {plan.status === "CANCELLED" && (
+-        <div role="status" className="space-y-1 rounded-xl border border-fail/40 bg-carbon-800 px-4 py-3 text-sm">
++        <div role="status" className="space-y-1 rounded-panel border border-fail/40 bg-carbon-800 px-4 py-3 text-sm">
+           <p className="text-red-300">
+             ยกเลิกแล้ว{plan.cancelledAt && ` เมื่อ ${when.format(plan.cancelledAt)}`}
+             {cancelled?.by && ` โดย ${cancelled.by}`}
+@@ -136,7 +136,7 @@
+   return (
+     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+       <div className="min-w-0 space-y-5">
+-        <section aria-labelledby="doc-title" className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section aria-labelledby="doc-title" className="space-y-3 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4">
+           <h2 id="doc-title" className="text-base font-medium text-ti-50">หัวเอกสารรับเข้า</h2>
+           <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
+             <Item term={isInvoice ? "Invoice" : "PO"} value={isInvoice ? doc.docNo : `${doc.department ?? ""} / ${doc.docNo}`} mono />
+@@ -158,7 +158,7 @@
+               <ul className="flex flex-wrap gap-2">
+                 {others.map((sibling) => (
+                   <li key={sibling.id}>
+-                    <Link href={`/plans/${sibling.id}`} className="inline-flex h-9 items-center rounded-[10px] border border-carbon-600 px-3 font-mono text-xs text-ti-200 hover:border-ti-400">
++                    <Link href={`/plans/${sibling.id}`} className="inline-flex h-9 items-center rounded-control border border-carbon-600 px-3 font-mono text-xs text-ti-200 hover:border-ti-400">
+                       {sibling.planNo} · {sibling.modelCode}
+                     </Link>
+                   </li>
+@@ -168,7 +168,7 @@
+           </div>
+         </section>
+ 
+-        <section aria-labelledby="plan-title" className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section aria-labelledby="plan-title" className="space-y-3 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4">
+           <h2 id="plan-title" className="text-base font-medium text-ti-50">ส่วนแผน</h2>
+           <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+             <Item term="Model" value={plan.model.code} mono />
+@@ -188,7 +188,7 @@
+       </div>
+ 
+       {/* Phone: the summary (QC count, deadline, รอของ) comes first; laptop: right column. */}
+-      <aside aria-label="สรุปแผน" className="order-first space-y-4 app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-4 lg:order-none">
++      <aside aria-label="สรุปแผน" className="order-first space-y-4 app-panel rounded-panel border border-carbon-600 bg-carbon-800 p-4 lg:order-none">
+         <div>
+           <p className="text-xs text-ti-400">QC ตรวจแล้ว / ต้องตรวจ</p>
+           <p className="font-mono text-3xl text-ti-50">
+@@ -250,11 +250,11 @@
+   return (
+     <section aria-label="ใบงาน" className="space-y-4">
+       {justOpened && (
+-        <p role="status" className="rounded-xl border border-pass/40 bg-carbon-800 px-4 py-3 text-sm text-ti-200">
++        <p role="status" className="rounded-panel border border-pass/40 bg-carbon-800 px-4 py-3 text-sm text-ti-200">
+           เปิดใบงาน <span className="whitespace-nowrap font-mono font-semibold text-pass">{justOpened.woNo}</span> แล้ว — {WORK_ORDER_TYPE_LABELS[justOpened.type]} · Need {justOpened.qtyNeed} · QC {justOpened.assignees.length} คน
+         </p>
+       )}
+-      <div className="flex flex-wrap items-center justify-between gap-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++      <div className="flex flex-wrap items-center justify-between gap-3 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4">
+         <dl className="grid flex-1 grid-cols-2 gap-3 text-center text-sm sm:grid-cols-4">
+           <Stat term="ยอดล็อต" value={plan.lotQty} />
+           <Stat term={`เรียกเข้าแล้ว (${callIns} ครั้ง)`} value={plan.lotCalledTotal} />
+@@ -268,19 +268,19 @@
+           (blocked ? (
+             <p className="text-sm text-ti-500">{blocked} — เปิดใบงานเพิ่มไม่ได้</p>
+           ) : (
+-            <Link href={`/plans/${plan.id}/work-orders/new`} className="inline-flex h-11 items-center rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
++            <Link href={`/plans/${plan.id}/work-orders/new`} className="inline-flex h-11 items-center rounded-control app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
+               ＋ เปิดใบงาน ครั้งที่ {nextSeq}
+             </Link>
+           ))}
+       </div>
+ 
+       {workOrders.length === 0 ? (
+-        <p className="rounded-xl border border-dashed border-carbon-600 p-5 text-sm text-ti-400">
++        <p className="rounded-panel border border-dashed border-carbon-600 p-5 text-sm text-ti-400">
+           ยังไม่มีใบงาน — เปิดใบงานทุกครั้งที่เรียกของเข้า (เลข {plan.planNo}-1, -2, …) แล้วเลือก QC 2–5 คน
+         </p>
+       ) : (
+         <>
+-          <div className="hidden overflow-x-auto app-panel rounded-xl border border-carbon-700 bg-carbon-800 md:block">
++          <div className="hidden overflow-x-auto app-panel rounded-panel border border-carbon-700 bg-carbon-800 md:block">
+             <table className="w-full min-w-[960px] text-sm">
+               <caption className="sr-only">ใบงานของแผน {plan.planNo}</caption>
+               <thead className="bg-carbon-900 text-left text-xs text-ti-400">
+@@ -318,7 +318,7 @@
+           </div>
+           <ul className="space-y-3 md:hidden" aria-label={`ใบงานของแผน ${plan.planNo}`}>
+             {workOrders.map((wo) => (
+-              <li key={wo.id} className={`space-y-2 rounded-xl border bg-carbon-800 p-4 text-sm ${wo.woNo === opened ? "border-pass/50" : "border-carbon-700"} ${wo.status === "CANCELLED" ? "text-ti-500" : "text-ti-200"}`}>
++              <li key={wo.id} className={`space-y-2 rounded-panel border bg-carbon-800 p-4 text-sm ${wo.woNo === opened ? "border-pass/50" : "border-carbon-700"} ${wo.status === "CANCELLED" ? "text-ti-500" : "text-ti-200"}`}>
+                 <div className="flex items-start justify-between gap-2">
+                   <span className="font-mono font-semibold text-ti-50">{wo.woNo}</span>
+                   <WorkOrderStatusBadge status={wo.status} />
+@@ -367,7 +367,7 @@
+   return (
+     <ol className="space-y-3" aria-label="ประวัติสถานะแผน">
+       {history.map((entry, index) => (
+-        <li key={index} className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 px-4 py-3 text-sm">
++        <li key={index} className="app-panel rounded-panel border border-carbon-700 bg-carbon-800 px-4 py-3 text-sm">
+           <p className="text-ti-50">
+             {entry.from === null ? "เปิดแผน" : entry.to === "CANCELLED" ? "ยกเลิกแผน" : `${statusLabel(entry.from)} → ${statusLabel(entry.to)}`}
+           </p>
+--- before/src/app/(app)/plans/[id]/work-orders/AssigneePicker.tsx
++++ after/src/app/(app)/plans/[id]/work-orders/AssigneePicker.tsx
+@@ -160,11 +160,11 @@
+                 value={query}
+                 onChange={(event) => setQuery(event.target.value)}
+                 placeholder="ค้นหาชื่อ / รหัส"
+-                className="h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500"
++                className="h-11 w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500"
+               />
+             </label>
+             {listed.length === 0 ? (
+-              <p className="rounded-[10px] border border-dashed border-carbon-600 p-3 text-sm text-ti-400">
++              <p className="rounded-control border border-dashed border-carbon-600 p-3 text-sm text-ti-400">
+                 {people.size === 0 ? "ยังไม่มีผู้ใช้บทบาท QC Inspector ที่ใช้งานอยู่ — QC ระบบกลางจะขึ้นหลัง login ครั้งแรก" : "ไม่พบชื่อที่ค้นหา"}
+               </p>
+             ) : (
+@@ -189,7 +189,7 @@
+       <DragOverlay>
+         {(source) => {
+           const data = source?.data as DragData | undefined;
+-          return data ? <span className="inline-flex h-10 items-center rounded-[10px] border border-ember-500 bg-carbon-800 px-3 text-sm text-ti-50 shadow-lg shadow-black/40">⠿ {data.name}</span> : null;
++          return data ? <span className="inline-flex h-10 items-center rounded-control border border-ember-500 bg-carbon-800 px-3 text-sm text-ti-50 shadow-lg shadow-black/40">⠿ {data.name}</span> : null;
+         }}
+       </DragOverlay>
+     </DragDropProvider>
+@@ -201,7 +201,7 @@
+   return (
+     <li
+       ref={ref}
+-      className={`flex min-h-14 items-center gap-2 rounded-[10px] border px-2 py-1.5 text-sm ${
++      className={`flex min-h-14 items-center gap-2 rounded-control border px-2 py-1.5 text-sm ${
+         isDropTarget ? "border-ember-500 bg-ember-500/10" : children ? "border-carbon-600 bg-carbon-900" : "border-dashed border-carbon-600"
+       }`}
+     >
+@@ -218,7 +218,7 @@
+   // Dropping a chosen person back on the list takes them out.
+   const { ref, isDropTarget } = useDroppable({ id: `${base}-list` });
+   return (
+-    <div ref={ref} className={`min-w-0 space-y-2 rounded-[12px] p-1 lg:order-1 ${isDropTarget ? "outline-2 outline-dashed outline-ember-500/60" : ""}`}>
++    <div ref={ref} className={`min-w-0 space-y-2 rounded-panel p-1 lg:order-1 ${isDropTarget ? "outline-2 outline-dashed outline-ember-500/60" : ""}`}>
+       {children}
+     </div>
+   );
+@@ -253,12 +253,12 @@
+   const { ref, handleRef, isDragSource } = useDraggable({ id: `${base}-person-${person.id}`, data: { personId: person.id, name: person.name } satisfies DragData });
+   const chosen = slot > 0;
+   return (
+-    <li ref={ref} className={`flex items-stretch gap-1 rounded-[12px] border bg-carbon-800 ${chosen ? "border-ember-500/70" : "border-carbon-600"} ${isDragSource ? "opacity-50" : ""}`}>
++    <li ref={ref} className={`flex items-stretch gap-1 rounded-panel border bg-carbon-800 ${chosen ? "border-ember-500/70" : "border-carbon-600"} ${isDragSource ? "opacity-50" : ""}`}>
+       <button
+         ref={handleRef}
+         type="button"
+         aria-label={`ลาก ${person.name} ไปวางในช่อง`}
+-        className="flex w-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-l-[12px] text-lg text-ti-500 hover:text-ti-200 active:cursor-grabbing"
++        className="flex w-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-l-panel text-lg text-ti-500 hover:text-ti-200 active:cursor-grabbing"
+       >
+         ⠿
+       </button>
+@@ -307,7 +307,7 @@
+         </span>
+         {gauge && <Gauge {...gauge} />}
+       </span>
+-      <button type="button" onClick={onRemove} aria-label={`เอา ${person.name} ออก`} className="flex size-9 shrink-0 items-center justify-center rounded-[8px] text-ti-400 hover:bg-carbon-700 hover:text-ti-50">
++      <button type="button" onClick={onRemove} aria-label={`เอา ${person.name} ออก`} className="flex size-9 shrink-0 items-center justify-center rounded-control text-ti-400 hover:bg-carbon-700 hover:text-ti-50">
+         ✕
+       </button>
+     </span>
+--- before/src/app/(app)/plans/[id]/work-orders/new/page.tsx
++++ after/src/app/(app)/plans/[id]/work-orders/new/page.tsx
+@@ -39,7 +39,7 @@
+     console.error("[db] new work order page failed", error.message);
+     return (
+       <Shell planId={Number(id)}>
+-        <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
++        <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{dbProblemMessages[dbProblem(error)]}</p>
+       </Shell>
+     );
+   }
+@@ -50,7 +50,7 @@
+   return (
+     <Shell planId={plan.id} plan={plan}>
+       {!canOpenWorkOrder(plan.status) || remaining <= 0 ? (
+-        <p role="alert" className="rounded-[10px] border border-ember-500/50 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
++        <p role="alert" className="rounded-control border border-ember-500/50 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
+           {remaining <= 0 ? "ล็อตนี้เรียกเข้าครบแล้ว — เปิดใบงานเพิ่มไม่ได้" : "แผนนี้เสร็จ ยกเลิก หรือถูกพักล็อตแล้ว — เปิดใบงานไม่ได้"}
+         </p>
+       ) : (
+--- before/src/app/(app)/plans/[id]/work-orders/new/WorkOrderForm.tsx
++++ after/src/app/(app)/plans/[id]/work-orders/new/WorkOrderForm.tsx
+@@ -23,7 +23,7 @@
+ 
+ const idle: WorkOrderFormState = { status: "idle" };
+ const inputClass =
+-  "h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-[invalid=true]:border-red-500 scroll-mb-52 lg:scroll-mb-0";
++  "h-11 w-full rounded-control border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-[invalid=true]:border-red-500 scroll-mb-52 lg:scroll-mb-0";
+ const countOf = (raw: string) => {
+   const value = raw.replace(/,/g, "").trim();
+   return /^\d{1,7}$/.test(value) ? Number(value) : null;
+@@ -73,9 +73,9 @@
+     <form action={action} noValidate className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+       <input type="hidden" name="planId" value={plan.id} />
+       <div className="min-w-0 space-y-5">
+-        {state.status === "error" && <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{state.message}</p>}
++        {state.status === "error" && <p role="alert" className="rounded-control border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{state.message}</p>}
+ 
+-        <section className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section className="space-y-4 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4">
+           <h2 className="text-base font-medium text-ti-50">การเรียกเข้าครั้งที่ {nextSeq}</h2>
+           <div className="grid gap-4 sm:grid-cols-2">
+             <label className="block space-y-1 text-sm text-ti-400">
+@@ -121,11 +121,11 @@
+           </div>
+         </section>
+ 
+-        <section className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section className="space-y-4 app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4">
+           <AssigneePicker inspectors={inspectors} value={picked} onChange={setPicked} error={errors.assignees} unavailable={unavailable} />
+         </section>
+ 
+-        <section className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section className="app-panel rounded-panel border border-carbon-700 bg-carbon-800 p-4">
+           <label className="block space-y-1 text-sm text-ti-400">
+             <span>หมายเหตุ</span>
+             <input name="remarks" defaultValue={values.remarks} maxLength={1000} placeholder="ไม่บังคับ" aria-invalid={errors.remarks ? true : undefined} className={inputClass} />
+@@ -137,7 +137,7 @@
+       {/* Always in view while filling in: above the tab bar on mobile, below the sticky 56px top bar (+50px gap) on laptop. */}
+       <aside
+         aria-label="สรุปใบงาน"
+-        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 app-panel rounded-xl border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg shadow-black/30 backdrop-blur md:bottom-4 lg:top-[calc(4.5rem+50px)] lg:bottom-auto lg:space-y-3 lg:p-4"
++        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 app-panel rounded-panel border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg shadow-black/30 backdrop-blur md:bottom-4 lg:top-[calc(4.5rem+50px)] lg:bottom-auto lg:space-y-3 lg:p-4"
+       >
+         <div className="flex items-end justify-between gap-3 lg:block lg:space-y-3" aria-live="polite">
+           <div>
+@@ -160,10 +160,10 @@
+           เรียกเข้าแล้ว {plan.lotCalledTotal.toLocaleString("th-TH")} → {(plan.lotCalledTotal + (qty !== null && !callIn ? qty : 0)).toLocaleString("th-TH")} / {plan.lotQty.toLocaleString("th-TH")}
+         </p>
+         <div className="flex gap-2">
+-          <Link href={`/plans/${plan.id}?tab=work`} className="hidden h-11 items-center rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 lg:inline-flex">
++          <Link href={`/plans/${plan.id}?tab=work`} className="hidden h-11 items-center rounded-control border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 lg:inline-flex">
+             ยกเลิก
+           </Link>
+-          <button type="submit" disabled={blocked} className="h-11 flex-1 rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
++          <button type="submit" disabled={blocked} className="h-11 flex-1 rounded-control app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
+             {pending ? "กำลังบันทึก…" : "บันทึกใบงาน"}
+           </button>
+         </div>
+--- before/src/app/globals.css
++++ after/src/app/globals.css
+@@ -1,5 +1,14 @@
+ @import "tailwindcss";
+ @import "./app-theme.css";
++
++/* Shape hierarchy: inset controls, actions, panels, and large surfaces.
++   Static tokens also serve the scoped plain-CSS components. Circles and pills stay fully rounded. */
++@theme static {
++  --radius-inset: 6px;
++  --radius-control: 10px;
++  --radius-panel: 16px;
++  --radius-surface: 22px;
++}
+ 
+ /* Design tokens (docs/07 §2.2). Mirrored for WebGL in src/config/experience.ts —
+    src/config/palette.test.ts fails if the two lists drift apart. */
+--- before/src/app/app-theme.css
++++ after/src/app/app-theme.css
+@@ -93,7 +93,7 @@
+   background-image: none;
+   box-shadow: 0 2px 3px rgb(62 52 30 / .025), 0 10px 28px -22px rgb(49 60 35 / .22);
+ }
+-.app-theme-sand .app-panel { border-radius: 16px; }
++.app-theme-sand .app-panel { border-radius: var(--radius-panel); }
+ .app-theme-sand :where(input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea) {
+   background-color: #fffdf6;
+   color: var(--color-ti-50);
+@@ -111,7 +111,7 @@
+ .app-theme-sand :where(.app-primary-action, .bg-ember-500, .bg-ember-400, .bg-ember-600) { color: #fff9ed; }
+ .app-theme-sand .app-primary-action {
+   background-image: none;
+-  border-radius: 10px;
++  border-radius: var(--radius-control);
+   box-shadow: 0 2px 0 rgb(100 44 20 / .13), inset 0 1px 0 rgb(255 255 255 / .15);
+ }
+ .app-theme-sand .app-metal-action { background-image: none; box-shadow: none; }
+@@ -144,7 +144,7 @@
+   align-items: center;
+   gap: 10px;
+   padding: 14px 0;
+-  border-radius: 22px;
++  border-radius: var(--radius-surface);
+   background: transparent;
+ }
+ .app-theme-sand .app-rail-clip { position: absolute; pointer-events: none; }
+@@ -157,14 +157,14 @@
+   backdrop-filter: var(--app-glass-filter);
+ }
+ .app-theme-sand .app-rail-outline { z-index: -1; overflow: visible; fill: none; stroke: #cdd0bd; stroke-width: 1; }
+-.app-theme-sand .app-rail-brand { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 14px; color: #233c30; }
++.app-theme-sand .app-rail-brand { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: var(--radius-control); color: #233c30; }
+ .app-theme-sand .app-rail-sections { flex: 1; display: flex; flex-direction: column; gap: 10px; width: 48px; padding-top: 10px; border-top: 1px solid #d9d6c4; }
+ .app-theme-sand .app-rail-sections nav + nav { padding-top: 10px; border-top: 1px solid #d9d6c4; }
+ .app-theme-sand .app-rail-sections ul { display: flex; flex-direction: column; gap: 4px; width: 48px; }
+ .app-theme-sand .app-rail-sections li { width: 48px; }
+-.app-theme-sand .app-rail-link { position: relative; display: flex; align-items: center; width: 48px; height: 48px; padding-left: 2px; border-radius: 15px; color: #4d6b4e; outline: none; }
++.app-theme-sand .app-rail-link { position: relative; display: flex; align-items: center; width: 48px; height: 48px; padding-left: 2px; border-radius: var(--radius-control); color: #4d6b4e; outline: none; }
+ .app-theme-sand .app-rail-link[data-expanded] { width: calc(var(--rail-surface-width) - 20px); }
+-.app-theme-sand .app-rail-icon { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 14px; transition: scale 320ms cubic-bezier(.22,1,.36,1), background-color 200ms ease, color 200ms ease; }
++.app-theme-sand .app-rail-icon { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--radius-control); transition: scale 320ms cubic-bezier(.22,1,.36,1), background-color 200ms ease, color 200ms ease; }
+ .app-theme-sand .app-rail-link[aria-current="page"] .app-rail-icon { background-color: #233c30; color: #ffd09c; box-shadow: 0 8px 18px -12px rgb(35 60 48 / .8); }
+ .app-theme-sand .app-rail-badge { position: absolute; top: 2px; right: 1px; }
+ .app-theme-sand .app-rail-label {
+@@ -225,12 +225,12 @@
+   box-shadow: 0 -6px 24px rgb(32 51 34 / .1);
+ }
+ .app-theme-sand .app-mobile-tabs ul { height: 64px; padding: 5px 8px; gap: 4px; }
+-.app-theme-sand .app-mobile-tabs a { border-radius: 10px; }
++.app-theme-sand .app-mobile-tabs a { border-radius: var(--radius-control); }
+ .app-theme-sand .app-mobile-tabs a[aria-current="page"] { color: #ffd09c; background-color: #3b5140; }
+ 
+ /* The dashboard's welcome panel borrows the reference's green cutting mat and warm paper ink. */
+ .app-theme-sand .home-welcome {
+-  --welcome-radius: 22px;
++  --welcome-radius: var(--radius-surface);
+   position: relative;
+   isolation: isolate;
+   display: block;
+@@ -306,7 +306,7 @@
+ }
+ @media (max-width: 767px) {
+   .app-theme-sand .app-topbar { height: 64px; }
+-  .app-theme-sand .home-welcome { --welcome-radius: 18px; padding: 24px; }
++  .app-theme-sand .home-welcome { padding: 24px; }
+   .app-theme-sand .home-welcome-copy, .app-theme-sand .home-welcome-actions { max-width: 100%; }
+   .app-theme-sand .home-welcome-copy [lang="en"] { max-width: 100%; font-size: 8px; letter-spacing: .08em; }
+   .app-theme-sand .workspace-drawing { opacity: .11; right: -15px; bottom: 0; }
+--- before/src/app/(app)/master/[table]/master-table.css
++++ after/src/app/(app)/master/[table]/master-table.css
+@@ -13,35 +13,35 @@
+ .master-title-block { min-width: 0; flex: 1 1 260px; }
+ .master-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+ .master-title-line h1 { font-size: clamp(1.4rem, 3cqi, 1.75rem); line-height: 1.4; font-weight: 600; color: var(--color-ti-50); }
+-.master-count { border: 1px solid var(--color-carbon-600); border-radius: 7px; background: var(--color-carbon-900); padding: 2px 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-ti-200); }
++.master-count { border: 1px solid var(--color-carbon-600); border-radius: var(--radius-inset); background: var(--color-carbon-900); padding: 2px 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-ti-200); }
+ .master-description { margin-top: 6px; max-width: 70ch; font-size: 13px; line-height: 1.7; color: var(--color-ti-400); overflow-wrap: anywhere; }
+-.master-add { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; padding: 0 18px; flex-shrink: 0; font-size: 14px; font-weight: 600; }
+-.master-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 16px; border: 1px solid var(--color-carbon-700); border-radius: 14px; }
++.master-add { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-control); padding: 0 18px; flex-shrink: 0; font-size: 14px; font-weight: 600; }
++.master-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 16px; border: 1px solid var(--color-carbon-700); border-radius: var(--radius-panel); }
+ .master-search-field { grid-column: 1 / -1; }
+ .master-filter-label { display: grid; min-width: 0; gap: 7px; font-size: 12px; font-weight: 500; color: var(--color-ti-400); }
+ .master-input-wrap { position: relative; min-width: 0; }
+ .master-search-icon { position: absolute; left: 13px; top: 14px; color: var(--color-ti-500); pointer-events: none; }
+-.master-input, .master-select { width: 100%; min-width: 0; height: 44px; border: 1px solid var(--color-carbon-600); border-radius: 9px; background: var(--color-carbon-900); padding: 0 12px; color: var(--color-ti-50); font-size: 14px; }
++.master-input, .master-select { width: 100%; min-width: 0; height: 44px; border: 1px solid var(--color-carbon-600); border-radius: var(--radius-control); background: var(--color-carbon-900); padding: 0 12px; color: var(--color-ti-50); font-size: 14px; }
+ .master-input { padding-left: 39px; }
+ .master-input::placeholder { color: var(--color-ti-500); }
+ .master-input:focus, .master-select:focus { outline: 2px solid var(--color-ember-400); outline-offset: 2px; }
+-.master-filter-button, .master-clear { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border: 1px solid var(--color-ti-600); border-radius: 9px; padding: 0 18px; font-size: 13px; font-weight: 500; color: var(--color-ti-200); }
++.master-filter-button, .master-clear { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border: 1px solid var(--color-ti-600); border-radius: var(--radius-control); padding: 0 18px; font-size: 13px; font-weight: 500; color: var(--color-ti-200); }
+ .master-filter-button:hover, .master-clear:hover { border-color: var(--color-ember-400); color: var(--color-ti-50); }
+ .master-result-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--color-ti-400); font-size: 12px; }
+ .master-result-bar strong { font-weight: 500; color: var(--color-ti-200); font-variant-numeric: tabular-nums; }
+ .master-clear { border: 0; min-height: 32px; padding: 0 2px; color: var(--color-ember-400); }
+-.master-empty { display: grid; justify-items: center; gap: 10px; border: 1px solid var(--color-carbon-700); border-radius: 14px; padding: 44px 20px; text-align: center; }
+-.master-empty-icon { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid var(--color-carbon-600); border-radius: 14px; background: var(--color-carbon-900); color: var(--color-ti-400); }
++.master-empty { display: grid; justify-items: center; gap: 10px; border: 1px solid var(--color-carbon-700); border-radius: var(--radius-panel); padding: 44px 20px; text-align: center; }
++.master-empty-icon { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid var(--color-carbon-600); border-radius: var(--radius-control); background: var(--color-carbon-900); color: var(--color-ti-400); }
+ .master-empty h2 { font-size: 16px; font-weight: 500; color: var(--color-ti-200); }
+ .master-empty p { font-size: 13px; line-height: 1.7; color: var(--color-ti-400); }
+ .master-pagination { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; color: var(--color-ti-400); font-size: 12px; }
+-.master-pagination a { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 6px; width: fit-content; border: 1px solid var(--color-carbon-600); border-radius: 9px; padding: 0 12px; color: var(--color-ti-200); }
++.master-pagination a { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 6px; width: fit-content; border: 1px solid var(--color-carbon-600); border-radius: var(--radius-control); padding: 0 12px; color: var(--color-ti-200); }
+ .master-pagination > :last-child { justify-self: end; }
+ .master-pagination a:hover { border-color: var(--color-ember-400); }
+ 
+ .master-records { container-type: inline-size; min-width: 0; }
+ .master-table-view { display: none; }
+-.master-table-panel { overflow: hidden; border: 1px solid var(--color-carbon-700); border-radius: 14px; }
++.master-table-panel { overflow: hidden; border: 1px solid var(--color-carbon-700); border-radius: var(--radius-panel); }
+ .master-table-scroll { overflow-x: auto; scrollbar-color: var(--color-carbon-600) var(--color-carbon-900); scrollbar-width: thin; }
+ .master-table-scroll:focus-visible { outline: 2px solid var(--color-ember-400); outline-offset: -3px; }
+ .master-table { width: 100%; min-width: 720px; table-layout: fixed; border-collapse: collapse; text-align: left; font-size: 14px; }
+@@ -71,14 +71,14 @@
+ .master-stamp dd > span { display: block; color: var(--color-ti-400); }
+ .master-actions { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 8px; min-width: 0; }
+ .master-actions form { min-width: 0; }
+-.master-edit, .master-toggle { display: inline-flex; min-height: 44px; width: 100%; align-items: center; justify-content: center; border: 1px solid var(--color-carbon-600); border-radius: 8px; padding: 6px 9px; font-size: 12px; line-height: 1.5; color: var(--color-ti-200); background: var(--color-carbon-900); }
++.master-edit, .master-toggle { display: inline-flex; min-height: 44px; width: 100%; align-items: center; justify-content: center; border: 1px solid var(--color-carbon-600); border-radius: var(--radius-control); padding: 6px 9px; font-size: 12px; line-height: 1.5; color: var(--color-ti-200); background: var(--color-carbon-900); }
+ .master-edit:hover, .master-toggle:hover { border-color: var(--color-ember-400); color: var(--color-ti-50); }
+ .master-edit { color: var(--color-ember-400); }
+ .master-table .master-actions { grid-template-columns: 1fr; gap: 7px; }
+ .master-table .master-edit, .master-table .master-toggle { min-height: 36px; }
+ .master-records:not(.master-dense) .master-table .master-actions { grid-template-columns: 1fr 1fr; }
+ .master-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; list-style: none; }
+-.master-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--color-carbon-700); border-radius: 14px; overflow: hidden; }
++.master-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--color-carbon-700); border-radius: var(--radius-panel); overflow: hidden; }
+ .master-card-body { display: grid; flex: 1; align-content: start; gap: 18px; padding: 18px; }
+ .master-card-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+ .master-identity { min-width: 0; }
+--- before/src/components/canvas/inspection.css
++++ after/src/components/canvas/inspection.css
+@@ -6,18 +6,18 @@
+ .auth-inspection-hint { display: none; position: absolute; left: 29%; bottom: 8%; transform: translateX(-50%); width: max-content; max-width: 46%; text-align: center; color: #9a9890; font-size: 11px; letter-spacing: .02em; }
+ .auth-inspection-dialog { position: fixed; inset: 0; width: 100%; height: 100svh; max-width: none; max-height: none; margin: 0; padding: 0; border: none; background: transparent; color: #f2f1ee; overflow: hidden; }
+ .auth-inspection-dialog::backdrop { background: transparent; }
+-.auth-inspection-card { position: absolute; left: max(16px,calc(29% - 220px)); bottom: max(28px,5svh); width: min(440px,calc(53vw - 32px)); max-height: 46svh; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #39404a; border-radius: 16px; background: rgb(17 21 26 / .96); box-shadow: 0 16px 60px rgb(0 0 0 / .3); scrollbar-width: thin; scrollbar-color: #4c5159 transparent; }
++.auth-inspection-card { position: absolute; left: max(16px,calc(29% - 220px)); bottom: max(28px,5svh); width: min(440px,calc(53vw - 32px)); max-height: 46svh; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #39404a; border-radius: var(--radius-panel); background: rgb(17 21 26 / .96); box-shadow: 0 16px 60px rgb(0 0 0 / .3); scrollbar-width: thin; scrollbar-color: #4c5159 transparent; }
+ .auth-inspection-heading { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; background: #11151a; }
+ .auth-inspection-heading p { color: #75b7dc; font-size: 10px; letter-spacing: .06em; }
+ .auth-inspection-heading h2 { margin-top: 3px; color: #f2f1ee; font-size: 18px; font-weight: 500; line-height: 1.5; }
+-.auth-inspection-close { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid #39404a; border-radius: 10px; color: #cfcdc7; font-size: 26px; cursor: pointer; }
++.auth-inspection-close { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid #39404a; border-radius: var(--radius-control); color: #cfcdc7; font-size: 26px; cursor: pointer; }
+ .auth-inspection-close:hover { border-color: #ff8a55; color: #ff8a55; }
+-.auth-inspection-tabs { display: flex; gap: 6px; margin: 0 16px 10px; padding: 4px; border: 1px solid #2e3137; border-radius: 10px; background: #0e0f11; }
+-.auth-inspection-tabs button { flex: 1; min-height: 32px; border-radius: 6px; padding: 3px 5px; font-size: 11px; color: #9a9890; cursor: pointer; }
++.auth-inspection-tabs { display: flex; gap: 6px; margin: 0 16px 10px; padding: 4px; border: 1px solid #2e3137; border-radius: var(--radius-control); background: #0e0f11; }
++.auth-inspection-tabs button { flex: 1; min-height: 32px; border-radius: var(--radius-inset); padding: 3px 5px; font-size: 11px; color: #9a9890; cursor: pointer; }
+ .auth-inspection-tabs button[aria-pressed="true"] { background: #2b241e; color: #ff9a5c; }
+ .auth-inspection-subtitle { margin: 0 16px 10px; font-size: 12px; line-height: 1.7; color: #9a9890; }
+ .auth-inspection-items { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; padding: 0 16px; }
+-.auth-inspection-items button { display: flex; flex-direction: column; align-items: start; gap: 3px; min-height: 46px; border: 1px solid #2e3540; border-radius: 8px; padding: 7px 8px; text-align: left; font-size: 11px; color: #cfcdc7; line-height: 1.5; cursor: pointer; }
++.auth-inspection-items button { display: flex; flex-direction: column; align-items: start; gap: 3px; min-height: 46px; border: 1px solid #2e3540; border-radius: var(--radius-control); padding: 7px 8px; text-align: left; font-size: 11px; color: #cfcdc7; line-height: 1.5; cursor: pointer; }
+ .auth-inspection-items button span { color: #75b7dc; font-family: monospace; font-size: 10px; }
+ .auth-inspection-items button:hover, .auth-inspection-items button[aria-pressed="true"] { border-color: #ff7628; color: #f2f1ee; background: rgb(255 118 40 / .07); }
+ .auth-inspection-items button[aria-pressed="true"] span { color: #ff9a5c; }

@@ -1,0 +1,7 @@
+{
+  "src/app/app-theme.css": "8c76e0caf37ca0be9c0362f438135fcb27e9cd8ef7d0097fd92b6331a29f8810",
+  "src/components/shell/AppSidebar.tsx": "8f18f8038dfdfe684366e04744834d631f7aa7173a0afefe2355e5da7a0963a5",
+  "src/components/shell/railSurface.ts": "61ca34d1cb1eaec0b6e9ea2d72d35517df65e032ee8c37eab7a9af719958ba58",
+  "src/components/shell/useRailSurface.ts": "c90a0afbc2a376e52887d511113d386c4cf61ece6f50a1e6e4fd1f0151e88aa9",
+  "src/components/shell/railSurface.test.ts": "ad3b03720f61b403fc773ad2f3b5b4bb9125e15b9b67b356c47c96e3bc16a1c4"
+}

@@ -1,0 +1,15 @@
+{
+  "src/app/(app)/admin/users/UserAdminForms.tsx": "ac24fc637247fb28ed453452382604286bdf7fefdd0ef84bd9453abbf4251c51",
+  "src/app/(app)/admin/users/page.tsx": "81c83551eaf9d0938448ac7ac5feee1d30ab67c36f6247cab3b1b4013817185c",
+  "src/app/(app)/home/page.tsx": "150d32e7252acc453e6a4aa71a15edb36e0717079fc899de25ee8440a436b3ee",
+  "src/app/(app)/layout.tsx": "7f2354ddac94a00a4974231ea54e45c8838a5fdcf4c905ce9d3d1b65e5b107de",
+  "src/app/(app)/master/[table]/MasterForms.tsx": "52b571492f91f5fc02e2a72a244ff87540680aed3886393a4fbd6bed5ef7c962",
+  "src/app/(app)/master/[table]/page.tsx": "14f21f89ba14bc04a1187b5f46bfec880ade7c6248dca24019cb3882097acc0c",
+  "src/app/(app)/master/page.tsx": "c8b0eae45078637f8c56265fc05f3d098a7a7a7acbb35f379c45d3c4e19e835f",
+  "src/app/(app)/more/page.tsx": "217d281d692a64dc6722baabe9c477812b52ec86613f8f68af8cd016a40b4be4",
+  "src/app/globals.css": "e84afc1586671e96163f50bace814db370b52f78938bb774efbbc329da3d66e9",
+  "src/components/shell/AppSidebar.tsx": "bd520a671fef0c0f1429971b5bfffba8ad1784128c4983c159ba881339b18d7a",
+  "src/components/shell/BottomTabBar.tsx": "72f40d6a4d405216c9c07cb7a6fc61d7ec9f25d52980f93cab081562e4cb78ac",
+  "src/components/shell/TopAppBar.tsx": "18c384fda0f9cc8b62d05b77dafe59c928dc53b6a535a70f3666ff41de2e4acc",
+  "src/app/app-theme.css": "66979acad44e426566ba81ca4e0c1029b431d37fd8f82400aaf3f22677e00e6c"
+}

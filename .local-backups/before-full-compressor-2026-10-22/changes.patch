@@ -1,0 +1,1453 @@
+--- before/src/components/canvas/CompressorCylinder.tsx
++++ after/src/components/canvas/CompressorCylinder.tsx
+@@ -1,107 +0,0 @@
+-"use client";
+-
+-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+-import {
+-  type BufferGeometry,
+-  type InstancedMesh,
+-  type Material,
+-  type Matrix4,
+-  Color,
+-  MeshPhysicalMaterial,
+-  MeshStandardMaterial,
+-} from "three";
+-import { stage } from "@/config/experience";
+-import { BRUSHED_MEAN, createBrushedRoughness } from "./brushedTexture";
+-import { buildCompressorGeometry, disposeCompressorGeometry } from "./compressorGeometry";
+-import { applyScanReveal, type ScanUniforms } from "./scanReveal";
+-
+-function createMaterials(uniforms: ScanUniforms) {
+-  const brushed = createBrushedRoughness();
+-  const { titanium, fins, steel, accent } = stage;
+-  const materials = {
+-    brushed,
+-    titanium: new MeshPhysicalMaterial({
+-      color: titanium.color,
+-      metalness: 1,
+-      roughness: titanium.roughness / BRUSHED_MEAN,
+-      roughnessMap: brushed,
+-      anisotropy: titanium.anisotropy,
+-      clearcoat: titanium.clearcoat,
+-      clearcoatRoughness: titanium.clearcoatRoughness,
+-      envMapIntensity: titanium.envMapIntensity,
+-    }),
+-    fins: new MeshPhysicalMaterial({
+-      color: fins.color,
+-      metalness: 1,
+-      roughness: fins.roughness,
+-      envMapIntensity: titanium.envMapIntensity,
+-    }),
+-    steel: new MeshStandardMaterial({ color: steel.color, metalness: 1, roughness: steel.roughness }),
+-    accent: new MeshStandardMaterial({ color: accent.color, metalness: 1, roughness: accent.roughness }),
+-  };
+-  for (const material of [materials.titanium, materials.fins, materials.steel, materials.accent]) {
+-    applyScanReveal(material, uniforms);
+-  }
+-  materials.fins.name = "compressor-fins";
+-  return materials;
+-}
+-
+-function InstancedPart({
+-  geometry,
+-  material,
+-  matrices,
+-  name,
+-}: {
+-  geometry: BufferGeometry;
+-  material: Material;
+-  matrices: Matrix4[];
+-  name?: string;
+-}) {
+-  const ref = useRef<InstancedMesh>(null);
+-  useLayoutEffect(() => {
+-    const mesh = ref.current;
+-    if (!mesh) return;
+-    matrices.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+-    if (name === "compressor-fins") {
+-      const white = new Color(1, 1, 1);
+-      matrices.forEach((_, index) => mesh.setColorAt(index, white));
+-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+-    }
+-    mesh.instanceMatrix.needsUpdate = true;
+-    mesh.computeBoundingSphere();
+-  }, [matrices, name]);
+-  return <instancedMesh ref={ref} name={name} args={[geometry, material, matrices.length]} />;
+-}
+-
+-/** The finned titanium cylinder (docs/07 §3). One draw call per part; fins, rods and nuts are instanced. */
+-export function CompressorCylinder({ uniforms }: { uniforms: ScanUniforms }) {
+-  const parts = useMemo(() => buildCompressorGeometry(), []);
+-  const materials = useMemo(() => createMaterials(uniforms), [uniforms]);
+-
+-  useEffect(
+-    () => () => {
+-      disposeCompressorGeometry(parts);
+-      for (const value of Object.values(materials)) value.dispose();
+-    },
+-    [parts, materials],
+-  );
+-
+-  const { titanium, fins, steel, accent } = materials;
+-  return (
+-    <group name="compressor-model">
+-      <mesh geometry={parts.base} material={titanium} />
+-      <mesh geometry={parts.barrel} material={titanium} />
+-      <InstancedPart name="compressor-fins" geometry={parts.fin} material={fins} matrices={parts.finMatrices} />
+-      <mesh geometry={parts.head} material={titanium} />
+-      {/* Satin, not brushed: a polished dome would only mirror the dark studio. */}
+-      <mesh geometry={parts.cap} material={fins} />
+-      <mesh geometry={parts.accent} material={accent} />
+-      <InstancedPart geometry={parts.rod} material={steel} matrices={parts.rodMatrices} />
+-      <InstancedPart geometry={parts.nut} material={steel} matrices={parts.nutMatrices} />
+-      <mesh geometry={parts.pipe} material={titanium} />
+-      <InstancedPart geometry={parts.collar} material={steel} matrices={parts.collarMatrices} />
+-      <mesh geometry={parts.stub} material={steel} />
+-      <mesh geometry={parts.filter} material={fins} />
+-    </group>
+-  );
+-}
+--- before/src/components/canvas/compressorGeometry.ts
++++ after/src/components/canvas/compressorGeometry.ts
+@@ -1,204 +1,136 @@
+ import {
+-  BufferGeometry,
+-  CatmullRomCurve3,
+-  CylinderGeometry,
+-  ExtrudeGeometry,
+-  LatheGeometry,
+-  Matrix4,
+-  Shape,
+-  TubeGeometry,
+-  Vector2,
+-  Vector3,
++  BoxGeometry, BufferGeometry, CapsuleGeometry, CatmullRomCurve3, CircleGeometry,
++  CylinderGeometry, Matrix4, PlaneGeometry, SphereGeometry, TorusGeometry, TubeGeometry, Vector3,
+ } from "three";
++import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
++import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+ 
+-/**
+- * The "Titanium Cylinder" (docs/07 §3): a finned piston-compressor cylinder, built from code
+- * so the page ships no model files. Y is up; the base sits on y = 0.
+- *
+- * Lathe parts get their UV `u` around the axis, so the material's anisotropy (which follows
+- * the UV tangent) brushes them in rings — the lathe-turned look.
+- */
+-export const dims = {
+-  base: { size: 1.62, height: 0.11, radius: 0.28 },
+-  barrel: { radius: 0.5, from: 0.1, to: 1.72 },
+-  fins: { count: 12, size: 1.5, thickness: 0.03, radius: 0.26, from: 0.27, to: 1.56 },
+-  head: { size: 1.38, height: 0.26, radius: 0.3, y: 1.68 },
+-  valve: { radius: 0.42, y: 1.94 },
+-  rods: { inset: 0.55, radius: 0.032 },
+-  /** Overall height, for camera framing. */
+-  height: 2.3,
+-} as const;
++/** A complete, portable V-twin compressor. +Z is its service/label side; Y is up. */
++export const dims = { width: 4.12, height: 2.62, depth: 1.38, tankRadius: 0.53, tankY: 0.84 } as const;
++export type PartFinish = "paint" | "metal" | "rubber" | "dark" | "brass" | "red" | "cream";
++type Point = readonly [number, number, number];
++const finishes: readonly PartFinish[] = ["paint", "metal", "rubber", "dark", "brass", "red", "cream"];
+ 
+-/** Square with rounded corners, centred on the origin. */
+-export function roundedSquare(size: number, radius: number): Shape {
+-  const h = size / 2;
+-  const r = Math.min(radius, h);
+-  const shape = new Shape();
+-  shape.moveTo(-h + r, -h);
+-  shape.lineTo(h - r, -h);
+-  shape.quadraticCurveTo(h, -h, h, -h + r);
+-  shape.lineTo(h, h - r);
+-  shape.quadraticCurveTo(h, h, h - r, h);
+-  shape.lineTo(-h + r, h);
+-  shape.quadraticCurveTo(-h, h, -h, h - r);
+-  shape.lineTo(-h, -h + r);
+-  shape.quadraticCurveTo(-h, -h, -h + r, -h);
+-  return shape;
++/** Static repeated details are merged by finish: one draw call per material, no model download. */
++export function buildCompressorGeometry() {
++  const buckets = Object.fromEntries(finishes.map((finish) => [finish, []])) as unknown as Record<PartFinish, BufferGeometry[]>;
++  const put = (finish: PartFinish, geometry: BufferGeometry, position: Point = [0, 0, 0], rotation: Point = [0, 0, 0], parent?: Matrix4) => {
++    geometry.rotateX(rotation[0]); geometry.rotateY(rotation[1]); geometry.rotateZ(rotation[2]);
++    geometry.translate(...position);
++    if (parent) geometry.applyMatrix4(parent);
++    const part = geometry.index ? geometry.toNonIndexed() : geometry;
++    if (part !== geometry) geometry.dispose();
++    buckets[finish].push(part);
++  };
++  const box = (finish: PartFinish, size: Point, position: Point, radius = 0.025, parent?: Matrix4) =>
++    put(finish, new RoundedBoxGeometry(...size, 2, radius), position, [0, 0, 0], parent);
++  const cylinder = (finish: PartFinish, radius: number, length: number, position: Point, rotation: Point = [Math.PI / 2, 0, 0], segments = 24, parent?: Matrix4) =>
++    put(finish, new CylinderGeometry(radius, radius, length, segments), position, rotation, parent);
++  const tube = (finish: PartFinish, points: Point[], radius = 0.025, segments = 24) =>
++    put(finish, new TubeGeometry(new CatmullRomCurve3(points.map((p) => new Vector3(...p))), segments, radius, 8, false));
++
++  // Rolled pressure vessel, shallow welded end seams and four rubber wheels.
++  put("paint", new CapsuleGeometry(dims.tankRadius, 2.62, 10, 40), [0, dims.tankY, 0], [0, 0, Math.PI / 2]);
++  for (const x of [-1.27, 1.27]) {
++    put("paint", new TorusGeometry(0.529, 0.009, 6, 48), [x, dims.tankY, 0], [0, Math.PI / 2, 0]);
++    box("paint", [0.28, 0.33, 1.04], [x, 0.38, 0], 0.035);
++    for (const z of [-0.5, 0.5]) {
++      cylinder("rubber", 0.235, 0.145, [x, 0.235, z], undefined, 32);
++      cylinder("metal", 0.102, 0.155, [x, 0.235, z], undefined, 24);
++      cylinder("paint", 0.067, 0.165, [x, 0.235, z]);
++      cylinder("metal", 0.027, 0.18, [x, 0.235, z], undefined, 6);
++    }
++  }
++  for (const sign of [-1, 1]) {
++    tube("paint", [[sign * 1.55, 1.17, -0.3], [sign * 1.95, 1.27, -0.3], [sign * 2.02, 1.3, 0], [sign * 1.95, 1.27, 0.3], [sign * 1.55, 1.17, 0.3]], 0.031);
++  }
++  box("paint", [3.05, 0.105, 0.86], [0, 1.385, -0.02], 0.035);
++  // Mounting bolts, with actual hexagonal heads.
++  for (const x of [-1.2, -0.3, 0.65, 1.27]) for (const z of [-0.29, 0.29]) cylinder("metal", 0.036, 0.04, [x, 1.46, z], [0, 0, 0], 6);
++
++  // Cast crankcase and the two inclined, finned cylinder banks.
++  const pumpX = -0.58;
++  cylinder("paint", 0.345, 0.46, [pumpX, 1.74, 0.045], undefined, 36);
++  put("paint", new SphereGeometry(0.31, 24, 12), [pumpX, 1.75, 0.19]);
++  box("paint", [0.82, 0.15, 0.5], [pumpX, 1.51, 0.04], 0.035);
++  for (const sign of [-1, 1]) {
++    const bank = new Matrix4().makeRotationZ(sign * 0.56).setPosition(pumpX, 1.8, -0.01);
++    cylinder("paint", 0.17, 0.53, [0, 0.28, 0], [0, 0, 0], 24, bank);
++    for (let fin = 0; fin < 8; fin++) box("paint", [0.44, 0.026, 0.405], [0, 0.15 + fin * 0.053, 0], 0.009, bank);
++    box("paint", [0.455, 0.12, 0.42], [0, 0.6, 0], 0.028, bank);
++    for (const x of [-0.145, 0.145]) for (const z of [-0.13, 0.13]) cylinder("metal", 0.027, 0.035, [x, 0.675, z], [0, 0, 0], 6, bank);
++    cylinder("dark", 0.063, 0.18, [0, 0.57, 0.27], undefined, 16, bank);
++    cylinder("rubber", 0.195, 0.105, [0, 0.57, 0.385], undefined, 32, bank);
++    put("dark", new TorusGeometry(0.174, 0.012, 6, 32), [0, 0.57, 0.442], [0, 0, 0], bank);
++    cylinder("metal", 0.023, 0.012, [0, 0.57, 0.447], undefined, 12, bank);
++  }
++  cylinder("red", 0.062, 0.035, [pumpX, 2.085, 0.22], [0, 0, 0]);
++  cylinder("brass", 0.045, 0.025, [pumpX, 1.62, 0.48]);
++
++  // Silver electric motor, its cooling ribs, terminal box and ventilated end bell.
++  const motorX = 0.92, motorY = 1.78;
++  cylinder("metal", 0.315, 0.69, [motorX, motorY, -0.015], undefined, 36);
++  for (let rib = 0; rib < 16; rib++) {
++    const a = rib / 16 * Math.PI * 2;
++    put("metal", new BoxGeometry(0.028, 0.044, 0.57), [motorX + Math.sin(a) * 0.324, motorY + Math.cos(a) * 0.324, -0.035], [0, 0, -a]);
++  }
++  cylinder("metal", 0.296, 0.115, [motorX, motorY, 0.375], undefined, 36);
++  cylinder("dark", 0.251, 0.012, [motorX, motorY, 0.437], undefined, 32);
++  for (let wire = -4; wire <= 4; wire++) {
++    const offset = wire * 0.046;
++    const extent = Math.sqrt(0.244 ** 2 - offset ** 2);
++    box("metal", [extent * 2, 0.012, 0.014], [motorX, motorY + offset, 0.449], 0.002);
++    box("metal", [0.012, extent * 2, 0.014], [motorX + offset, motorY, 0.45], 0.002);
++  }
++  cylinder("metal", 0.069, 0.022, [motorX, motorY, 0.46]);
++  box("metal", [0.38, 0.16, 0.43], [motorX, 2.12, -0.08], 0.045);
++  for (const x of [motorX - 0.23, motorX + 0.23]) box("metal", [0.12, 0.16, 0.6], [x, 1.51, -0.04], 0.018);
++
++  // Belt/flywheel enclosure behind the pump. A light lattice replaces a costly fine mesh.
++  tube("paint", [[-1.38, 1.57, -0.3], [-1.38, 2.22, -0.3], [-1.12, 2.36, -0.3], [1.1, 2.36, -0.3], [1.42, 2.14, -0.3], [1.42, 1.6, -0.3], [-1.38, 1.57, -0.3]], 0.035, 48);
++  for (let i = 0; i < 20; i++) {
++    const x = -1.22 + i * 0.13;
++    tube("paint", [[x, 1.64, -0.325], [Math.min(x + 0.28, 1.37), 2.29, -0.325]], 0.008, 1);
++    tube("paint", [[x, 2.29, -0.324], [Math.min(x + 0.28, 1.37), 1.64, -0.324]], 0.008, 1);
++  }
++  // A glimpse of the dark drive belt and pulley at the guard's lower edge.
++  cylinder("dark", 0.31, 0.055, [pumpX, 1.79, -0.29], undefined, 32);
++  put("rubber", new TorusGeometry(0.29, 0.022, 6, 32), [pumpX, 1.79, -0.255]);
++
++  // Pressure switch, copper discharge line, pressure gauge and front service valves.
++  box("cream", [0.235, 0.29, 0.215], [0.33, 1.62, 0.31], 0.018);
++  box("dark", [0.1, 0.08, 0.13], [0.33, 1.45, 0.31], 0.01);
++  tube("brass", [[-0.98, 2.15, -0.02], [-1.18, 2.11, 0.13], [-1.16, 1.48, 0.27], [-0.9, 1.43, 0.31]], 0.019);
++  tube("rubber", [[1.02, 1.52, 0.32], [1.32, 1.29, 0.43], [1.19, 1.08, 0.5], [0.42, 1.18, 0.48], [0.33, 1.53, 0.35]], 0.019);
++  cylinder("paint", 0.07, 0.22, [-1.29, 1.45, 0.35], [0, 0, 0]);
++  cylinder("metal", 0.19, 0.07, [-1.29, 1.65, 0.385], [Math.PI / 2, 0, 0], 40);
++  cylinder("dark", 0.169, 0.008, [-1.29, 1.65, 0.426], undefined, 36);
++  for (const x of [-1.48, -1.1]) {
++    cylinder("brass", 0.043, 0.16, [x, 1.36, 0.55]);
++    cylinder("brass", 0.048, 0.115, [x, 1.36, 0.65], undefined, 6);
++    box("red", [0.19, 0.022, 0.042], [x, 1.43, 0.55], 0.008);
++  }
++  cylinder("brass", 0.033, 0.12, [-1.61, 1.45, 0.27], [0, 0, 0]);
++  put("brass", new SphereGeometry(0.042, 12, 8), [-1.61, 1.52, 0.27]);
++
++  const merged = Object.fromEntries(finishes.map((finish) => {
++    const geometry = mergeGeometries(buckets[finish], false)!;
++    buckets[finish].forEach((part) => part.dispose());
++    geometry.computeBoundingBox(); geometry.computeBoundingSphere();
++    return [finish, geometry];
++  })) as Record<PartFinish, BufferGeometry>;
++  // Separate textured surfaces share the same material-reveal uniforms as the body.
++  const badge = new PlaneGeometry(1.36, 0.39, 1, 12);
++  const positions = badge.getAttribute("position");
++  for (let i = 0; i < positions.count; i++) {
++    const angle = positions.getY(i) / dims.tankRadius;
++    positions.setY(i, dims.tankY + Math.sin(angle) * (dims.tankRadius + 0.004));
++    positions.setZ(i, Math.cos(angle) * (dims.tankRadius + 0.004));
++  }
++  badge.computeVertexNormals();
++  const dial = new CircleGeometry(0.16, 40);
++  dial.translate(-1.29, 1.65, 0.435);
++  return { ...merged, badge, dial };
+ }
+-
+-/** A rounded-square slab lying flat (extruded along +Y), with softened edges. */
+-function slab(size: number, height: number, radius: number, bevel: number): BufferGeometry {
+-  const geometry = new ExtrudeGeometry(roundedSquare(size - bevel * 2, radius), {
+-    depth: height - bevel * 2,
+-    bevelEnabled: true,
+-    bevelThickness: bevel,
+-    bevelSize: bevel,
+-    bevelSegments: 3,
+-    curveSegments: 8,
+-  });
+-  geometry.rotateX(-Math.PI / 2);
+-  geometry.translate(0, bevel, 0);
+-  geometry.computeVertexNormals();
+-  return geometry;
+-}
+-
+-function lathe(points: [number, number][], segments = 96): LatheGeometry {
+-  return new LatheGeometry(
+-    points.map(([r, y]) => new Vector2(r, y)),
+-    segments,
+-  );
+-}
+-
+ export type CompressorGeometry = ReturnType<typeof buildCompressorGeometry>;
+-
+-export function buildCompressorGeometry() {
+-  const { base, barrel, fins, head, valve, rods } = dims;
+-
+-  // Bore sleeve between the fins, with small shoulders where it meets base and head.
+-  const barrelGeometry = lathe([
+-    [barrel.radius + 0.05, barrel.from],
+-    [barrel.radius, barrel.from + 0.04],
+-    [barrel.radius, barrel.to - 0.04],
+-    [barrel.radius + 0.05, barrel.to],
+-  ]);
+-
+-  const finGeometry = slab(fins.size, fins.thickness, fins.radius, 0.008);
+-  const finStep = (fins.to - fins.from) / (fins.count - 1);
+-  const finMatrices = Array.from({ length: fins.count }, (_, i) =>
+-    new Matrix4().makeTranslation(0, fins.from + i * finStep - fins.thickness / 2, 0),
+-  );
+-
+-  const baseGeometry = slab(base.size, base.height, base.radius, 0.022);
+-  const headGeometry = slab(head.size, head.height, head.radius, 0.03);
+-  headGeometry.translate(0, head.y, 0);
+-
+-  // Valve plate boss and domed cap on top of the head. Lathe profiles run bottom → top,
+-  // otherwise the faces point inwards and get culled.
+-  const capGeometry = lathe([
+-    [valve.radius + 0.07, valve.y - 0.08],
+-    [valve.radius + 0.07, valve.y - 0.03],
+-    [valve.radius + 0.06, valve.y + 0.01],
+-    [valve.radius, valve.y + 0.02],
+-    [valve.radius, valve.y + 0.05],
+-    [valve.radius - 0.02, valve.y + 0.07],
+-    [0.41, valve.y + 0.12],
+-    [0.36, valve.y + 0.19],
+-    [0.26, valve.y + 0.25],
+-    [0.12, valve.y + 0.285],
+-    [0, valve.y + 0.29],
+-  ]);
+-  // The one ember accent: a thin anodised band where the cap meets the plate.
+-  const band = valve.y + 0.022;
+-  const accentGeometry = lathe([
+-    [valve.radius - 0.002, band],
+-    [valve.radius + 0.006, band + 0.004],
+-    [valve.radius + 0.006, band + 0.018],
+-    [valve.radius - 0.002, band + 0.022],
+-  ]);
+-
+-  // Four tie rods through the fin corners, with hex nuts on the head and the base.
+-  const rodTop = head.y + head.height;
+-  const rodGeometry = new CylinderGeometry(rods.radius, rods.radius, rodTop + 0.05, 16, 1);
+-  rodGeometry.translate(0, (rodTop + 0.05) / 2, 0);
+-  // Unshared vertices so each of the six faces gets its own normal (reads as a hex nut, not a disc).
+-  const nutGeometry = new CylinderGeometry(0.068, 0.068, 0.07, 6, 1).toNonIndexed();
+-  nutGeometry.computeVertexNormals();
+-  nutGeometry.translate(0, 0.035, 0);
+-  const corners = [
+-    [rods.inset, rods.inset],
+-    [-rods.inset, rods.inset],
+-    [rods.inset, -rods.inset],
+-    [-rods.inset, -rods.inset],
+-  ] as const;
+-  const rodMatrices = corners.map(([x, z]) => new Matrix4().makeTranslation(x, 0, z));
+-  const nutMatrices = corners.flatMap(([x, z]) => [
+-    new Matrix4().makeTranslation(x, rodTop, z),
+-    new Matrix4().makeTranslation(x, base.height, z),
+-  ]);
+-
+-  // Discharge pipe: out of the head's side, round the bend and down past the fins.
+-  const pipeCurve = new CatmullRomCurve3([
+-    new Vector3(0.62, head.y + 0.13, 0.1),
+-    new Vector3(0.98, head.y + 0.13, 0.12),
+-    new Vector3(1.17, head.y - 0.04, 0.16),
+-    new Vector3(1.22, head.y - 0.45, 0.18),
+-    new Vector3(1.22, 0.42, 0.18),
+-  ]);
+-  const pipeGeometry = new TubeGeometry(pipeCurve, 64, 0.058, 20, false);
+-  // Pipe union collars where it leaves the head and where it ends.
+-  const collarGeometry = lathe(
+-    [
+-      [0, -0.06],
+-      [0.085, -0.06],
+-      [0.092, -0.045],
+-      [0.092, 0.045],
+-      [0.085, 0.06],
+-      [0, 0.06],
+-    ],
+-    32,
+-  );
+-  const collarMatrices = [
+-    new Matrix4().makeRotationZ(Math.PI / 2).setPosition(0.78, head.y + 0.13, 0.11),
+-    new Matrix4().makeTranslation(1.22, 0.44, 0.18),
+-  ];
+-
+-  // Intake filter: a grooved canister on a short stub, on the far side.
+-  const filterProfile: [number, number][] = [[0, 0]];
+-  for (let i = 0; i < 7; i++) {
+-    const y = 0.02 + i * 0.05;
+-    filterProfile.push([0.2, y], [0.185, y + 0.025]);
+-  }
+-  filterProfile.push([0.2, 0.38], [0.17, 0.4], [0, 0.4]);
+-  // Lathe axis (+Y) turned to point away from the head (−Z).
+-  const filterGeometry = lathe(filterProfile, 64);
+-  filterGeometry.rotateX(-Math.PI / 2);
+-  filterGeometry.translate(-0.22, head.y + 0.13, -0.86);
+-  const stubGeometry = new CylinderGeometry(0.05, 0.05, 0.24, 16, 1);
+-  stubGeometry.rotateX(Math.PI / 2);
+-  stubGeometry.translate(-0.22, head.y + 0.13, -0.76);
+-
+-  return {
+-    barrel: barrelGeometry,
+-    fin: finGeometry,
+-    finMatrices,
+-    base: baseGeometry,
+-    head: headGeometry,
+-    cap: capGeometry,
+-    accent: accentGeometry,
+-    rod: rodGeometry,
+-    rodMatrices,
+-    nut: nutGeometry,
+-    nutMatrices,
+-    pipe: pipeGeometry,
+-    collar: collarGeometry,
+-    collarMatrices,
+-    filter: filterGeometry,
+-    stub: stubGeometry,
+-  };
+-}
+-
+-export function disposeCompressorGeometry(parts: CompressorGeometry) {
+-  for (const value of Object.values(parts)) {
+-    if (value instanceof BufferGeometry) value.dispose();
+-  }
+-}
++export function disposeCompressorGeometry(parts: CompressorGeometry) { Object.values(parts).forEach((part) => part.dispose()); }
+--- before/src/components/canvas/Checkpoints.tsx
++++ after/src/components/canvas/Checkpoints.tsx
+@@ -2,233 +2,85 @@
+ 
+ import { useFrame } from "@react-three/fiber";
+ import { useEffect, useMemo, useRef, type RefObject } from "react";
+-import { MeshBasicMaterial, Quaternion, Raycaster, Shape, ShapeGeometry, SphereGeometry, TorusGeometry, Vector3, type Group, type InstancedMesh, type Mesh, type Object3D } from "three";
+-import { palette, stage } from "@/config/experience";
+-import { dims } from "./compressorGeometry";
++import { AdditiveBlending, MeshBasicMaterial, Quaternion, RingGeometry, Shape, ShapeGeometry, SphereGeometry, Vector3, type Group, type Mesh } from "three";
++import { palette } from "@/config/experience";
+ import type { ScanFrame, ScanPhase } from "./scanTimeline";
++import { checkpointPositions, sampleCheckpoint, sampleSignalWave, sampleSignalStrength, type CheckpointTone } from "./checkpointPulse";
+ 
+-const finStep = (dims.fins.to - dims.fins.from) / (dims.fins.count - 1);
+-const finFront = dims.fins.size / 2 + 0.01;
++export { checkpointPositions, sampleCheckpoint } from "./checkpointPulse";
+ 
+-/** Heights and alternating offsets identify the five inspection stations. */
+-export const checkpointPositions = [
+-  [-0.3, dims.fins.from, finFront],
+-  [0.28, dims.fins.from + finStep * 3, finFront],
+-  [-0.26, dims.fins.from + finStep * 7, finFront],
+-  [0.24, dims.fins.to, finFront],
+-  [0, dims.valve.y - 0.015, dims.valve.radius + 0.078],
+-] as const;
+-
+-/** The radial boundary of a rounded slab. */
+-function slabRadius(x: number, z: number, size: number, radius: number) {
+-  const half = size / 2;
+-  const corner = half - radius;
+-  const flat = half / Math.max(Math.abs(x), Math.abs(z));
+-  if (Math.min(Math.abs(x * flat), Math.abs(z * flat)) <= corner) return flat;
+-  const projectedCorner = corner * (Math.abs(x) + Math.abs(z));
+-  return projectedCorner + Math.sqrt(projectedCorner ** 2 - 2 * corner ** 2 + radius ** 2);
+-}
+-
+-/** Keep stations on the camera-near physical surface at their original scan heights. */
+-export function checkpointAnchor(index: number, cameraAzimuth: number, offset?: number, target: [number, number, number] = [0, 0, 0]): [number, number, number] {
+-  const [x, y, z] = checkpointPositions[index];
+-  const angle = cameraAzimuth + (offset ?? Math.atan2(x, z));
+-  const dx = Math.sin(angle);
+-  const dz = Math.cos(angle);
+-  // The top station is still within the head plate's Y range, outside the valve.
+-  const surface = index === 4 ? dims.head : dims.fins;
+-  const radius = slabRadius(dx, dz, surface.size, surface.radius) + 0.025;
+-  target[0] = dx * radius;
+-  target[1] = y;
+-  target[2] = dz * radius;
+-  return target;
+-}
+-
+-/** Choose nearby clear surface locations without moving marks in front of the scene. */
+-export function checkpointOffset(index: number, occluded: (offset: number) => boolean, previous?: number): number {
+-  const [x, , z] = checkpointPositions[index];
+-  const nominal = Math.atan2(x, z);
+-  const candidates = [previous ?? nominal, nominal, nominal + 0.18, nominal - 0.18, 0, nominal + 0.36, nominal - 0.36, -0.7, 0.7, -0.95, 0.95];
+-  return candidates.find((offset) => !occluded(offset)) ?? nominal;
+-}
+-
+-/** Only accessories beyond the body can occlude these exterior stations. */
+-export function checkpointAccessories(model: Object3D): Mesh[] {
+-  const accessories: Mesh[] = [];
+-  const body = dims.base.size / 2 + 0.01;
+-  model.traverse((object) => {
+-    const mesh = object as Mesh;
+-    if (!mesh.isMesh) return;
+-    const instanced = mesh as InstancedMesh;
+-    if (instanced.isInstancedMesh) instanced.computeBoundingBox();
+-    else if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+-    const bounds = instanced.isInstancedMesh ? instanced.boundingBox : mesh.geometry.boundingBox;
+-    if (bounds && (bounds.min.x < -body || bounds.max.x > body || bounds.min.z < -body || bounds.max.z > body)) accessories.push(mesh);
+-  });
+-  return accessories;
+-}
+-
+-type CheckpointTone = "dim" | "active" | "pass" | "fail";
+-export type CheckpointSample = { tone: CheckpointTone; checkProgress: number };
+-
+-/** Geometry and authentication share one sequence; no timers survive a phase change. */
+-export function sampleCheckpoint(index: number, scanY: number, phaseElapsed: number, phase: ScanPhase, still: boolean): CheckpointSample {
+-  if (phase === "locked") return { tone: "dim", checkProgress: 0 };
+-  const time = Number.isFinite(phaseElapsed) ? Math.max(0, phaseElapsed) : 0;
+-
+-  if (phase === "error") {
+-    // One quiet flash on the middle point; reduced motion keeps all five at rest.
+-    return { tone: !still && index === 2 && time < stage.interaction.errorFlashSeconds ? "fail" : "dim", checkProgress: 0 };
+-  }
+-  if (phase === "success") {
+-    const progress = still ? 1 : Math.max(0, Math.min(1,
+-      (time - index * stage.interaction.checkpointStepSeconds) / stage.interaction.checkpointRevealSeconds,
+-    ));
+-    return { tone: progress > 0 ? "pass" : "active", checkProgress: progress * progress * (3 - 2 * progress) };
+-  }
+-
+-  return { tone: scanY >= checkpointPositions[index][1] ? "active" : "dim", checkProgress: 0 };
+-}
+-
+-function createCheckpointResources() {
++function createResources() {
+   const check = new Shape();
+-  check.moveTo(-0.032, 0.001);
+-  check.lineTo(-0.024, 0.009);
+-  check.lineTo(-0.01, -0.005);
+-  check.lineTo(0.024, 0.03);
+-  check.lineTo(0.032, 0.022);
+-  check.lineTo(-0.01, -0.021);
+-  check.closePath();
+-
+-  const material = (color: string, opacity: number) => new MeshBasicMaterial({
+-    color, opacity, transparent: true, depthWrite: false, toneMapped: false,
+-  });
++  check.moveTo(-0.03, 0); check.lineTo(-0.022, 0.009);check.lineTo(-0.007, -0.006);
++  check.lineTo(0.025, 0.028);check.lineTo(0.033, 0.02);check.lineTo(-0.007, -0.022);check.closePath();
++  const material = (color: string, opacity: number) => new MeshBasicMaterial({ color, opacity, transparent: true, depthWrite: false, toneMapped: false });
++  const tones: Record<CheckpointTone, MeshBasicMaterial> = {
++    dim: material(palette.ti400, 0.3), active: material(palette.ember500, 0.95),
++    pass: material(palette.pass, 0.95), fail: material(palette.fail, 0.95),
++  };
+   return {
+-    ring: new TorusGeometry(0.048, 0.003, 6, 28),
+-    dot: new SphereGeometry(0.012, 10, 8),
+-    check: new ShapeGeometry(check),
+-    materials: {
+-      dim: material(palette.ti400, 0.35),
+-      active: material(palette.ember400, 0.9),
+-      pass: material(palette.pass, 0.95),
+-      fail: material(palette.fail, 0.95),
+-    },
++    ring: new RingGeometry(0.047, 0.053, 36), dot: new SphereGeometry(0.016, 10, 8), check: new ShapeGeometry(check), tones,
++    active: checkpointPositions.map(() => material(palette.ember500, 0.95)),
++    halo: new RingGeometry(0, 0.067, 36), haloMaterial: material(palette.ember500, 0.13),
++    waves: checkpointPositions.map(() => [material(palette.ember500, 0), material(palette.ember500, 0)].map((wave) => {wave.blending = AdditiveBlending; return wave;})),
+   };
+ }
+ 
+-/** Five inspection marks rotate with the cylinder; their symbols are geometry, not text. */
+-export function Checkpoints({ frameRef, phase, still }: {
+-  frameRef: RefObject<ScanFrame>;
+-  phase: ScanPhase;
+-  still: boolean;
+-}) {
+-  const resources = useMemo(() => createCheckpointResources(), []);
++/** Markers stay on their actual component and billboard to the camera; depth hides their far side. */
++export function Checkpoints({ frameRef, phase, still }: { frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean }) {
++  const resources = useMemo(() => createResources(), []);
+   const root = useRef<Group>(null);
+-  const stations = useRef<(Group | null)[]>([]);
+-  const rings = useRef<(Mesh | null)[]>([]);
+-  const dots = useRef<(Mesh | null)[]>([]);
+-  const checks = useRef<(Mesh | null)[]>([]);
+-  const vectors = useMemo(() => ({
+-    camera: new Vector3(), forward: new Vector3(), origin: new Vector3(), direction: new Vector3(), world: new Vector3(),
+-    inverse: new Quaternion(), facing: new Quaternion(),
+-  }), []);
+-  const visibilityRef = useRef({
+-    model: null as Object3D | null,
+-    accessories: [] as Mesh[],
+-    offsets: checkpointPositions.map(([x, , z]) => Math.atan2(x, z)),
+-    azimuth: NaN, elevation: NaN, distance: NaN, width: 0, height: 0,
+-    anchor: [0, 0, 0] as [number, number, number],
+-    ray: new Raycaster(), point: new Vector3(), direction: new Vector3(),
+-  });
+-
++  const stations = useRef<(Group | null)[]>([]), rings = useRef<(Mesh | null)[]>([]), dots = useRef<(Mesh | null)[]>([]), checks = useRef<(Mesh | null)[]>([]);
++  const halos = useRef<(Mesh | null)[]>([]);
++  const waves = useRef<(Mesh | null)[][]>(checkpointPositions.map(() => []));
++  const elapsed = useRef(0);
++  const vectors = useMemo(() => ({ inverse: new Quaternion(), facing: new Quaternion(), camera: new Vector3(), world: new Vector3(), forward: new Vector3() }), []);
+   useEffect(() => () => {
+-    resources.ring.dispose();
+-    resources.dot.dispose();
+-    resources.check.dispose();
+-    Object.values(resources.materials).forEach((material) => material.dispose());
++    resources.ring.dispose();resources.dot.dispose();resources.check.dispose();resources.halo.dispose();resources.haloMaterial.dispose();
++    Object.values(resources.tones).forEach((material) => material.dispose());
++    resources.active.forEach((material) => material.dispose());
++    resources.waves.flat().forEach((material) => material.dispose());
+   }, [resources]);
+-
+-  useFrame(({ camera, size }) => {
+-    const visibility = visibilityRef.current;
++  useFrame(({ camera, size }, delta) => {
+     const group = root.current;
+     if (!group) return;
+-    // ModelInteraction rotates at priority -0.5; follow its current transform.
++    if (!still) elapsed.current += Math.min(Math.max(delta, 0), 0.05);
+     group.updateWorldMatrix(true, false);
+-    camera.getWorldPosition(vectors.camera);
+-    camera.getWorldDirection(vectors.forward);
+-    group.getWorldPosition(vectors.origin);
+-    group.getWorldQuaternion(vectors.inverse).invert();
+-    vectors.direction.copy(vectors.camera).sub(vectors.origin).applyQuaternion(vectors.inverse);
+-    const azimuth = Math.atan2(vectors.direction.x, vectors.direction.z);
+-    const elevation = Math.atan2(vectors.direction.y, Math.hypot(vectors.direction.x, vectors.direction.z));
+-    const distance = vectors.direction.length();
+-    vectors.facing.copy(vectors.inverse).multiply(camera.quaternion);
+-    const focalPixels = size.height * camera.projectionMatrix.elements[5] / 2;
+-    const model = group.parent?.getObjectByName("compressor-model") ?? null;
+-    const changed = model !== visibility.model || !Number.isFinite(visibility.azimuth)
+-      || Math.abs(Math.atan2(Math.sin(azimuth - visibility.azimuth), Math.cos(azimuth - visibility.azimuth))) > 0.04
+-      || Math.abs(elevation - visibility.elevation) > 0.04 || Math.abs(distance - visibility.distance) > 0.15
+-      || size.width !== visibility.width || size.height !== visibility.height;
+-    if (model && changed) {
+-      model.updateWorldMatrix(true, true);
+-      if (model !== visibility.model) visibility.accessories = checkpointAccessories(model);
+-      visibility.model = model;
+-      checkpointPositions.forEach((_, index) => {
+-        visibility.offsets[index] = checkpointOffset(index, (offset) => {
+-          const anchor = checkpointAnchor(index, azimuth, offset, visibility.anchor);
+-          visibility.point.set(anchor[0], anchor[1], anchor[2]).applyMatrix4(group.matrixWorld);
+-          visibility.direction.copy(visibility.point).sub(vectors.camera);
+-          const targetDistance = visibility.direction.length();
+-          visibility.ray.set(vectors.camera, visibility.direction.normalize());
+-          visibility.ray.far = targetDistance - 0.003;
+-          return visibility.ray.intersectObjects(visibility.accessories, false).length > 0;
+-        }, visibility.offsets[index]);
+-      });
+-      visibility.azimuth = azimuth;
+-      visibility.elevation = elevation;
+-      visibility.distance = distance;
+-      visibility.width = size.width;
+-      visibility.height = size.height;
+-    }
+-    const { scanY, phaseElapsed = 0 } = frameRef.current;
++    group.getWorldQuaternion(vectors.inverse).invert();vectors.facing.copy(vectors.inverse).multiply(camera.quaternion);
++    camera.getWorldPosition(vectors.camera);camera.getWorldDirection(vectors.forward);
++    const focal = size.height * camera.projectionMatrix.elements[5] / 2;
++    const frame = frameRef.current;
+     checkpointPositions.forEach((_, index) => {
+       const station = stations.current[index];
+       if (station) {
+-        const anchor = checkpointAnchor(index, azimuth, visibility.offsets[index], visibility.anchor);
+-        station.position.set(anchor[0], anchor[1], anchor[2]);
+         station.quaternion.copy(vectors.facing);
+         vectors.world.copy(station.position).applyMatrix4(group.matrixWorld).sub(vectors.camera);
+         const depth = Math.max(0.1, vectors.world.dot(vectors.forward));
+-        // A readable ~9 CSS px on phones, without enlarging desktop badges.
+-        station.scale.setScalar(Math.max(1, Math.min(2.6, 9 * depth / (0.096 * focalPixels))));
++        station.scale.setScalar(Math.max(1, Math.min(3, 12 * depth / (0.096 * focal))));
+       }
+-      const { tone, checkProgress } = sampleCheckpoint(index, scanY, phaseElapsed, phase, still);
+-      const ring = rings.current[index];
+-      const dot = dots.current[index];
+-      const check = checks.current[index];
+-      const material = resources.materials[tone];
++      const sample = sampleCheckpoint(index, frame.scanY, frame.phaseElapsed ?? 0, frame.introProgress < 1 ? "reveal" : phase, still);
++      const material = sample.tone === "active" ? resources.active[index] : resources.tones[sample.tone];
++      if (sample.tone === "active") material.opacity = sampleSignalStrength(elapsed.current, index, still);
++      const ring = rings.current[index], dot = dots.current[index], check = checks.current[index];
+       if (ring) ring.material = material;
+-      if (dot) {
+-        dot.material = material;
+-        dot.visible = checkProgress < 1;
+-        dot.scale.setScalar(1 - checkProgress);
+-      }
+-      if (check) {
+-        check.visible = checkProgress > 0;
+-        check.scale.setScalar(checkProgress);
++      if (halos.current[index]) halos.current[index]!.visible = sample.tone === "active";
++      if (dot) {dot.material = material;dot.visible = sample.checkProgress === 0;}
++      if (check) {check.material = material;check.visible = sample.checkProgress > 0;check.scale.setScalar(sample.checkProgress);}
++      for (let wave = 0; wave < 2; wave++) {
++        const mesh = waves.current[index][wave];
++        const signal = sampleSignalWave(elapsed.current, index, wave, sample.tone === "active" && frame.introProgress >= 1 && phase !== "submitting", still);
++        if (mesh) {mesh.scale.setScalar(signal.scale);mesh.visible = signal.opacity > 0.001;}
++        resources.waves[index][wave].opacity = signal.opacity;
+       }
+     });
+-  }, -0.25);
+-
+-  return (
+-    <group ref={root} name="inspection-checkpoints" dispose={null}>
+-      {checkpointPositions.map((position, index) => (
+-        <group key={index} ref={(node) => { stations.current[index] = node; }} position={position}>
+-          <mesh ref={(node) => { rings.current[index] = node; }} geometry={resources.ring} material={resources.materials.dim} />
+-          <mesh ref={(node) => { dots.current[index] = node; }} geometry={resources.dot} material={resources.materials.dim} />
+-          <mesh ref={(node) => { checks.current[index] = node; }} geometry={resources.check} material={resources.materials.pass} position-z={0.008} visible={false} />
+-        </group>
+-      ))}
+-    </group>
+-  );
++  });
++  return <group ref={root} name="inspection-checkpoints">
++    {checkpointPositions.map((position, index) => <group key={index} ref={(node) => {stations.current[index] = node;}} position={position} name={`inspection-station-${index}`}>
++      <mesh ref={(node) => {halos.current[index] = node;}} geometry={resources.halo} material={resources.haloMaterial} position-z={-0.002} />
++      <mesh name={`inspection-ring-${index}`} ref={(node) => {rings.current[index] = node;}} geometry={resources.ring} material={resources.tones.active} />
++      <mesh name={`inspection-dot-${index}`} ref={(node) => {dots.current[index] = node;}} geometry={resources.dot} material={resources.tones.active} />
++      <mesh ref={(node) => {checks.current[index] = node;}} geometry={resources.check} material={resources.tones.pass} visible={false} />
++      {[0, 1].map((wave) => <mesh key={wave} ref={(node) => {waves.current[index][wave] = node;}} name={`inspection-signal-${index}-${wave}`} geometry={resources.ring} material={resources.waves[index][wave]} visible={false} />)}
++    </group>)}
++  </group>;
+ }
+--- before/src/components/canvas/Checkpoints.test.ts
++++ after/src/components/canvas/Checkpoints.test.ts
+@@ -1,105 +1,61 @@
+ import { describe, expect, it } from "vitest";
+-import { Group, InstancedMesh, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from "three";
+-import { buildCompressorGeometry, dims, disposeCompressorGeometry } from "./compressorGeometry";
+-import { checkpointAccessories, checkpointAnchor, checkpointOffset, checkpointPositions, sampleCheckpoint } from "./Checkpoints";
++import { motion } from "@/config/experience";
++import { checkpointPositions, sampleCheckpoint, sampleSignalWave, sampleSignalStrength } from "./checkpointPulse";
+ 
+-describe("inspection checkpoints", () => {
+-  it("keeps all five stations on the near side and at their scan height through a full turn", () => {
+-    for (let angle = -Math.PI; angle <= Math.PI; angle += Math.PI / 12) {
+-      checkpointPositions.forEach((position, index) => {
+-        const [x, y, z] = checkpointAnchor(index, angle);
+-        expect(y).toBe(position[1]);
+-        expect(x * Math.sin(angle) + z * Math.cos(angle)).toBeGreaterThan(0);
+-        const surface = index === 4 ? dims.head : dims.fins;
+-        const corner = surface.size / 2 - surface.radius;
+-        const qx = Math.abs(x) - corner;
+-        const qz = Math.abs(z) - corner;
+-        const clearance = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - surface.radius;
+-        expect(clearance).toBeGreaterThan(0);
+-        expect(clearance).toBeLessThanOrEqual(0.026);
+-      });
++describe("compressor inspection signals", () => {
++  it("lights each real component as the introductory laser reaches it", () => {
++    checkpointPositions.forEach(([, height], index) => {
++      expect(sampleCheckpoint(index, height - 0.001, 0, "reveal", false).tone).toBe("dim");
++      expect(sampleCheckpoint(index, height, 0, "reveal", false).tone).toBe("active");
++      expect(sampleCheckpoint(index, -1, 20, "idle", false).tone).toBe("active");
++    });
++  });
++  it("finishes all success checks within the existing login hold", () => {
++    checkpointPositions.forEach((_, index) => {
++      expect(sampleCheckpoint(index, 0, motion.successHoldMs / 1000, "success", false)).toEqual({tone:"pass",checkProgress:1});
++    });
++    expect(sampleCheckpoint(2, 0, 0.05, "success", false).checkProgress).toBe(0);
++  });
++  it("keeps lock and reduced-motion error signals quiet", () => {
++    checkpointPositions.forEach((_, index) => {
++      expect(sampleCheckpoint(index, 3, 1, "locked", false)).toEqual({tone:"dim",checkProgress:0});
++      expect(sampleCheckpoint(index, 3, 0.05, "error", true).tone).toBe("dim");
++      expect(sampleCheckpoint(index, 3, 0, "success", true)).toEqual({tone:"pass",checkProgress:1});
++    });
++    expect(sampleCheckpoint(1, 3, 0.05, "error", false).tone).toBe("fail");
++    expect(sampleCheckpoint(1, 3, 1, "error", false).tone).toBe("dim");
++  });
++  it("expands a wave and fades it out before resetting without a bright flash", () => {
++    const start=sampleSignalWave(0,0,0,true,false);
++    const middle=sampleSignalWave(1.4,0,0,true,false);
++    const end=sampleSignalWave(2.799,0,0,true,false);
++    expect(start.opacity).toBe(0); expect(middle.opacity).toBeGreaterThan(0);
++    expect(end.opacity).toBeLessThan(0.0001);expect(end.scale).toBeGreaterThan(middle.scale);
++    expect(sampleSignalWave(2.8,0,0,true,false)).toEqual(start);
++  });
++  it("staggers both wavefronts and all three stations", () => {
++    expect(sampleSignalWave(0.5,0,0,true,false)).not.toEqual(sampleSignalWave(0.5,0,1,true,false));
++    expect(sampleSignalWave(0.5,0,0,true,false)).not.toEqual(sampleSignalWave(0.5,1,0,true,false));
++  });
++  it("hides every wave during static presentation or non-active states", () => {
++    for (const time of [0,0.8,2.4,100]) for (const station of [0,1,2]) for (const wave of [0,1]) {
++      expect(sampleSignalWave(time,station,wave,true,true)).toEqual({scale:1,opacity:0});
++      expect(sampleSignalWave(time,station,wave,false,false)).toEqual({scale:1,opacity:0});
+     }
+   });
+-
+-  it("keeps marker centers clear of the actual head, pipe and filter throughout a full turn", () => {
+-    const parts = buildCompressorGeometry();
+-    const model = new Group();
+-    const material = new MeshBasicMaterial();
+-    const matrices = { fin: parts.finMatrices, rod: parts.rodMatrices, nut: parts.nutMatrices, collar: parts.collarMatrices };
+-    for (const [name, geometry] of Object.entries(parts)) {
+-      if (Array.isArray(geometry)) continue;
+-      const instances = matrices[name as keyof typeof matrices];
+-      const mesh = instances ? new InstancedMesh(geometry, material, instances.length) : new Mesh(geometry, material);
+-      if (instances) instances.forEach((matrix, index) => (mesh as InstancedMesh).setMatrixAt(index, matrix));
+-      mesh.name = name;
+-      model.add(mesh);
+-    }
+-    const camera = new Vector3(0.62, 0.34, 0.71).normalize().multiplyScalar(9).add(new Vector3(0, 1.15, 0));
+-    const ray = new Raycaster();
+-    const accessories = checkpointAccessories(model);
+-    const offsets = checkpointPositions.map(([x, , z]) => Math.atan2(x, z));
+-    expect(accessories).toHaveLength(4); // pipe, filter, stub and instanced collars
+-    try {
+-      for (const yaw of [38 * Math.PI / 180, ...Array.from({ length: 24 }, (_, index) => index * Math.PI / 12)]) {
+-        model.rotation.y = yaw;
+-        model.updateMatrixWorld(true);
+-        const localCamera = model.worldToLocal(camera.clone());
+-        const azimuth = Math.atan2(localCamera.x, localCamera.z);
+-        checkpointPositions.forEach((_, index) => {
+-          const offset = checkpointOffset(index, (candidate) => {
+-            const marker = model.localToWorld(new Vector3(...checkpointAnchor(index, azimuth, candidate)));
+-            ray.set(camera, marker.clone().sub(camera).normalize());
+-            ray.far = camera.distanceTo(marker) - 0.003;
+-            return ray.intersectObjects(accessories, false).length > 0;
+-          }, offsets[index]);
+-          offsets[index] = offset;
+-          const marker = model.localToWorld(new Vector3(...checkpointAnchor(index, azimuth, offset)));
+-          const distance = camera.distanceTo(marker);
+-          ray.set(camera, marker.sub(camera).normalize());
+-          ray.far = Infinity;
+-          const hit = ray.intersectObject(model, true)[0];
+-          expect(!hit || hit.distance >= distance - 0.003, `station ${index + 1} at yaw ${yaw}`).toBe(true);
+-        });
+-      }
+-    } finally {
+-      disposeCompressorGeometry(parts);
+-      material.dispose();
++  it("returns bounded finite values for clock interruptions", () => {
++    for (const time of [-1,NaN,Infinity,0,0.01,1.3,2.799,2.8,1000,Number.MAX_VALUE]) {
++      const sample=sampleSignalWave(time,1,1,true,false);
++      expect(Number.isFinite(sample.opacity)).toBe(true);expect(Number.isFinite(sample.scale)).toBe(true);
++      expect(sample.opacity).toBeGreaterThanOrEqual(0);expect(sample.opacity).toBeLessThanOrEqual(0.75);
++      expect(sample.scale).toBeGreaterThanOrEqual(1);expect(sample.scale).toBeLessThanOrEqual(3.3);
+     }
+   });
+-
+-  it("lights each point after the laser reaches its model-local height", () => {
+-    checkpointPositions.forEach(([, height], index) => {
+-      expect(sampleCheckpoint(index, height - 0.001, 0, "idle", false).tone).toBe("dim");
+-      expect(sampleCheckpoint(index, height, 0, "idle", false).tone).toBe("active");
+-    });
+-  });
+-
+-  it("reveals successful checks in order and finishes all five within the navigation hold", () => {
+-    const at = (time: number) => checkpointPositions.map((_, index) => sampleCheckpoint(index, 0, time, "success", false));
+-    expect(at(0.05).filter((sample) => sample.checkProgress > 0)).toHaveLength(1);
+-    expect(at(0.25).filter((sample) => sample.checkProgress > 0)).toHaveLength(3);
+-    expect(at(0.6).every((sample) => sample.checkProgress === 1 && sample.tone === "pass")).toBe(true);
+-  });
+-
+-  it("flashes one failed checkpoint once and leaves the others dim", () => {
+-    const early = checkpointPositions.map((_, index) => sampleCheckpoint(index, 3, 0.05, "error", false));
+-    expect(early.filter((sample) => sample.tone === "fail")).toHaveLength(1);
+-    expect(early[2].tone).toBe("fail");
+-    for (const time of [0.3, 1, 10]) {
+-      expect(sampleCheckpoint(2, 3, time, "error", false).tone).toBe("dim");
++  it("keeps the core pulse gentle and freezes it under reduced motion", () => {
++    for (const time of [0, 0.4, 1.4, 2.8, NaN, Infinity]) {
++      expect(sampleSignalStrength(time, 1, false)).toBeGreaterThanOrEqual(0.76);
++      expect(sampleSignalStrength(time, 1, false)).toBeLessThanOrEqual(1);
++      expect(sampleSignalStrength(time, 1, true)).toBe(0.95);
+     }
+   });
+-
+-  it("keeps locked points dim even after a completed scan", () => {
+-    checkpointPositions.forEach((_, index) => {
+-      expect(sampleCheckpoint(index, 3, 1, "locked", false)).toEqual({ tone: "dim", checkProgress: 0 });
+-    });
+-  });
+-
+-  it("shows complete success checks immediately and skips error flashes with reduced motion", () => {
+-    checkpointPositions.forEach((_, index) => {
+-      expect(sampleCheckpoint(index, 0, 0, "success", true)).toEqual({ tone: "pass", checkProgress: 1 });
+-      expect(sampleCheckpoint(index, 3, 0, "error", true)).toEqual({ tone: "dim", checkProgress: 0 });
+-    });
+-  });
+ });
+--- before/src/components/canvas/stage.test.ts
++++ after/src/components/canvas/stage.test.ts
+@@ -1,86 +1,84 @@
+-import { Box3, Vector3, type BufferGeometry } from "three";
+-import { describe, expect, it } from "vitest";
++import { Box3, PerspectiveCamera, Vector3 } from "three";
++import { afterAll, describe, expect, it } from "vitest";
+ import { stage } from "@/config/experience";
+ import { BRUSHED_MEAN, createBrushedRoughness } from "./brushedTexture";
+-import { buildCompressorGeometry, dims } from "./compressorGeometry";
++import { buildCompressorGeometry, dims, disposeCompressorGeometry } from "./compressorGeometry";
+ import { framingFor, placeCamera } from "./framing";
+ 
+ describe("framing", () => {
+-  it.each([
+-    [1440, 900, "laptop"],
+-    [1024, 768, "laptop"],
+-    [844, 390, "phoneLandscape"],
+-    [820, 1180, "tablet"],
+-    [390, 844, "phone"],
+-    [360, 640, "phoneShort"],
+-  ] as const)("%i×%i → %s", (width, height, layout) => {
+-    expect(framingFor(width, height)).toBe(stage.framing[layout]);
++  it.each([[1440,900,"laptop"],[1024,768,"laptop"],[844,390,"phoneLandscape"],[820,1180,"tablet"],[390,844,"phone"],[360,640,"phoneShort"]] as const)("%i×%i → %s", (width,height,layout) => {
++    expect(framingFor(width,height)).toBe(stage.framing[layout]);
+   });
+-
+-  it("shifts the lens towards the stage area and backs off for a smaller object", () => {
+-    const laptop = placeCamera(1440, 900, dims.height);
+-    expect(laptop.offsetX).toBeGreaterThan(0); // object left of centre
+-    const phone = placeCamera(390, 844, dims.height);
+-    expect(phone.offsetY).toBeGreaterThan(0); // object above centre
+-    const distance = (p: { position: readonly number[]; target: readonly number[] }) =>
+-      Math.hypot(...p.position.map((v, i) => v - p.target[i]));
+-    expect(distance(phone)).toBeGreaterThan(distance(laptop));
++  it("reserves horizontal space for a complete machine as well as vertical space", () => {
++    const width=1024,height=768;
++    const slim=placeCamera(width,height,dims.height);
++    const wide=placeCamera(width,height,dims.height,8);
++    const distance=(p:typeof slim)=>new Vector3(...p.position).distanceTo(new Vector3(...p.target));
++    expect(distance(wide)).toBeGreaterThan(distance(slim));
++    expect(wide.offsetX).toBeGreaterThan(0);
++    expect(placeCamera(390,844,dims.height).offsetY).toBeGreaterThan(0);
++  });
++  it.each([[1440,900],[1024,768],[844,390],[820,1180],[390,844],[360,640]])("keeps the complete machine inside the viewport at %i×%i", (width,height) => {
++    const placement=placeCamera(width,height,dims.height+0.5,Math.hypot(dims.width,dims.depth)+0.2);
++    const camera=new PerspectiveCamera(stage.camera.fovDeg,width/height,0.5,60);
++    camera.position.set(...placement.position);camera.lookAt(...placement.target);
++    camera.setViewOffset(width,height,placement.offsetX,placement.offsetY,width,height);camera.updateMatrixWorld();camera.updateProjectionMatrix();
++    for(let yaw=0;yaw<Math.PI*2;yaw+=Math.PI/8) for(const x of [-dims.width/2,dims.width/2]) for(const y of [0,dims.height]) for(const z of [-dims.depth/2,dims.depth/2]) {
++      const corner=new Vector3(x,y,z).applyAxisAngle(new Vector3(0,1,0),yaw).project(camera);
++      expect(Math.abs(corner.x)).toBeLessThan(1);expect(Math.abs(corner.y)).toBeLessThan(1);
++    }
+   });
+ });
+ 
+-/** Every vertex normal should point away from the axis on the sides, up on the top. */
+-function outwardShare(geometry: BufferGeometry) {
+-  const position = geometry.getAttribute("position");
+-  const normal = geometry.getAttribute("normal");
+-  let outward = 0;
+-  let counted = 0;
+-  for (let i = 0; i < position.count; i++) {
+-    const radial = new Vector3(position.getX(i), 0, position.getZ(i));
+-    if (radial.length() < 1e-4) continue;
+-    counted++;
+-    const n = new Vector3(normal.getX(i), normal.getY(i), normal.getZ(i));
+-    if (n.dot(radial.normalize()) > -0.05 || n.y > 0.5) outward++;
+-  }
+-  return outward / counted;
+-}
+-
+-describe("compressor geometry", () => {
+-  const parts = buildCompressorGeometry();
+-
+-  it("builds every part with the documented counts", () => {
+-    expect(parts.finMatrices).toHaveLength(dims.fins.count);
+-    expect(parts.rodMatrices).toHaveLength(4);
+-    expect(parts.nutMatrices).toHaveLength(8);
+-    for (const value of Object.values(parts)) {
+-      if (Array.isArray(value)) continue;
+-      expect(value.getAttribute("position").count).toBeGreaterThan(0);
++describe("complete compressor geometry", () => {
++  const parts=buildCompressorGeometry();
++  afterAll(()=>disposeCompressorGeometry(parts));
++  it("rests on its wheels and fits the declared camera/scan envelope", () => {
++    const bounds=new Box3();
++    for(const geometry of Object.values(parts)){geometry.computeBoundingBox();bounds.union(geometry.boundingBox!);}
++    expect(bounds.min.y).toBeCloseTo(0,4);expect(bounds.max.y).toBeLessThanOrEqual(dims.height);
++    expect(bounds.max.x-bounds.min.x).toBeLessThanOrEqual(dims.width);
++    expect(bounds.max.z-bounds.min.z).toBeLessThanOrEqual(dims.depth);
++  });
++  it("batches details into nine surfaces within a modest geometry budget", () => {
++    let triangles=0;
++    expect(Object.keys(parts)).toHaveLength(9);
++    for(const geometry of Object.values(parts)) {
++      const positions=geometry.getAttribute("position"),normals=geometry.getAttribute("normal");
++      triangles+=(geometry.index?.count??positions.count)/3;
++      for(let i=0;i<positions.count;i++) {
++        expect(Number.isFinite(positions.getX(i)+positions.getY(i)+positions.getZ(i))).toBe(true);
++        expect(new Vector3().fromBufferAttribute(normals,i).length()).toBeGreaterThan(0.9);
++      }
++    }
++    expect(triangles).toBeLessThan(100_000);
++  });
++  it("keeps all physical parts inside the elliptical scanner orbit", () => {
++    for (const geometry of Object.values(parts)) {
++      const positions = geometry.getAttribute("position");
++      for (let i = 0; i < positions.count; i++) {
++        const radial = (positions.getX(i) / stage.scan.ringRadius) ** 2 + (positions.getZ(i) / (stage.scan.ringRadius * 0.52)) ** 2;
++        expect(radial).toBeLessThan(1);
++      }
+     }
+   });
+-
+-  it("keeps lathe faces pointing outwards (a reversed profile renders as a dark hollow)", () => {
+-    for (const part of [parts.barrel, parts.cap, parts.accent, parts.collar]) {
+-      expect(outwardShare(part)).toBeGreaterThan(0.95);
++  it("places the tank label on its curved surface with outward-facing normals", () => {
++    const positions=parts.badge.getAttribute("position"),normals=parts.badge.getAttribute("normal");
++    for(let i=0;i<positions.count;i++) {
++      const radial=new Vector3(0,positions.getY(i)-dims.tankY,positions.getZ(i));
++      expect(radial.length()).toBeCloseTo(dims.tankRadius+0.004,5);
++      expect(new Vector3().fromBufferAttribute(normals,i).dot(radial.normalize())).toBeGreaterThan(0.98);
+     }
+-  });
+-
+-  it("stands on y = 0 and stays within the height used for framing", () => {
+-    const bounds = new Box3();
+-    for (const part of [parts.base, parts.head, parts.cap, parts.pipe]) {
+-      part.computeBoundingBox();
+-      bounds.union(part.boundingBox!);
+-    }
+-    expect(bounds.min.y).toBeCloseTo(0, 2);
+-    expect(bounds.max.y).toBeLessThanOrEqual(dims.height + 0.01);
+   });
+ });
+ 
+ describe("brushed roughness", () => {
+-  it("is deterministic and averages the documented mean", () => {
+-    const a = createBrushedRoughness(256, 3).image.data as Uint8Array;
+-    const b = createBrushedRoughness(256, 3).image.data as Uint8Array;
++  it("remains deterministic for metallic finishes", () => {
++    const textureA=createBrushedRoughness(256,3),textureB=createBrushedRoughness(256,3);
++    const a=textureA.image.data as Uint8Array,b=textureB.image.data as Uint8Array;
+     expect(Array.from(a)).toEqual(Array.from(b));
+-    let sum = 0;
+-    for (let i = 1; i < a.length; i += 4) sum += a[i];
+-    expect(sum / (a.length / 4) / 255).toBeCloseTo(BRUSHED_MEAN, 1);
++    let sum=0;for(let i=1;i<a.length;i+=4)sum+=a[i];
++    expect(sum/(a.length/4)/255).toBeCloseTo(BRUSHED_MEAN,1);
++    textureA.dispose();textureB.dispose();
+   });
+ });
+--- before/src/components/canvas/Scene.tsx
++++ after/src/components/canvas/Scene.tsx
+@@ -5,7 +5,7 @@
+ import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+ import { AgXToneMapping } from "three";
+ import { palette, stage } from "@/config/experience";
+-import { CompressorCylinder } from "./CompressorCylinder";
++import { AirCompressor } from "./AirCompressor";
+ import { StudioLights } from "./StudioLights";
+ import { ScanRing } from "./ScanRing";
+ import { createScanUniforms, type ScanUniforms } from "./scanReveal";
+@@ -58,7 +58,7 @@
+       <StudioLights />
+       <ContactShadows
+         position={[0, 0.002, 0]}
+-        scale={4.5}
++        scale={6}
+         resolution={512}
+         frames={1}
+         opacity={stage.shadow.opacity}
+@@ -203,8 +203,9 @@
+       <ScanController still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
+       <CameraRig frameRef={frameRef} phase={phase} still={still} usernameExpanded={usernameExpanded} eventSource={eventSource} onFade={onFade} />
+       <StaticStudio />
++      <ambientLight intensity={0.35} />
+       <ModelInteraction still={still} active={visible} pointerEnabled={!usernameExpanded} phase={phase}>
+-        <CompressorCylinder uniforms={uniforms} />
++        <AirCompressor uniforms={uniforms} />
+         <Checkpoints frameRef={frameRef} phase={phase} still={still} />
+       </ModelInteraction>
+       <Dust still={still} count={qualitySettings(quality).dust} />
+--- before/src/components/canvas/CameraRig.tsx
++++ after/src/components/canvas/CameraRig.tsx
+@@ -17,7 +17,8 @@
+   const get = useThree((state) => state.get);
+   const width = useThree((state) => state.size.width);
+   const height = useThree((state) => state.size.height);
+-  const placement = useMemo(() => placeCamera(width, height, dims.height), [width, height]);
++  // Include the tilted view and a full yaw turn when fitting the horizontal tank.
++  const placement = useMemo(() => placeCamera(width, height, dims.height + 0.5, Math.hypot(dims.width, dims.depth) + 0.2), [width, height]);
+   const framing = useMemo(() => framingFor(width, height), [width, height]);
+   const pointerRef = useRef({ x: 0, y: 0 });
+   const parallaxRef = useRef({ x: 0, y: 0 });
+--- before/src/components/canvas/framing.ts
++++ after/src/components/canvas/framing.ts
+@@ -20,10 +20,12 @@
+  * Distance so the object fills `framing.height` of the canvas, and a lens shift that moves
+  * its centre to (centerX, centerY) without bending perspective the way panning would.
+  */
+-export function placeCamera(width: number, height: number, objectHeight: number): CameraPlacement {
++export function placeCamera(width: number, height: number, objectHeight: number, objectWidth = 0): CameraPlacement {
+   const framing = framingFor(width, height);
+   const halfFov = (stage.camera.fovDeg * Math.PI) / 360;
+-  const distance = objectHeight / (2 * framing.height * Math.tan(halfFov));
++  const verticalDistance = objectHeight / (2 * framing.height * Math.tan(halfFov));
++  const horizontalDistance = objectWidth / (2 * framing.width * Math.tan(halfFov) * width / height);
++  const distance = Math.max(verticalDistance, horizontalDistance);
+   const [dx, dy, dz] = stage.camera.direction;
+   const length = Math.hypot(dx, dy, dz);
+   const [tx, ty, tz] = stage.camera.target;
+--- before/src/components/canvas/cameraMotion.ts
++++ after/src/components/canvas/cameraMotion.ts
+@@ -10,7 +10,7 @@
+   return { x: x / scale, y: y / scale };
+ }
+ 
+-/** Username focus uses a viewport backdrop; authentication and reduced motion take priority. */
++/** Username focus gently approaches the machine; authentication and reduced motion take priority. */
+ export function sampleUsernameBackdrop(
+   framing: { height: number; centerX: number; centerY: number },
+   phase: ScanPhase,
+@@ -21,10 +21,10 @@
+   const active = expanded && !still && phase !== "submitting" && phase !== "success" && phase !== "locked";
+   return {
+     active,
+-    zoom: active ? framing.height / Math.max(0.1, unit(config.height)) : 1,
+-    centerX: active ? unit(config.centerX) : framing.centerX,
+-    centerY: active ? unit(config.centerY) : framing.centerY,
+-    opacity: active ? unit(config.opacity) : 1,
++    zoom: active ? config.zoom : 1,
++    centerX: framing.centerX,
++    centerY: framing.centerY,
++    opacity: 1,
+   };
+ }
+ 
+--- before/src/components/canvas/cameraMotion.test.ts
++++ after/src/components/canvas/cameraMotion.test.ts
+@@ -41,17 +41,18 @@
+ });
+ 
+ describe("username backdrop camera", () => {
+-  it("enlarges and centers every layout using the configured backdrop height", () => {
++  it("gently approaches the complete machine without shifting it under the form", () => {
+     const config = stage.interaction.usernameBackdrop;
+     for (const framing of Object.values(stage.framing)) {
+       const backdrop = sampleUsernameBackdrop(framing, "focus", true, false);
+       expect(backdrop.active).toBe(true);
+       expect(backdrop.zoom).toBeGreaterThan(0);
+       expect(backdrop.zoom).toBeLessThan(1);
+-      expect(framing.height / backdrop.zoom).toBeCloseTo(config.height);
+-      expect(backdrop.centerX).toBe(config.centerX);
+-      expect(backdrop.centerY).toBe(config.centerY);
+-      expect(backdrop.opacity).toBe(config.opacity);
++      expect(backdrop.zoom).toBe(config.zoom);
++      expect(backdrop.zoom).toBeGreaterThanOrEqual(0.9);
++      expect(backdrop.centerX).toBe(framing.centerX);
++      expect(backdrop.centerY).toBe(framing.centerY);
++      expect(backdrop.opacity).toBe(1);
+     }
+   });
+ 
+--- before/src/components/canvas/scanTimeline.ts
++++ after/src/components/canvas/scanTimeline.ts
+@@ -49,9 +49,9 @@
+   const sweepSeconds = (scanTiming.idleCycleSeconds - scanTiming.topHoldSeconds) / 2;
+   const sweep = Math.max(0, cycle - scanTiming.topHoldSeconds) / sweepSeconds;
+   // Start and finish above the model. A hold and eased turns avoid a visible reset.
+-  // Keep the scan plane active: blueprint above the laser, physical metal below it.
++  // After the opening reveal, keep the painted machine readable while the laser sweeps.
+   const scanY = atHeight(sweep <= 1 ? 1 - ease(sweep) : ease(sweep - 1));
+-  return { scanY, reveal: 0, ringOpacity: ringAt(scanY, 0.75), introProgress: 1 };
++  return { scanY, reveal: 1, ringOpacity: ringAt(scanY, 0.75), introProgress: 1 };
+ }
+ 
+ /** A short welcome scan once per local day; returning visits skip the long reveal. */
+--- before/src/components/canvas/scanTimeline.test.ts
++++ after/src/components/canvas/scanTimeline.test.ts
+@@ -28,14 +28,14 @@
+     expect(sampleScan(0.3, { phase: "idle" })).toEqual(sampleScan(0.3, { phase: "reveal" }));
+   });
+ 
+-  it("keeps the blueprint reveal active on every idle sweep and loops without a jump", () => {
++  it("keeps the painted machine visible after its intro and loops the laser without a jump", () => {
+     const end = scanTiming.firstIntroSeconds;
+     expect(sampleScan(end + scanTiming.topHoldSeconds / 2).scanY).toBe(scanBounds.maxY);
+     const down = sampleScan(end + scanTiming.idleCycleSeconds / 2);
+     expect(down.scanY).toBeLessThan(scanBounds.midY);
+-    // Full-metal override must stay off throughout both directions of repeated scans.
++    // Painted surfaces remain visible on both directions of repeated scans.
+     for (let t = end; t < end + scanTiming.idleCycleSeconds * 2; t += 0.25) {
+-      expect(sampleScan(t).reveal).toBe(0);
++      expect(sampleScan(t).reveal).toBe(1);
+     }
+     const before = sampleScan(end + scanTiming.idleCycleSeconds - 0.001);
+     const after = sampleScan(end + scanTiming.idleCycleSeconds + 0.001);
+--- before/src/components/canvas/ScanRing.tsx
++++ after/src/components/canvas/ScanRing.tsx
+@@ -20,6 +20,7 @@
+   const orbitAmountRef = useRef(0);
+   const invalidate = useThree((state) => state.invalidate);
+   const color = phase === "success" ? palette.pass : palette.ember500;
++  const orientation = useMemo(() => ({ yaw: new Quaternion(), up: new Vector3(0, 1, 0) }), []);
+   const flat = useMemo(() => new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2), []);
+   const geometry = useMemo(() => {
+     const shape = new Shape();
+@@ -39,7 +40,7 @@
+   useEffect(() => () => { geometry.tick.dispose(); geometry.orbit.dispose(); }, [geometry]);
+   useEffect(() => { invalidate(); }, [phase, still, typing, inputFocused, invalidate]);
+ 
+-  useFrame(({ camera }, delta) => {
++  useFrame(({ camera, scene }, delta) => {
+     const sample = frameRef.current;
+     const success = phase === "success";
+     const time = sample.phaseElapsed ?? 0;
+@@ -48,8 +49,12 @@
+     const orbitActive = scanOrbitActive(phase, inputFocused);
+     if (group.current) {
+       group.current.position.y = success ? sample.scanY * (1 - seal) + stage.camera.target[1] * seal : sample.scanY;
+-      group.current.quaternion.copy(flat).slerp(camera.quaternion, seal);
+-      group.current.scale.setScalar(1 - 0.3 * seal);
++      // The elliptical orbit turns with the horizontal tank, including drag and idle yaw.
++      const yaw = scene.getObjectByName("compressor-interaction")?.rotation.y ?? 0;
++      orientation.yaw.setFromAxisAngle(orientation.up, yaw);
++      group.current.quaternion.copy(orientation.yaw).multiply(flat).slerp(camera.quaternion, seal);
++      const shrink = 1 - 0.3 * seal;
++      group.current.scale.set(shrink, shrink * (0.52 + 0.48 * seal), shrink);
+     }
+     if (core.current) core.current.opacity = success ? (1 - seal) * 0.8 : sample.ringOpacity;
+     if (glow.current) glow.current.opacity = (success ? (1 - seal) * 0.8 : sample.ringOpacity) * 0.13;
+@@ -64,7 +69,7 @@
+     const orbitOpacity = orbitAmountRef.current * (typing ? 0.95 : 0.8);
+     if (orbitMaterialRef.current) orbitMaterialRef.current.opacity = orbitOpacity;
+     if (headMaterialRef.current) headMaterialRef.current.opacity = orbitOpacity;
+-  }, -1);
++  }, -0.25);
+ 
+   return (
+     <group ref={group} name="inspection-laser" rotation-x={-Math.PI / 2}>
+--- before/src/config/experience.ts
++++ after/src/config/experience.ts
+@@ -46,17 +46,17 @@
+ 
+ /**
+  * The 3D stage on the auth screens (docs/07 §2.4, §3). Lengths are scene units:
+- * the compressor cylinder is about 2.4 units tall.
++ * the complete V-twin compressor is about 2.6 units tall.
+  */
+ export const stage = {
+-  /** Idle turn of the cylinder (docs/07 §2.5: ≈ 3°/s). 0 under reduced motion. */
++  /** Idle turn of the machine (docs/07 §2.5: ≈ 3°/s). 0 under reduced motion. */
+   idleTurnDegPerSec: 3,
+   /** Quiet background turn while an input is focused. */
+   focusTurnDegPerSec: 0.8,
+   /** Canvas fade-in once the first frame is drawn. */
+   fadeInMs: 350,
+-  /** Starting yaw: the discharge pipe on the right-hand silhouette, a fin corner to camera. */
+-  initialYawDeg: 38,
++  /** Starting three-quarter view of the tank label, pump and motor. */
++  initialYawDeg: -12,
+ 
+   scan: {
+     firstIntroSeconds: 1.4,
+@@ -66,7 +66,7 @@
+     submittingSweepSeconds: 0.9,
+     successSeconds: 0.6,
+     phaseTransitionSeconds: 0.18,
+-    ringRadius: 1.4,
++    ringRadius: 2.2,
+     /** A visible scanner head circles the model while a credential input has focus. */
+     focusOrbitSeconds: 4.2,
+   },
+@@ -106,13 +106,10 @@
+     inertiaDamping: 7,
+     cameraDamping: 7,
+     focusPush: 0.06,
+-    /** Username focus fills the page with a quiet, enlarged model behind the form. */
++    /** A small focus push keeps the complete machine within its stage, clear of the form. */
+     usernameBackdrop: {
+-      height: 0.88,
+-      centerX: 0.5,
+-      centerY: 0.48,
++      zoom: 0.96,
+       damping: 4.5,
+-      opacity: 0.6,
+     },
+     lockedPull: 0.04,
+     checkpointStepSeconds: 0.1,
+@@ -128,23 +125,23 @@
+   camera: {
+     fovDeg: 28,
+     /** Where the camera looks from, relative to the object's centre (normalised). */
+-    direction: [0.62, 0.34, 0.71] as const,
++    direction: [0.32, 0.25, 1] as const,
+     /** Point of the object kept at the framing centre. */
+-    target: [0, 1.15, 0] as const,
++    target: [0, 1.3, 0] as const,
+   },
+ 
+   /**
+    * Framing per layout (docs/07 §6), as fractions of the canvas. The canvas covers the
+    * viewport; the lens is shifted so the object sits in the stage area, not the middle.
+-   * `height` = share of the canvas height the object should fill.
++   * `height` / `width` reserve a viewport fraction, keeping the wide tank clear of the form.
+    */
+   framing: {
+-    laptop: { centerX: 0.32, centerY: 0.47, height: 0.52 },
+-    tablet: { centerX: 0.5, centerY: 0.17, height: 0.24 },
+-    phone: { centerX: 0.5, centerY: 0.165, height: 0.19 },
++    laptop: { centerX: 0.29, centerY: 0.52, height: 0.6, width: 0.48 },
++    tablet: { centerX: 0.5, centerY: 0.17, height: 0.25, width: 0.82 },
++    phone: { centerX: 0.5, centerY: 0.17, height: 0.23, width: 0.86 },
+     /** ≤ 700px tall: the stage area shrinks to 20svh (globals.css `short-portrait`). */
+-    phoneShort: { centerX: 0.5, centerY: 0.105, height: 0.135 },
+-    phoneLandscape: { centerX: 0.25, centerY: 0.5, height: 0.6 },
++    phoneShort: { centerX: 0.5, centerY: 0.105, height: 0.14, width: 0.84 },
++    phoneLandscape: { centerX: 0.235, centerY: 0.5, height: 0.68, width: 0.4 },
+   },
+ 
+   /**
+--- before/src/components/canvas/AuthStage.tsx
++++ after/src/components/canvas/AuthStage.tsx
+@@ -65,7 +65,7 @@
+           </div>
+         </StageBoundary>
+       )}
+-      <StageFinish />
++      {tier !== "static" && <StageFinish />}
+     </div>
+   );
+ }
+@@ -93,7 +93,10 @@
+ function StaticPoster() {
+   return (
+     <picture>
+-      <source media="(min-aspect-ratio: 1/1)" srcSet="/auth/poster-landscape.avif" type="image/avif" />
++      <source media="(min-width: 1024px)" srcSet="/auth/poster-landscape.avif" type="image/avif" />
++      <source media="(orientation: landscape) and (max-height: 540px)" srcSet="/auth/poster-phone-landscape.avif" type="image/avif" />
++      <source media="(min-width: 768px)" srcSet="/auth/poster-tablet.avif" type="image/avif" />
++      <source media="(max-height: 700px)" srcSet="/auth/poster-short.avif" type="image/avif" />
+       <img src="/auth/poster-portrait.avif" alt="" decoding="async" fetchPriority="low" className="absolute inset-x-0 top-0 h-svh w-full object-cover object-top" />
+     </picture>
+   );
+--- before/src/components/canvas/AirCompressor.tsx
++++ after/src/components/canvas/AirCompressor.tsx
+@@ -0,0 +1,67 @@
++"use client";
++
++import { useEffect, useMemo } from "react";
++import { CanvasTexture, MeshPhysicalMaterial, MeshStandardMaterial, SRGBColorSpace } from "three";
++import { buildCompressorGeometry, disposeCompressorGeometry } from "./compressorGeometry";
++import { applyScanReveal, type ScanUniforms } from "./scanReveal";
++
++function texture(width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void) {
++  const canvas = document.createElement("canvas");
++  canvas.width = width; canvas.height = height;
++  const ctx = canvas.getContext("2d");
++  if (ctx) draw(ctx);
++  const map = new CanvasTexture(canvas);
++  map.colorSpace = SRGBColorSpace;
++  map.anisotropy = 4;
++  return map;
++}
++
++function createResources(uniforms: ScanUniforms) {
++  const badgeMap = texture(1024, 300, (ctx) => {
++    ctx.fillStyle = "#1649a2"; ctx.fillRect(0, 0, 1024, 300);
++    ctx.fillStyle = "#f58032"; ctx.fillRect(0, 208, 1024, 92);
++    ctx.fillStyle = "#fff"; ctx.font = "900 210px Arial, sans-serif"; ctx.textAlign = "center";
++    ctx.fillText("PUMA", 490, 184);
++    ctx.fillStyle = "#184990"; ctx.font = "bold 67px Arial, sans-serif";
++    ctx.fillText("AIR COMPRESSOR", 512, 280);
++  });
++  const dialMap = texture(256, 256, (ctx) => {
++    ctx.fillStyle = "#eeede6"; ctx.fillRect(0, 0, 256, 256);
++    ctx.translate(128, 128);
++    for (let i = 0; i <= 30; i++) {
++      const angle = (-225 + i * 9) * Math.PI / 180;
++      ctx.save(); ctx.rotate(angle); ctx.strokeStyle = i > 25 ? "#d44732" : "#34383f";
++      ctx.lineWidth = i % 5 === 0 ? 4 : 2;
++      ctx.beginPath(); ctx.moveTo(82, 0); ctx.lineTo(i % 5 === 0 ? 106 : 98, 0); ctx.stroke(); ctx.restore();
++    }
++    ctx.textAlign = "center"; ctx.fillStyle = "#4d535d"; ctx.font = "bold 19px Arial"; ctx.fillText("bar", 0, 68);
++    ctx.strokeStyle = "#dc5538"; ctx.lineWidth = 5; ctx.beginPath();ctx.moveTo(-12, 10);ctx.lineTo(-50, -51);ctx.stroke();
++    ctx.fillStyle = "#434a52";ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();
++  });
++  const materials = {
++    paint: new MeshPhysicalMaterial({ color: "#2253b6", metalness: 0.22, roughness: 0.28, clearcoat: 0.4, clearcoatRoughness: 0.22 }),
++    metal: new MeshStandardMaterial({ color: "#bdc2c8", metalness: 0.78, roughness: 0.34 }),
++    rubber: new MeshStandardMaterial({ color: "#202329", metalness: 0.05, roughness: 0.72 }),
++    dark: new MeshStandardMaterial({ color: "#414650", metalness: 0.55, roughness: 0.4 }),
++    brass: new MeshStandardMaterial({ color: "#b88c45", metalness: 0.72, roughness: 0.3 }),
++    red: new MeshStandardMaterial({ color: "#c4412e", metalness: 0.12, roughness: 0.4 }),
++    cream: new MeshStandardMaterial({ color: "#d1c9b5", metalness: 0.06, roughness: 0.55 }),
++    badge: new MeshStandardMaterial({ map: badgeMap, roughness: 0.45, metalness: 0.12, polygonOffset: true, polygonOffsetFactor: -1 }),
++    dial: new MeshStandardMaterial({ map: dialMap, roughness: 0.55, metalness: 0.02 }),
++  };
++  Object.values(materials).forEach((material) => applyScanReveal(material, uniforms));
++  return { parts: buildCompressorGeometry(), materials, maps: [badgeMap, dialMap] };
++}
++
++/** Photo-inspired V-twin machine, built locally with nine batched finishes and two small labels. */
++export function AirCompressor({ uniforms }: { uniforms: ScanUniforms }) {
++  const resources = useMemo(() => createResources(uniforms), [uniforms]);
++  useEffect(() => () => {
++    disposeCompressorGeometry(resources.parts);
++    Object.values(resources.materials).forEach((material) => material.dispose());
++    resources.maps.forEach((map) => map.dispose());
++  }, [resources]);
++  return <group name="compressor-model">
++    {Object.entries(resources.parts).map(([name, geometry]) => <mesh key={name} name={`compressor-${name}`} geometry={geometry} material={resources.materials[name as keyof typeof resources.materials]} />)}
++  </group>;
++}
+--- before/src/components/canvas/checkpointPulse.ts
++++ after/src/components/canvas/checkpointPulse.ts
+@@ -0,0 +1,33 @@
++import { stage } from "@/config/experience";
++import type { ScanPhase } from "./scanTimeline";
++
++/** Physical inspection locations: pressure gauge, pump crankcase, motor fan cover. */
++export const checkpointPositions = [[-1.29, 1.65, 0.46], [-0.58, 1.94, 0.51], [0.92, 1.78, 0.49]] as const;
++export type CheckpointTone = "dim" | "active" | "pass" | "fail";
++const safeTime = (time: number) => Number.isFinite(time) ? Math.max(0, time) : 0;
++
++export function sampleCheckpoint(index: number, scanY: number, phaseElapsed: number, phase: ScanPhase, still: boolean) {
++  if (phase === "locked") return { tone: "dim" as CheckpointTone, checkProgress: 0 };
++  const time = safeTime(phaseElapsed);
++  if (phase === "error") return { tone: (!still && index === 1 && time < stage.interaction.errorFlashSeconds ? "fail" : "dim") as CheckpointTone, checkProgress: 0 };
++  if (phase === "success") {
++    const t = still ? 1 : Math.max(0, Math.min(1, (time - index * stage.interaction.checkpointStepSeconds) / stage.interaction.checkpointRevealSeconds));
++    return { tone: (t > 0 ? "pass" : "active") as CheckpointTone, checkProgress: t * t * (3 - 2 * t) };
++  }
++  return { tone: (phase !== "reveal" || scanY >= checkpointPositions[index][1] ? "active" : "dim") as CheckpointTone, checkProgress: 0 };
++}
++
++/** Two expanding wavefronts per quiet 2.8s cycle. No flashes under reduced motion. */
++export function sampleSignalWave(elapsed: number, station: number, wave: number, active: boolean, still: boolean) {
++  if (!active || still) return { scale: 1, opacity: 0 };
++  const progress = ((safeTime(elapsed) + station * 0.47 + wave * 1.4) % 2.8) / 2.8;
++  const fadeIn = Math.min(1, progress / 0.12);
++  return { scale: 1 + progress * 2.3, opacity: 0.75 * fadeIn * (1 - progress) ** 2 };
++}
++
++/** A gentle heartbeat in the stationary core, synchronized with its outgoing waves. */
++export function sampleSignalStrength(elapsed: number, station: number, still: boolean) {
++  if (still) return 0.95;
++  const angle = ((safeTime(elapsed) + station * 0.47) % 2.8) / 2.8 * Math.PI * 2;
++  return 0.76 + 0.24 * (Math.cos(angle) * 0.5 + 0.5);
++}

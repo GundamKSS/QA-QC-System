@@ -1,0 +1,188 @@
+--- before/lib/config/experience.ts
++++ lib/config/experience.ts
+@@ -108,7 +108,7 @@
+     inertiaDamping: 7,
+     cameraDamping: 7,
+     focusPush: 0.06,
+-    /** Both credential steps share a close view, so Password can open the assemblies in place. */
++    /** Username zooms into the scanned blueprint before Password moves closer to the assemblies. */
+     usernameBackdrop: {
+       height: 0.94,
+       centerX: 0.5,
+@@ -118,6 +118,14 @@
+       compactHeight: 0.32,
+       compactWidth: 0.98,
+       compactCenterY: 0.18,
++    },
++    /** Fill the viewport with the exploded upper assemblies, using the Username view as the entry. */
++    passwordBackdrop: {
++      zoomFactor: 0.62,
++      centerY: 0.5,
++      compactCenterY: 0.24,
++      aimY: 1.9,
++      opacity: 0.62,
+     },
+     /**
+      * Stiffness (rad/s) of the critically damped spring that moves framing, zoom and fade
+--- before/components/canvas/cameraMotion.ts
++++ components/canvas/cameraMotion.ts
+@@ -46,6 +46,23 @@
+   };
+ }
+ 
++/** Password moves further into the scanned model and centres its exploded assemblies on screen. */
++export function samplePasswordBackdrop(
++  framing: Parameters<typeof sampleUsernameBackdrop>[0],
++  phase: ScanPhase,
++  expanded: boolean,
++  still: boolean,
++) {
++  const backdrop = sampleUsernameBackdrop(framing, phase, expanded, still);
++  const config = stage.interaction.passwordBackdrop;
++  return backdrop.active ? {
++    ...backdrop,
++    zoom: backdrop.zoom * config.zoomFactor,
++    centerY: framing.height < 0.4 ? config.compactCenterY : config.centerY,
++    opacity: config.opacity,
++  } : backdrop;
++}
++
+ /** A bounded camera beat that always finishes inside the login action's welcome hold. */
+ export function sampleCamera(phase: ScanPhase, phaseElapsed: number, introProgress: number, still: boolean) {
+   const { interaction } = stage;
+--- before/components/canvas/CameraRig.tsx
++++ components/canvas/CameraRig.tsx
+@@ -4,15 +4,15 @@
+ import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+ import { Euler, Quaternion, Vector3, type PerspectiveCamera, type PointLight } from "three";
+ import { palette, stage } from "@/lib/config/experience";
+-import { clampParallax, sampleCamera, sampleUsernameBackdrop, springStep, type Spring } from "@/components/canvas/cameraMotion";
++import { clampParallax, sampleCamera, samplePasswordBackdrop, sampleUsernameBackdrop, springStep, type Spring } from "@/components/canvas/cameraMotion";
+ import { inspectionFraming, inspectionPart, type InspectionId } from "./inspectionParts";
+ import { dims } from "./compressorGeometry";
+ import { framingFor, placeCamera } from "./framing";
+ import type { ScanFrame, ScanPhase } from "./scanTimeline";
+ 
+-export function CameraRig({ frameRef, phase, still, credentialExpanded, selected, eventSource, onFade }: {
++export function CameraRig({ frameRef, phase, still, credentialExpanded, passwordExpanded, selected, eventSource, onFade }: {
+   frameRef: RefObject<ScanFrame>; phase: ScanPhase; still: boolean;
+-  credentialExpanded: boolean; selected: InspectionId | null;
++  credentialExpanded: boolean; passwordExpanded: boolean; selected: InspectionId | null;
+   eventSource: HTMLElement; onFade: (opacity: number) => void;
+ }) {
+   const get = useThree((state) => state.get);
+@@ -36,7 +36,7 @@
+   });
+   const vectors = useMemo(() => ({ offset: new Vector3(), position: new Vector3(), aim: new Vector3(), look: new Vector3(...stage.camera.target), entryPosition: new Vector3(), entryLook: new Vector3(), rotation: new Euler(), modelRotation: new Quaternion() }), []);
+ 
+-  useEffect(() => { get().invalidate(); }, [get, credentialExpanded, selected, still]);
++  useEffect(() => { get().invalidate(); }, [get, credentialExpanded, passwordExpanded, selected, still]);
+ 
+   useEffect(() => {
+     const hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+@@ -79,7 +79,9 @@
+   useFrame(({ camera, scene }, delta) => {
+     const elapsed = frameRef.current.phaseElapsed ?? 0;
+     const beat = sampleCamera(phase, elapsed, frameRef.current.introProgress, still);
+-    const backdrop = sampleUsernameBackdrop(framing, phase, credentialExpanded, still);
++    const backdrop = passwordExpanded
++      ? samplePasswordBackdrop(framing, phase, credentialExpanded, still)
++      : sampleUsernameBackdrop(framing, phase, credentialExpanded, still);
+     const view = viewRef.current;
+     const entry = entryRef.current;
+     if (entry.phase !== phase) {
+@@ -109,7 +111,8 @@
+     vectors.rotation.set(-parallaxRef.current.y * max, -parallaxRef.current.x * max, 0);
+     const zoom = spring("zoom", backdrop.active ? backdrop.zoom : beat.zoom);
+     vectors.offset.set(placement.position[0] - placement.target[0], placement.position[1] - placement.target[1], placement.position[2] - placement.target[2]).multiplyScalar(zoom).applyEuler(vectors.rotation);
+-    vectors.aim.set(placement.target[0], beat.aimY, placement.target[2]);
++    const aimY = backdrop.active && passwordExpanded ? stage.interaction.passwordBackdrop.aimY : beat.aimY;
++    vectors.aim.set(placement.target[0], aimY, placement.target[2]);
+     vectors.position.copy(vectors.aim).add(vectors.offset);
+     let centerX = backdrop.centerX, centerY = backdrop.centerY;
+     if (selected) {
+--- before/components/canvas/Scene.tsx
++++ components/canvas/Scene.tsx
+@@ -236,7 +236,7 @@
+       {/* Sustained low fps steps the level down (high → medium → low); it never climbs back. */}
+       <PerformanceMonitor onDecline={() => setQuality(degrade)} />
+       <ScanController inspecting={!!selected} blueprintActive={presentation.blueprint} exploded={presentation.exploded} blueprintRef={blueprintRef} assemblyRef={assemblyRef} still={still} phase={phase} phaseRound={phaseRound} introSeconds={introSeconds} frameRef={frameRef} uniformsRef={uniformsRef} />
+-      <CameraRig frameRef={frameRef} phase={phase} still={still} credentialExpanded={presentation.zoomed} selected={selected} eventSource={eventSource} onFade={onFade} />
++      <CameraRig frameRef={frameRef} phase={phase} still={still} credentialExpanded={presentation.zoomed} passwordExpanded={presentation.exploded} selected={selected} eventSource={eventSource} onFade={onFade} />
+       <StaticStudio />
+       <ambientLight intensity={0.35} />
+       <ModelInteraction still={still} active={visible && !selected} pointerEnabled={!inputFocused && !selected} phase={phase}>
+--- before/components/canvas/credentialPresentation.ts
++++ components/canvas/credentialPresentation.ts
+@@ -1,6 +1,6 @@
+ import type { ScanPhase } from "@/components/canvas/scanTimeline";
+ 
+-/** Separate the scanned blueprint from the exploded parts, keeping the same framing between fields. */
++/** Separate the scanned blueprint from the exploded parts so each credential can choose its camera view. */
+ export function sampleCredentialPresentation(phase: ScanPhase, username: boolean, password: boolean, still: boolean) {
+   const active = !still && phase !== "success" && phase !== "locked";
+   const blueprint = active && (username || password);
+--- before/tests/canvas-camera-motion.test.ts
++++ tests/canvas-camera-motion.test.ts
+@@ -1,7 +1,7 @@
+ import { describe, expect, it } from "vitest";
+ import { motion, stage } from "@/lib/config/experience";
+ import { Euler, Quaternion } from "three";
+-import { clampParallax, sampleCamera, sampleUsernameBackdrop, springStep, type Spring } from "@/components/canvas/cameraMotion";
++import { clampParallax, sampleCamera, samplePasswordBackdrop, sampleUsernameBackdrop, springStep, type Spring } from "@/components/canvas/cameraMotion";
+ 
+ describe("camera parallax budget", () => {
+   it("keeps diagonal and edge rotations within one 2.5 degree budget", () => {
+@@ -114,6 +114,41 @@
+   });
+ });
+ 
++describe("password fullscreen camera", () => {
++  it("zooms further than Username on every layout and centres the exploded parts", () => {
++    for (const framing of Object.values(stage.framing)) {
++      const username = sampleUsernameBackdrop(framing, "focus", true, false);
++      const password = samplePasswordBackdrop(framing, "focus", true, false);
++      expect(password.zoom).toBeGreaterThan(0);
++      expect(password.zoom).toBeLessThan(username.zoom);
++      expect(password.centerX).toBe(0.5);
++      expect(password.centerY).toBe(framing.height < 0.4 ? stage.interaction.passwordBackdrop.compactCenterY : 0.5);
++    }
++  });
++
++  it("holds its closer view through submit and gives success and lock control of the camera", () => {
++    for (const framing of Object.values(stage.framing)) {
++      expect(samplePasswordBackdrop(framing, "submitting", true, false)).toEqual(
++        samplePasswordBackdrop(framing, "focus", true, false),
++      );
++      for (const phase of ["success", "locked"] as const) {
++        expect(samplePasswordBackdrop(framing, phase, true, false).active).toBe(false);
++      }
++    }
++  });
++
++  it("returns to the original framing when inactive or reduced motion is enabled", () => {
++    for (const framing of Object.values(stage.framing)) {
++      expect(samplePasswordBackdrop(framing, "focus", false, false)).toEqual(
++        sampleUsernameBackdrop(framing, "focus", false, false),
++      );
++      expect(samplePasswordBackdrop(framing, "focus", true, true)).toEqual(
++        sampleUsernameBackdrop(framing, "focus", false, true),
++      );
++    }
++  });
++});
++
+ describe("view spring (code field → password field)", () => {
+   const omega = stage.interaction.viewSpring;
+   const run = (spring: Spring, target: number, frames: number, dt = 1 / 60) => {
+--- before/tests/canvas-credential-presentation.test.ts
++++ tests/canvas-credential-presentation.test.ts
+@@ -9,7 +9,7 @@
+     });
+   });
+ 
+-  it("opens parts for Password while keeping the same zoom and blueprint", () => {
++  it("opens parts for Password while retaining the blueprint and enabling its close view", () => {
+     const username = sampleCredentialPresentation("focus", true, false, false);
+     const password = sampleCredentialPresentation("focus", false, true, false);
+     expect(password).toEqual({ ...username, exploded: true });

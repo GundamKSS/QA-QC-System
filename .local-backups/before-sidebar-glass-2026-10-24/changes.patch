@@ -1,0 +1,101 @@
+--- a/src/app/app-theme.css
++++ b/src/app/app-theme.css
+@@ -74,7 +74,11 @@
+ }
+ 
+ /* Matte surfaces and quiet page entrances keep working screens tactile and legible. */
+-.app-theme-sand { isolation: isolate; }
++.app-theme-sand {
++  isolation: isolate;
++  --app-glass-background: rgb(255 249 237 / .62);
++  --app-glass-filter: blur(18px) saturate(1.6);
++}
+ .app-theme-sand .app-page-area > :where(div, section, article) { animation: workspace-enter 300ms cubic-bezier(.22,1,.36,1) both; }
+ @keyframes workspace-enter {
+   from { opacity: 0; transform: translateY(6px); }
+@@ -134,7 +138,7 @@
+   underneath. Hover/focus zooms an icon and slides out a frosted label (icon + name).
+ */
+ .app-theme-sand .app-rail {
+-  --rail-glass: rgb(255 249 237 / .62);
++  --rail-glass: var(--app-glass-background);
+   position: fixed;
+   z-index: 40;
+   inset: 12px auto 12px 12px;
+@@ -143,11 +147,25 @@
+   align-items: center;
+   gap: 10px;
+   padding: 14px 0;
++  border: 1px solid transparent;
++  border-radius: 22px;
++  background: transparent;
++  /* Keep the rail itself out of the backdrop-root chain. Otherwise its expanding
++     descendants cannot sample and blur the page outside this narrow rail. */
++  -webkit-backdrop-filter: none;
++  backdrop-filter: none;
++}
++.app-theme-sand .app-rail::before {
++  content: "";
++  position: absolute;
++  inset: -1px;
++  z-index: -1;
++  pointer-events: none;
+   border: 1px solid #d5d5c5;
+-  border-radius: 22px;
+-  background-color: var(--rail-glass);
+-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+-  backdrop-filter: blur(18px) saturate(1.6);
++  border-radius: inherit;
++  background-color: var(--app-glass-background);
++  -webkit-backdrop-filter: var(--app-glass-filter);
++  backdrop-filter: var(--app-glass-filter);
+   box-shadow: 0 1px 0 rgb(255 255 255 / .5) inset, 0 18px 40px -28px rgb(35 60 48 / .45);
+ }
+ .app-theme-sand .app-rail-brand { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: #233c30; }
+@@ -172,8 +190,8 @@
+   border: 1px solid #d5d5c5;
+   border-radius: 18px;
+   background-color: var(--rail-glass);
+-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+-  backdrop-filter: blur(18px) saturate(1.6);
++  -webkit-backdrop-filter: var(--app-glass-filter);
++  backdrop-filter: var(--app-glass-filter);
+   box-shadow: 0 18px 40px -22px rgb(35 60 48 / .6);
+   opacity: 0;
+   /* Grows out of the rail icon it sits on. */
+@@ -201,8 +219,8 @@
+   border: 1px solid #d5d5c5;
+   border-radius: 14px;
+   background-color: var(--rail-glass);
+-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+-  backdrop-filter: blur(18px) saturate(1.6);
++  -webkit-backdrop-filter: var(--app-glass-filter);
++  backdrop-filter: var(--app-glass-filter);
+   box-shadow: 0 14px 30px -20px rgb(35 60 48 / .55);
+   opacity: 0;
+   visibility: hidden;
+@@ -215,10 +233,10 @@
+ .app-theme-sand .app-topbar {
+   height: 72px;
+   /* Frosted glass: content scrolling underneath shows through as soft colour. */
+-  background-color: rgb(255 249 237 / .62);
++  background-color: var(--app-glass-background);
+   border-color: #d5d5c5;
+-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+-  backdrop-filter: blur(18px) saturate(1.6);
++  -webkit-backdrop-filter: var(--app-glass-filter);
++  backdrop-filter: var(--app-glass-filter);
+   box-shadow: 0 1px 0 rgb(255 255 255 / .5);
+ }
+ .app-theme-sand .app-location { min-width: 0; }
+@@ -228,8 +246,8 @@
+ /* Dark green glass with the same transparency and blur as the top bar. */
+ .app-theme-sand .app-mobile-tabs {
+   background: rgb(35 60 48 / .62);
+-  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+-  backdrop-filter: blur(18px) saturate(1.6);
++  -webkit-backdrop-filter: var(--app-glass-filter);
++  backdrop-filter: var(--app-glass-filter);
+   border-color: #4b624b;
+   box-shadow: 0 -6px 24px rgb(32 51 34 / .1);
+ }

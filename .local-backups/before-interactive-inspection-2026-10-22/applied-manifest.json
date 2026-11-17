@@ -1,0 +1,21 @@
+{
+  "src/components/canvas/AuthStage.tsx": "3593c42855feac29c68321791aa61b44001a61c63a05936bfdcac8aa87ba14ac",
+  "src/components/canvas/Scene.tsx": "98e70862d978eef57d6dfd00d5ca825616492c0eb66022a7d390b086969bc68f",
+  "src/components/canvas/CameraRig.tsx": "57c1030f30ebc44216efce17fea3cac896b2f0446d1f7326327d3609fb2144de",
+  "src/components/canvas/AirCompressor.tsx": "99b7b21867b6452dc1d5645b78a4d64b544b1f4ee0edc8fa6d7d6ec2f7b75561",
+  "src/components/canvas/Checkpoints.tsx": "8f7c3cf7d990b49fb15b76e42b33fbd0f937be2480e985cd25eaf118fe2d07f9",
+  "src/components/canvas/ScanRing.tsx": "8a56234b94521436fe314ef72c197bfd26cca45b7db29ce15d6a9db9535371c7",
+  "src/components/canvas/scanTimeline.ts": "2a2966d267e8452f73236dc0644d3b333583424281e0cd1bc3b06a4e8617652d",
+  "src/components/canvas/scanTimeline.test.ts": "0377c86b47332450bcdcc879973086ad121c3e269df321fd875339367099f08d",
+  "src/components/canvas/scanReveal.ts": "bb7a20766f4029b1ce61d300d0b7310732d1c7ad679d3b5e71b9223fa4302d6a",
+  "src/components/canvas/scanReveal.test.ts": "59b38ab3941437cfafa2042b563ea1706cb78ba608b49c4d538767249dab54a9",
+  "src/components/canvas/cameraMotion.ts": "2f189ce8c02025a40b5b5f1148995fa7e7a1931db6a0a13a0b726c0bde6e956b",
+  "src/components/canvas/cameraMotion.test.ts": "3fcd75dc7d782543ea1b5c570f204e64870398671be6f724ff80372e4c8883e0",
+  "src/config/experience.ts": "8707b0a4888be8956f1aa3fc4503046418e7e4b9645e20165dde281299f0d3e8",
+  "src/components/canvas/inspectionParts.ts": "f01fea5cee0c761dd301149e458f7c08b2bb83a61120cec8523b04c8b0abd8dd",
+  "src/components/canvas/inspectionGeometry.ts": "d607d1f01d2c08b0b5e0a6bfb883cd9bc4c418bff16f21d18d2d4f40dae75c5f",
+  "src/components/canvas/ExplodedPart.tsx": "4ff9972f13e6c32f683b58f049aa259fd3c9e6c68b4a039792b27f85e4bd3547",
+  "src/components/canvas/InspectionOverlay.tsx": "f32af636a4e7ff78746f1c9125dc7309dd190657007e8e4ae649da960a7af585",
+  "src/components/canvas/inspection.css": "f17af02e77af228f97ebb587e28c115cdf8b69afe0d175b8eb09e761e30c9785",
+  "src/components/canvas/inspectionGeometry.test.ts": "dff5d9e50411c2b643d494e0b507f0b4b44334872b99f2c226ae858e66a2a20c"
+}

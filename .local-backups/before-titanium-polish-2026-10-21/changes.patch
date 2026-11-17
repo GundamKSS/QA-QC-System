@@ -1,0 +1,472 @@
+--- before/src/app/(app)/home/page.tsx
++++ after/src/app/(app)/home/page.tsx
+@@ -37,7 +37,7 @@
+   );
+ }
+ 
+-const cardClass = "rounded-xl border border-carbon-700/80 bg-carbon-800 shadow-xs shadow-black/10";
++const cardClass = "app-panel rounded-xl border border-carbon-700/80 bg-carbon-800";
+ 
+ async function HomeContent({ searchParams }: { searchParams: HomeSearch }) {
+   const user = await requirePageAccess("home", authPolicy.homePath);
+@@ -66,7 +66,7 @@
+               {roleDisplay}
+             </span>
+           </div>
+-          <h1 className="text-2xl sm:text-3xl font-light text-ti-50 tracking-tight">
++          <h1 className="text-2xl sm:text-3xl font-normal text-ti-50 tracking-tight">
+             สวัสดี, <span className="font-medium text-ti-50">{user.fullName}</span>
+           </h1>
+           <p className="text-xs sm:text-sm text-ti-400 mt-1">
+@@ -78,7 +78,7 @@
+           {canOpenPlan(user.roles) && (
+           <ShellLink
+             href="/plans/new"
+-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-ember-500 hover:bg-ember-400 active:bg-ember-600 text-carbon-950 font-medium text-sm transition-all duration-150 shadow-xs shadow-ember-500/20"
++            className="flex items-center gap-2 px-4 py-2.5 rounded-lg app-primary-action bg-ember-500 hover:bg-ember-400 active:bg-ember-600 text-carbon-950 font-medium text-sm transition-all duration-150"
+           >
+             <PlusIcon className="size-4" />
+             <span>เปิดแผนตรวจใหม่</span>
+@@ -87,7 +87,7 @@
+           {canSeeMaster(user.roles) && (
+           <ShellLink
+             href="/master"
+-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-carbon-600 hover:border-ti-400 bg-carbon-800 hover:bg-carbon-700/80 text-ti-200 hover:text-ti-50 text-sm transition-colors"
++            className="app-metal-action flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-carbon-600 hover:border-ti-400 bg-carbon-800 hover:bg-carbon-700/80 text-ti-200 hover:text-ti-50 text-sm transition-colors"
+           >
+             <span>ข้อมูลหลัก</span>
+           </ShellLink>
+@@ -313,7 +313,7 @@
+       </div>
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         {[1, 2, 3, 4].map((i) => (
+-          <div key={i} className="h-28 rounded-xl border border-carbon-700/80 bg-carbon-800 shadow-xs shadow-black/10 p-4 animate-pulse" />
++          <div key={i} className="h-28 app-panel rounded-xl border border-carbon-700/80 bg-carbon-800 p-4 animate-pulse" />
+         ))}
+       </div>
+     </div>
+--- before/src/app/(app)/plans/page.tsx
++++ after/src/app/(app)/plans/page.tsx
+@@ -53,7 +53,7 @@
+       <Filters values={values} options={data.options} filtered={filtered} />
+ 
+       {data.rows.length === 0 ? (
+-        <p className="rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">
++        <p className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">
+           {filtered ? "ไม่พบแผนที่ตรงกับเงื่อนไข" : "ยังไม่มีแผนตรวจ"}
+           {!filtered && canOpen && (
+             <>
+@@ -152,7 +152,7 @@
+ 
+ function PlanTable({ rows, values, today }: { rows: PlanListRow[]; values: PlanListValues; today: string }) {
+   return (
+-    <div className="hidden overflow-x-auto rounded-xl border border-carbon-700 bg-carbon-800 md:block">
++    <div className="hidden overflow-x-auto app-panel rounded-xl border border-carbon-700 bg-carbon-800 md:block">
+       <table className="w-full min-w-[900px] text-sm">
+         <caption className="sr-only">รายการแผนตรวจ — คลิกแถวเพื่อดูรายละเอียด</caption>
+         <thead className="bg-carbon-900 text-left text-xs text-ti-400">
+@@ -204,7 +204,7 @@
+ function PlanCard({ row, today }: { row: PlanListRow; today: string }) {
+   return (
+     <li>
+-      <Link href={`/plans/${row.id}`} className="block space-y-2 rounded-xl border border-carbon-700 bg-carbon-800 p-4 hover:border-carbon-600">
++      <Link href={`/plans/${row.id}`} className="block space-y-2 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4 hover:border-carbon-600">
+         <div className="flex items-start justify-between gap-2">
+           <span className="font-mono font-semibold text-ti-50">{row.planNo}</span>
+           {row.status === "CANCELLED" ? <ChecklistBadge status={row.status} /> : <ProgressBadge progress={planProgress(row)} />}
+@@ -241,7 +241,7 @@
+           <p className="text-sm text-ti-400">1 แผน = 1 Invoice/PO × 1 Model — คลิกแผนเพื่อดูรายละเอียด</p>
+         </div>
+         {canOpen && (
+-          <Link href="/plans/new" className="inline-flex h-11 items-center rounded-[10px] bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
++          <Link href="/plans/new" className="inline-flex h-11 items-center rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
+             ＋ เปิดแผน
+           </Link>
+         )}
+--- before/src/app/(app)/more/page.tsx
++++ after/src/app/(app)/more/page.tsx
+@@ -24,7 +24,7 @@
+   const menu = MORE_MENU.filter((item) => canAccessPage(user.roles, item.page));
+   return <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+     <h1 className="text-2xl text-ti-50">บัญชีของฉัน</h1>
+-    <section className="space-y-3 rounded-xl border border-carbon-700 bg-carbon-800 p-5">
++    <section className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5">
+       <h2 className="text-lg font-medium">{user.fullName}</h2>
+       <p className="font-mono text-ti-200">{user.employeeCode}</p>
+       <p className="text-sm text-ti-400">บทบาท: {user.roles.map(role => roleLabels[role] ?? role).join(" · ")}</p>
+@@ -34,7 +34,7 @@
+     {menu.length > 0 && (
+       <nav aria-label="เมนูอื่น" className="space-y-2">
+         <h2 className="text-sm font-medium text-ti-400">เมนูอื่น</h2>
+-        <ul className="divide-y divide-carbon-700 rounded-xl border border-carbon-700 bg-carbon-800">
++        <ul className="divide-y divide-carbon-700 app-panel rounded-xl border border-carbon-700 bg-carbon-800">
+           {menu.map((item) => <li key={item.href}><Link href={item.href} className="flex h-12 items-center px-5 text-ti-200 hover:text-ti-50">{item.label}</Link></li>)}
+         </ul>
+       </nav>
+--- before/src/app/(app)/alerts/page.tsx
++++ after/src/app/(app)/alerts/page.tsx
+@@ -11,7 +11,7 @@
+   await requirePageAccess("alerts", "/alerts");
+   return <div className="mx-auto max-w-2xl space-y-4 p-4 sm:p-6">
+     <h1 className="text-2xl text-ti-50">แจ้งเตือน</h1>
+-    <div className="rounded-xl border border-carbon-700 bg-carbon-800 p-6">
++    <div className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-6">
+       <p className="text-ti-200">ยังไม่มีแจ้งเตือน</p>
+       <p className="mt-2 text-sm text-ti-400">เมื่อมีงานหรือผลตรวจที่เกี่ยวข้อง รายการจะแสดงที่นี่</p>
+     </div>
+--- before/src/app/(app)/master/page.tsx
++++ after/src/app/(app)/master/page.tsx
+@@ -49,7 +49,7 @@
+           const count = "counts" in loaded ? loaded.counts[index] : null;
+           return (
+             <li key={def.slug}>
+-              <Link href={`/master/${def.slug}`} className="block h-full space-y-2 rounded-xl border border-carbon-700 bg-carbon-800 p-5 transition-colors hover:border-ti-500">
++              <Link href={`/master/${def.slug}`} className="block h-full space-y-2 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 transition-colors hover:border-ti-500">
+                 <span className="flex items-baseline justify-between gap-3">
+                   <span className="text-base font-medium text-ti-50">{def.label}</span>
+                   {count && <span className="shrink-0 font-mono text-sm text-ti-400">{count.active}<span className="text-ti-500">/{count.total}</span></span>}
+--- before/src/app/(app)/jobs/page.tsx
++++ after/src/app/(app)/jobs/page.tsx
+@@ -104,7 +104,7 @@
+     </>
+   );
+   return (
+-    <li className="space-y-2 rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++    <li className="space-y-2 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+       {linkToPlan ? (
+         <Link href={`/plans/${job.planId}?tab=work`} className="block space-y-2 hover:opacity-90">{body}</Link>
+       ) : (
+--- before/src/app/(app)/master/[table]/MasterForms.tsx
++++ after/src/app/(app)/master/[table]/MasterForms.tsx
+@@ -49,7 +49,7 @@
+   const title = id === null ? `เพิ่ม${def.singular}` : `แก้ไข${def.singular}`;
+   return (
+     // React resets a form after its action; re-keying restores what was typed when the server says no.
+-    <form key={state.status === "error" ? state.at : "initial"} action={action} aria-labelledby={`${base}-t`} className="space-y-4 rounded-xl border border-carbon-700 bg-carbon-800 p-5">
++    <form key={state.status === "error" ? state.at : "initial"} action={action} aria-labelledby={`${base}-t`} className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5">
+       <h2 id={`${base}-t`} className="text-lg font-medium text-ti-50">{title}</h2>
+       <input type="hidden" name="slug" value={def.slug} />
+       {id !== null && <input type="hidden" name="id" value={id} />}
+@@ -78,7 +78,7 @@
+       </div>
+       {state.status === "error" && <p role="alert" className="text-sm text-red-300">{state.message}</p>}
+       <div className="flex flex-wrap gap-3">
+-        <button type="submit" disabled={pending} className="h-11 rounded-[10px] bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60">
++        <button type="submit" disabled={pending} className="h-11 rounded-[10px] app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-60">
+           {pending ? "กำลังบันทึก…" : "บันทึก"}
+         </button>
+         <Link href={cancelHref} className="inline-flex h-11 items-center rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">ยกเลิก</Link>
+--- before/src/app/(app)/master/[table]/page.tsx
++++ after/src/app/(app)/master/[table]/page.tsx
+@@ -74,7 +74,7 @@
+   const savedRow = saved !== null ? data.rows.find((row) => row.id === saved) : undefined;
+ 
+   return (
+-    <Shell def={def} total={data.total} action={canEdit && !creating && !data.editing ? <Link href={link({ new: "1" })} className="inline-flex h-11 items-center rounded-[10px] bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">+ เพิ่ม{def.singular}</Link> : null}>
++    <Shell def={def} total={data.total} action={canEdit && !creating && !data.editing ? <Link href={link({ new: "1" })} className="inline-flex h-11 items-center rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">+ เพิ่ม{def.singular}</Link> : null}>
+       {saved !== null && <p role="status" className="rounded-[10px] border border-green-500/40 bg-carbon-800 px-3 py-2 text-sm text-green-300">บันทึกแล้ว{savedRow ? ` — ${displayValue(def.fields[0], savedRow.values[def.fields[0].key])}` : ""}</p>}
+ 
+       {canEdit && creating && <MasterForm def={def} id={null} values={defaultValues(def)} options={data.options} cancelHref={link({})} />}
+@@ -98,9 +98,9 @@
+       </form>
+ 
+       {data.rows.length === 0 ? (
+-        <p className="rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">{q || status !== "all" ? "ไม่พบรายการที่ตรงกับเงื่อนไข" : `ยังไม่มี${def.singular}${canEdit ? " — กด “เพิ่ม” เพื่อเริ่ม" : ""}`}</p>
++        <p className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">{q || status !== "all" ? "ไม่พบรายการที่ตรงกับเงื่อนไข" : `ยังไม่มี${def.singular}${canEdit ? " — กด “เพิ่ม” เพื่อเริ่ม" : ""}`}</p>
+       ) : (
+-        <div className="overflow-x-auto rounded-xl border border-carbon-700 bg-carbon-800">
++        <div className="overflow-x-auto app-panel rounded-xl border border-carbon-700 bg-carbon-800">
+           <table className="w-full min-w-[760px] text-sm">
+             <caption className="sr-only">{def.label}</caption>
+             <thead className="bg-carbon-900 text-left text-xs text-ti-400">
+--- before/src/app/(app)/admin/users/UserAdminForms.tsx
++++ after/src/app/(app)/admin/users/UserAdminForms.tsx
+@@ -8,7 +8,7 @@
+ 
+ const inputClass = "h-11 w-full rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500";
+ const buttonClass = "h-10 rounded-[10px] border border-ti-600 px-3 text-sm text-ti-200 transition-colors hover:border-ti-400 hover:text-ti-50 disabled:opacity-50";
+-const primaryClass = "h-11 rounded-[10px] bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-50";
++const primaryClass = "h-11 rounded-[10px] app-primary-action bg-ember-500 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:opacity-50";
+ 
+ export type FieldRole = { value: string; label: string };
+ 
+@@ -54,7 +54,7 @@
+   const [state, action, pending] = useActionState(createUserAction, idle);
+   const id = useId();
+   return (
+-    <form action={action} key={state.status === "done" ? "done" : "open"} className="space-y-4 rounded-xl border border-carbon-700 bg-carbon-800 p-5" aria-labelledby={`${id}-t`}>
++    <form action={action} key={state.status === "done" ? "done" : "open"} className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5" aria-labelledby={`${id}-t`}>
+       <h2 id={`${id}-t`} className="text-lg font-medium text-ti-50">เพิ่มผู้ใช้หน้างาน</h2>
+       <div className="grid gap-4 sm:grid-cols-2">
+         <Field label="ชื่อ-นามสกุล *"><input name="fullName" required maxLength={200} autoComplete="off" className={inputClass} /></Field>
+--- before/src/app/(app)/admin/users/page.tsx
++++ after/src/app/(app)/admin/users/page.tsx
+@@ -53,11 +53,11 @@
+       <section aria-labelledby="list-title" className="space-y-3">
+         <h2 id="list-title" className="text-lg font-medium text-ti-50">รายชื่อ ({users.length})</h2>
+         {users.length === 0 ? (
+-          <p className="rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">ยังไม่มีผู้ใช้หน้างาน</p>
++          <p className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-5 text-sm text-ti-400">ยังไม่มีผู้ใช้หน้างาน</p>
+         ) : (
+           <ul className="space-y-3">
+             {users.map((user) => (
+-              <li key={user.id} className="space-y-3 rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++              <li key={user.id} className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                   <span className="font-mono text-ti-200">{user.employeeCode}</span>
+                   <span className="text-ti-50">{user.fullName}</span>
+--- before/src/app/(app)/plans/new/OpenPlanForm.tsx
++++ after/src/app/(app)/plans/new/OpenPlanForm.tsx
+@@ -16,7 +16,7 @@
+ const idle: OpenPlanFormState = { status: "idle" };
+ const inputClass =
+   "h-11 w-full scroll-mb-52 rounded-[10px] border border-carbon-600 bg-carbon-900 px-3 text-sm text-ti-50 placeholder:text-ti-500 focus:border-ember-500 aria-invalid:border-red-400 disabled:opacity-60 lg:scroll-mb-0";
+-const sectionClass = "space-y-4 rounded-xl border border-carbon-700 bg-carbon-800 p-4 sm:p-5";
++const sectionClass = "space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4 sm:p-5";
+ const DEPARTMENTS = ["408", "409"];
+ const dateText = (iso: string | null) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "—");
+ const lotOf = (raw: string) => {
+@@ -308,7 +308,7 @@
+ 
+       <aside
+         aria-label="สรุปแผน"
+-        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 rounded-xl border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg lg:space-y-3 lg:p-4 shadow-black/30 backdrop-blur md:bottom-4 lg:top-6 lg:bottom-auto"
++        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 app-panel rounded-xl border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg lg:space-y-3 lg:p-4 shadow-black/30 backdrop-blur md:bottom-4 lg:top-6 lg:bottom-auto"
+       >
+         <div className="flex items-end justify-between gap-3 lg:block lg:space-y-4">
+           <div aria-live="polite">
+@@ -333,7 +333,7 @@
+           <Info term="เลขที่แผน" value="ออกอัตโนมัติเมื่อบันทึก (QP-YYMM-NNNN)" />
+           <Info term="QA (AQL)" value="R1.1 — ยังไม่ใช้ใน Pilot" />
+         </dl>
+-        <button type="submit" disabled={blocked} className="h-11 w-full rounded-[10px] bg-ember-500 lg:h-12 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:cursor-not-allowed disabled:opacity-50">
++        <button type="submit" disabled={blocked} className="h-11 w-full rounded-[10px] app-primary-action bg-ember-500 lg:h-12 px-5 text-sm font-semibold text-carbon-900 transition-colors hover:bg-ember-400 disabled:cursor-not-allowed disabled:opacity-50">
+           {pending ? "กำลังบันทึก…" : "บันทึกแผน"}
+         </button>
+         <p className="text-xs text-ti-500" aria-live="polite">
+--- before/src/app/(app)/plans/[id]/WorkOrderActions.tsx
++++ after/src/app/(app)/plans/[id]/WorkOrderActions.tsx
+@@ -8,7 +8,7 @@
+ 
+ const idle: PlanActionState = { status: "idle" };
+ const buttonClass = "inline-flex h-9 items-center rounded-[10px] border px-3 text-xs";
+-const dialogClass = "m-auto w-[min(40rem,calc(100vw-2rem))] rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70";
++const dialogClass = "m-auto w-[min(40rem,calc(100vw-2rem))] app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70";
+ 
+ /** W4: change the 2–5 people of an open work order, with the same picker as when it was opened. */
+ export function EditAssigneesButton({ planId, workOrderId, woNo, assignees, inspectors }: { planId: number; workOrderId: string; woNo: string; assignees: WorkOrderAssignee[]; inspectors: Inspector[] }) {
+@@ -45,7 +45,7 @@
+             <button type="button" onClick={() => dialogRef.current?.close()} className="h-11 rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400">
+               ไม่บันทึก
+             </button>
+-            <button type="submit" disabled={pending || picked.length < 2} className="h-11 rounded-[10px] bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
++            <button type="submit" disabled={pending || picked.length < 2} className="h-11 rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
+               {pending ? "กำลังบันทึก…" : "บันทึกผู้ตรวจ"}
+             </button>
+           </div>
+@@ -67,7 +67,7 @@
+       <button type="button" onClick={() => dialogRef.current?.showModal()} className={`${buttonClass} border-fail/60 text-fail hover:bg-fail/10`}>
+         ยกเลิก
+       </button>
+-      <dialog ref={dialogRef} aria-labelledby={`${base}-title`} className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70">
++      <dialog ref={dialogRef} aria-labelledby={`${base}-title`} className="m-auto w-[min(28rem,calc(100vw-2rem))] app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70">
+         <form action={action} className="space-y-4 p-5">
+           <h2 id={`${base}-title`} className="text-lg text-ti-50">
+             ยกเลิกใบงาน <span className="font-mono">{woNo}</span>?
+--- before/src/app/(app)/plans/[id]/PlanActions.tsx
++++ after/src/app/(app)/plans/[id]/PlanActions.tsx
+@@ -26,7 +26,7 @@
+       <dialog
+         ref={dialogRef}
+         aria-labelledby={`${base}-title`}
+-        className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70"
++        className="m-auto w-[min(28rem,calc(100vw-2rem))] app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-0 text-ti-50 backdrop:bg-black/70"
+       >
+         <form action={action} className="space-y-4 p-5">
+           <h2 id={`${base}-title`} className="text-lg text-ti-50">ยกเลิกแผน <span className="font-mono">{planNo}</span>?</h2>
+--- before/src/app/(app)/plans/[id]/page.tsx
++++ after/src/app/(app)/plans/[id]/page.tsx
+@@ -134,7 +134,7 @@
+   return (
+     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+       <div className="min-w-0 space-y-5">
+-        <section aria-labelledby="doc-title" className="space-y-3 rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section aria-labelledby="doc-title" className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+           <h2 id="doc-title" className="text-base font-medium text-ti-50">หัวเอกสารรับเข้า</h2>
+           <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
+             <Item term={isInvoice ? "Invoice" : "PO"} value={isInvoice ? doc.docNo : `${doc.department ?? ""} / ${doc.docNo}`} mono />
+@@ -162,7 +162,7 @@
+           </div>
+         </section>
+ 
+-        <section aria-labelledby="plan-title" className="space-y-3 rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section aria-labelledby="plan-title" className="space-y-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+           <h2 id="plan-title" className="text-base font-medium text-ti-50">ส่วนแผน</h2>
+           <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+             <Item term="Model" value={plan.model.code} mono />
+@@ -182,7 +182,7 @@
+       </div>
+ 
+       {/* Phone: the summary (QC count, deadline, รอของ) comes first; laptop: right column. */}
+-      <aside aria-label="สรุปแผน" className="order-first space-y-4 rounded-xl border border-carbon-600 bg-carbon-800 p-4 lg:order-none">
++      <aside aria-label="สรุปแผน" className="order-first space-y-4 app-panel rounded-xl border border-carbon-600 bg-carbon-800 p-4 lg:order-none">
+         <div>
+           <p className="text-xs text-ti-400">QC ตรวจแล้ว / ต้องตรวจ</p>
+           <p className="font-mono text-3xl text-ti-50">
+@@ -247,7 +247,7 @@
+           เปิดใบงาน <span className="whitespace-nowrap font-mono font-semibold text-pass">{justOpened.woNo}</span> แล้ว — {WORK_ORDER_TYPE_LABELS[justOpened.type]} · Need {justOpened.qtyNeed} · QC {justOpened.assignees.length} คน
+         </p>
+       )}
+-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++      <div className="flex flex-wrap items-center justify-between gap-3 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+         <dl className="grid flex-1 grid-cols-2 gap-3 text-center text-sm sm:grid-cols-4">
+           <Stat term="ยอดล็อต" value={plan.lotQty} />
+           <Stat term={`เรียกเข้าแล้ว (${callIns} ครั้ง)`} value={plan.lotCalledTotal} />
+@@ -261,7 +261,7 @@
+           (blocked ? (
+             <p className="text-sm text-ti-500">{blocked} — เปิดใบงานเพิ่มไม่ได้</p>
+           ) : (
+-            <Link href={`/plans/${plan.id}/work-orders/new`} className="inline-flex h-11 items-center rounded-[10px] bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
++            <Link href={`/plans/${plan.id}/work-orders/new`} className="inline-flex h-11 items-center rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400">
+               ＋ เปิดใบงาน ครั้งที่ {nextSeq}
+             </Link>
+           ))}
+@@ -273,7 +273,7 @@
+         </p>
+       ) : (
+         <>
+-          <div className="hidden overflow-x-auto rounded-xl border border-carbon-700 bg-carbon-800 md:block">
++          <div className="hidden overflow-x-auto app-panel rounded-xl border border-carbon-700 bg-carbon-800 md:block">
+             <table className="w-full min-w-[960px] text-sm">
+               <caption className="sr-only">ใบงานของแผน {plan.planNo}</caption>
+               <thead className="bg-carbon-900 text-left text-xs text-ti-400">
+@@ -360,7 +360,7 @@
+   return (
+     <ol className="space-y-3" aria-label="ประวัติสถานะแผน">
+       {history.map((entry, index) => (
+-        <li key={index} className="rounded-xl border border-carbon-700 bg-carbon-800 px-4 py-3 text-sm">
++        <li key={index} className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 px-4 py-3 text-sm">
+           <p className="text-ti-50">
+             {entry.from === null ? "เปิดแผน" : entry.to === "CANCELLED" ? "ยกเลิกแผน" : `${statusLabel(entry.from)} → ${statusLabel(entry.to)}`}
+           </p>
+--- before/src/app/(app)/plans/[id]/work-orders/new/WorkOrderForm.tsx
++++ after/src/app/(app)/plans/[id]/work-orders/new/WorkOrderForm.tsx
+@@ -60,7 +60,7 @@
+       <div className="min-w-0 space-y-5">
+         {state.status === "error" && <p role="alert" className="rounded-[10px] border border-red-500/50 bg-carbon-800 px-3 py-2 text-sm text-red-300">{state.message}</p>}
+ 
+-        <section className="space-y-4 rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+           <h2 className="text-base font-medium text-ti-50">การเรียกเข้าครั้งที่ {nextSeq}</h2>
+           <div className="grid gap-4 sm:grid-cols-2">
+             <label className="block space-y-1 text-sm text-ti-400">
+@@ -103,11 +103,11 @@
+           </div>
+         </section>
+ 
+-        <section className="space-y-4 rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section className="space-y-4 app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+           <AssigneePicker inspectors={inspectors} value={picked} onChange={setPicked} error={errors.assignees} unavailable={unavailable} />
+         </section>
+ 
+-        <section className="rounded-xl border border-carbon-700 bg-carbon-800 p-4">
++        <section className="app-panel rounded-xl border border-carbon-700 bg-carbon-800 p-4">
+           <label className="block space-y-1 text-sm text-ti-400">
+             <span>หมายเหตุ</span>
+             <input name="remarks" defaultValue={values.remarks} maxLength={1000} placeholder="ไม่บังคับ" aria-invalid={errors.remarks ? true : undefined} className={inputClass} />
+@@ -118,7 +118,7 @@
+ 
+       <aside
+         aria-label="สรุปใบงาน"
+-        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 rounded-xl border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg shadow-black/30 backdrop-blur md:bottom-4 lg:top-6 lg:bottom-auto lg:space-y-3 lg:p-4"
++        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 space-y-2 app-panel rounded-xl border border-carbon-600 bg-carbon-800/95 p-3 shadow-lg shadow-black/30 backdrop-blur md:bottom-4 lg:top-6 lg:bottom-auto lg:space-y-3 lg:p-4"
+       >
+         <div className="flex items-end justify-between gap-3 lg:block lg:space-y-3" aria-live="polite">
+           <div>
+@@ -144,7 +144,7 @@
+           <Link href={`/plans/${plan.id}?tab=work`} className="hidden h-11 items-center rounded-[10px] border border-ti-600 px-4 text-sm text-ti-200 hover:border-ti-400 lg:inline-flex">
+             ยกเลิก
+           </Link>
+-          <button type="submit" disabled={blocked} className="h-11 flex-1 rounded-[10px] bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
++          <button type="submit" disabled={blocked} className="h-11 flex-1 rounded-[10px] app-primary-action bg-ember-500 px-4 text-sm font-semibold text-carbon-900 hover:bg-ember-400 disabled:opacity-50">
+             {pending ? "กำลังบันทึก…" : "บันทึกใบงาน"}
+           </button>
+         </div>
+--- before/src/components/shell/TopAppBar.tsx
++++ after/src/components/shell/TopAppBar.tsx
+@@ -17,7 +17,7 @@
+   const pathname = usePathname();
+ 
+   return (
+-    <header className="sticky top-0 z-20 h-14 bg-carbon-800 border-b border-carbon-700/60 px-4 sm:px-6 flex items-center gap-3">
++    <header className="app-topbar sticky top-0 z-20 h-14 bg-carbon-800 border-b border-carbon-700/60 px-4 sm:px-6 flex items-center gap-3">
+       <Link href="/home" aria-label="QCheck หน้าหลัก" className="md:hidden">
+         <QMark className="h-6 w-auto" />
+       </Link>
+--- before/src/components/shell/AppSidebar.tsx
++++ after/src/components/shell/AppSidebar.tsx
+@@ -18,7 +18,7 @@
+   return (
+     <aside
+       aria-label="เมนูหลัก"
+-      className="app-navigation hidden md:flex flex-col w-64 shrink-0 h-dvh sticky top-0 bg-carbon-900 border-r border-carbon-700/60 z-30 select-none"
++      className="app-navigation app-sidebar hidden md:flex flex-col w-64 shrink-0 h-dvh sticky top-0 bg-carbon-900 border-r border-carbon-700/60 z-30 select-none"
+     >
+       <div className="p-5 border-b border-carbon-700/50">
+         <Link href="/home" className="inline-block rounded-md focus-visible:outline-2 focus-visible:outline-ember-500">
+@@ -41,7 +41,7 @@
+                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                         active
+                           ? "bg-carbon-800 text-ti-50 font-medium"
+-                          : "text-ti-400 hover:text-ti-100 hover:bg-carbon-800/50"
++                          : "text-ti-400 hover:text-ti-50 hover:bg-carbon-800/50"
+                       }`}
+                     >
+                       <NavIcon
+--- before/src/app/app-theme.css
++++ after/src/app/app-theme.css
+@@ -37,3 +37,44 @@
+     background-color: #36332f;
+   }
+ }
++
++/* Matte titanium details on the existing warm surfaces. Keep the sheen in the
++   background so Thai text, form controls and status colours stay crisp. */
++@layer components {
++  .app-theme-sand .app-topbar {
++    background-image: linear-gradient(180deg, rgb(244 240 233 / 0.055), transparent 80%);
++    box-shadow: inset 0 1px 0 rgb(244 240 233 / 0.08), 0 3px 12px rgb(0 0 0 / 0.06);
++  }
++
++  .app-theme-sand .app-panel {
++    background-image: linear-gradient(125deg, rgb(244 240 233 / 0.035), transparent 48%);
++    box-shadow: inset 0 1px 0 rgb(244 240 233 / 0.1), 0 6px 20px rgb(0 0 0 / 0.07);
++  }
++
++  .app-theme-sand .app-sidebar a[aria-current="page"] {
++    background-image: linear-gradient(110deg, rgb(244 240 233 / 0.05), transparent 75%);
++    box-shadow: inset 2px 0 0 var(--color-ember-500), inset 0 1px 0 rgb(244 240 233 / 0.06);
++  }
++
++  .app-theme-sand .app-primary-action {
++    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.13), transparent 75%);
++    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 2px 6px rgb(0 0 0 / 0.12);
++    transition-property: background-color, border-color, color, box-shadow;
++    transition-duration: 150ms;
++  }
++
++  .app-theme-sand .app-primary-action:focus-visible {
++    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 0 14px rgb(239 168 111 / 0.18);
++  }
++
++  .app-theme-sand .app-metal-action {
++    background-image: linear-gradient(140deg, rgb(226 216 203 / 0.09), rgb(226 216 203 / 0.015) 60%);
++    box-shadow: inset 0 1px 0 rgb(244 240 233 / 0.12);
++  }
++
++  @media (hover: hover) {
++    .app-theme-sand .app-primary-action:not(:disabled, [aria-disabled="true"]):hover {
++      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), 0 0 14px rgb(239 168 111 / 0.16);
++    }
++  }
++}
