@@ -216,6 +216,7 @@ describe("isSameOriginRequest (logout CSRF check)", () => {
 
   it("accepts the host the browser actually used — LAN IP or proxy hostname", () => {
     expect(check({ host: "192.168.1.50:3000", origin: "http://192.168.1.50:3000" })).toBe(true);
+    expect(check({ host: "192.168.0.248", origin: "http://192.168.0.248:8082" })).toBe(true);
     expect(
       check({ host: "localhost:3000", "x-forwarded-host": "qcheck.example.com", origin: "https://qcheck.example.com" }),
     ).toBe(true);

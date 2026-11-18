@@ -1,6 +1,6 @@
 import "server-only";
 import { EncryptJWT, jwtDecrypt } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { authPolicy } from "@/lib/config/auth";
 
 /**
@@ -48,9 +48,14 @@ export async function createSession(user: SessionClaims) {
     .setExpirationTime(`${maxAge}s`)
     .encrypt(sessionKey());
 
+  const reqHeaders = await headers();
+  const forwardedProto = reqHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const origin = reqHeaders.get("origin");
+  const isHttps = forwardedProto === "https" || origin?.startsWith("https://") === true;
+
   (await cookies()).set(authPolicy.sessionCookie, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && isHttps,
     sameSite: "lax",
     path: "/",
     maxAge,

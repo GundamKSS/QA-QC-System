@@ -32,9 +32,9 @@ export function parseRoleProg(value: unknown, { allowDev }: { allowDev: boolean 
   return { roles: ROLES.filter((role) => roles.has(role)), unknown };
 }
 
-/** The `dev` role is a convenience for local work only. */
+/** The `dev` role is allowed when explicitly enabled via QCHECK_ALLOW_DEV_ROLE=on. */
 export function devRoleAllowed(): boolean {
-  return process.env.NODE_ENV !== "production" && process.env.QCHECK_ALLOW_DEV_ROLE === "on";
+  return process.env.QCHECK_ALLOW_DEV_ROLE === "on";
 }
 
 /** Re-checks role codes read back from the session cookie. */

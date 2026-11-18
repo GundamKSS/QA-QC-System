@@ -12,10 +12,12 @@ export function isSameOriginRequest(headers: Headers): boolean {
 
   const origin = headers.get("origin");
   if (!origin) return true; // Non-browser clients; browsers always send Origin on a POST.
-  const host = (headers.get("x-forwarded-host") ?? headers.get("host"))?.split(",")[0]?.trim();
-  if (!host) return false;
+  const rawHost = (headers.get("x-forwarded-host") ?? headers.get("host"))?.split(",")[0]?.trim();
+  if (!rawHost) return false;
   try {
-    return new URL(origin).host === host;
+    const originUrl = new URL(origin);
+    const hostWithoutPort = rawHost.replace(/:\d+$/, "");
+    return originUrl.host === rawHost || originUrl.hostname === hostWithoutPort;
   } catch {
     return false; // "null" (sandboxed/opaque origins) or garbage
   }

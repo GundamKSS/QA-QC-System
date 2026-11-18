@@ -329,16 +329,17 @@ describe("role_prog mapping (FR-AUTH-04)", () => {
     if (result.kind === "forbidden") expect(result.unknownRoles).toEqual(["SUPERUSER"]);
   });
 
-  it("grants every role for dev only when explicitly enabled outside production", async () => {
+  it("grants every role for dev when QCHECK_ALLOW_DEV_ROLE=on (including in production)", async () => {
+    vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("QCHECK_ALLOW_DEV_ROLE", "on");
     respondWith({ role_prog: "dev" });
     const result = await authenticateWithDatacenter("dev", "pw", "PRG003");
     expect(result.kind === "success" && result.user.roles).toHaveLength(9);
   });
 
-  it("refuses dev in production", async () => {
+  it("refuses dev in production when QCHECK_ALLOW_DEV_ROLE is off", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("QCHECK_ALLOW_DEV_ROLE", "on");
+    vi.stubEnv("QCHECK_ALLOW_DEV_ROLE", "off");
     respondWith({ role_prog: "dev" });
     const result = await authenticateWithDatacenter("dev", "pw", "PRG003");
     expect(result.kind).toBe("forbidden");
