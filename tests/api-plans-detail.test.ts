@@ -50,7 +50,7 @@ describe.each(cases)("$name", ({ handler, path, service, payload, next, gate }) 
     expect(service).not.toHaveBeenCalled();
   });
 
-  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING", "PM", "MANAGEMENT", "MASTER_ADMIN"])("refuses %s, who may not open plans", async (role) => {
+  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING", "PM", "MANAGEMENT", "MASTERDATA_ADMIN"])("refuses %s, who may not open plans", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...head, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(service).not.toHaveBeenCalled();
@@ -84,8 +84,8 @@ describe.each(cases)("$name", ({ handler, path, service, payload, next, gate }) 
     expect(await response.json()).toMatchObject({ message: PLAN_NOT_FOUND });
   });
 
-  it(`tells the service whether the person may ${gate === "canEdit" ? "edit the plan (QC Head, QA Head, Admin)" : "manage work orders (QC Head, Admin only)"}`, async () => {
-    for (const [role, allowed] of gate === "canEdit" ? [["QC_HEAD", true], ["QA_HEAD", true], ["ADMIN", true]] : [["QC_HEAD", true], ["QA_HEAD", false], ["ADMIN", true]]) {
+  it(`tells the service whether the person may ${gate === "canEdit" ? "edit the plan (QC Head, Admin only)" : "manage work orders (QC Head, Admin only)"}`, async () => {
+    for (const [role, allowed] of [["QC_HEAD", true], ["QA_HEAD", false], ["ADMIN", true]]) {
       service.mockClear();
       mocks.getCurrentUser.mockResolvedValue({ ...head, roles: [role] });
       await get();

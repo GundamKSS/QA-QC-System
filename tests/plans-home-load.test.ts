@@ -70,12 +70,12 @@ describe("homeAccess", () => {
   });
 
   it("gives anyone else neither", () => {
-    for (const role of ["QC_INSPECTOR", "QA_INSPECTOR", "MASTER_ADMIN"] as const) expect(homeAccess([role])).toEqual({ seesPlans: false, seesSummary: false });
+    for (const role of ["QC_INSPECTOR", "QA_INSPECTOR", "MASTERDATA_ADMIN"] as const) expect(homeAccess([role])).toEqual({ seesPlans: false, seesSummary: false });
   });
 
   it("follows the best of several roles", () => {
     expect(homeAccess(["QC_INSPECTOR", "PM"])).toEqual({ seesPlans: false, seesSummary: true });
-    expect(homeAccess(["MASTER_ADMIN", "QC_HEAD"])).toEqual({ seesPlans: true, seesSummary: true });
+    expect(homeAccess(["MASTERDATA_ADMIN", "QC_HEAD"])).toEqual({ seesPlans: true, seesSummary: true });
   });
 });
 
@@ -127,7 +127,7 @@ describe("loadHomeDashboard — with the in-memory store", () => {
     const planSummary = vi.spyOn(store, "planSummary");
     const listPlans = vi.spyOn(store, "listPlans");
     mocks.getPlanStore.mockReturnValue(store);
-    for (const role of ["QC_INSPECTOR", "QA_INSPECTOR", "MASTER_ADMIN"] as const) expect(await loadHomeDashboard(user([role]), {})).toEqual({ kind: "forbidden" });
+    for (const role of ["QC_INSPECTOR", "QA_INSPECTOR", "MASTERDATA_ADMIN"] as const) expect(await loadHomeDashboard(user([role]), {})).toEqual({ kind: "forbidden" });
     expect(planSummary).not.toHaveBeenCalled();
     expect(listPlans).not.toHaveBeenCalled();
   });

@@ -20,7 +20,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     const actorId = await actorIdOf(actor);
     if (!actorId) return apiError(403, NO_ACCOUNT, { at });
-    const isHead = actor.roles.includes("QC_HEAD") || actor.roles.includes("QA_HEAD");
+    const isHead = actor.roles.includes("QC_HEAD");
     const result = await cancelPlan(getPlanStore(), { planId, reason, isHead }, { actorId });
     if (result.kind === "blocked") return apiError(CANCEL_STATUS[result.block], CANCEL_MESSAGES[result.block], { at });
     if (result.kind !== "cancelled") return apiError(CANCEL_STATUS[result.kind], CANCEL_MESSAGES[result.kind], { at });

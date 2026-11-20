@@ -9,8 +9,13 @@ import { useEffect } from "react";
  */
 export function BfcacheGuard() {
   useEffect(() => {
+    // In dev mode or certain browser environments, aggressive reloads can trigger infinite loops.
+    // Disabling auto-reload on pageshow to keep navigation and development stable.
     const onPageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) window.location.reload();
+      if (event.persisted) {
+        // Log rather than force hard reload to avoid reload loops
+        console.debug("[BfcacheGuard] pageshow persisted");
+      }
     };
     window.addEventListener("pageshow", onPageShow);
     return () => window.removeEventListener("pageshow", onPageShow);

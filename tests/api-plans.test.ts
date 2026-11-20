@@ -77,13 +77,13 @@ describe.each(everyRoute)("%s — access rules shared by every plan route", (_na
     for (const service of planCalls()) expect(service).not.toHaveBeenCalled();
   });
 
-  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PM", "MASTER_ADMIN"])("refuses %s: only QC Head, QA Head and Admin work with plans", async (role) => {
+  it.each(["QA_HEAD", "QC_INSPECTOR", "QA_INSPECTOR", "PM", "MASTERDATA_ADMIN"])("refuses %s: only QC Head and Admin work with plans", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     expect((await call(handler, {}, { method })).status).toBe(403);
     for (const service of planCalls()) expect(service).not.toHaveBeenCalled();
   });
 
-  it.each(["QC_HEAD", "QA_HEAD", "ADMIN"])("lets %s through to the plan service", async (role) => {
+  it.each(["QC_HEAD", "ADMIN"])("lets %s through to the plan service", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     mocks.openPlan.mockResolvedValue({ kind: "opened", planId: 1, planNo: "QP", headerReused: false, qcRequired: 1 });
     mocks.lookupReceiptDoc.mockResolvedValue({ kind: "incomplete" });
@@ -245,11 +245,11 @@ describe("POST /api/plans/[id]/cancel", () => {
     for (const path of ["/plans", "/plans/12", "/home"]) expect(mocks.revalidatePath).toHaveBeenCalledWith(path);
   });
 
-  it("tells the service whether the person is a QC/QA Head (an Admin is not)", async () => {
+  it("tells the service whether the person is a QC Head (an Admin is not)", async () => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: ["ADMIN"] });
     await call(cancel, { reason: "x" });
     expect(mocks.cancelPlan).toHaveBeenCalledWith("store", expect.objectContaining({ isHead: false }), expect.anything());
-    mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: ["QA_HEAD"] });
+    mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: ["QC_HEAD"] });
     await call(cancel, { reason: "x" });
     expect(mocks.cancelPlan).toHaveBeenLastCalledWith("store", expect.objectContaining({ isHead: true }), expect.anything());
   });

@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { triggerHaptic } from "@/lib/inspections/haptics";
 import {
   DISPOSITION_LABELS,
+  formatMeasurementSummaryBadge,
   isItemDone,
   SEVERITY_LABELS,
   UNIT_ACTION_LABELS,
@@ -166,6 +167,7 @@ export function InspectionSummaryModal({
                 const isItemNA = ans?.status === "NA";
                 const isCompleted = isItemDone(it, ans);
                 const isDoneNonFail = isCompleted && !isItemFail && !isItemNA;
+                const measuredBadge = formatMeasurementSummaryBadge(it, ans?.value);
                 return (
                   <li
                     key={it.id}
@@ -186,9 +188,16 @@ export function InspectionSummaryModal({
                       >
                         {isItemPass || isDoneNonFail ? "✓" : isItemNA ? "⊘" : isItemFail ? "✕" : "•"}
                       </span>
-                      <span className="font-medium text-ti-100 truncate">
-                        {it.seq}. {it.title}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-ti-100 block truncate">
+                          {it.seq}. {it.title}
+                        </span>
+                        {measuredBadge && (
+                          <span className="font-mono text-[11px] text-ember-300 block">
+                            ค่าที่วัดได้: {measuredBadge}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span
                       className={`shrink-0 font-mono text-[10px] font-semibold px-2 py-0.5 rounded ${
@@ -277,7 +286,7 @@ export function InspectionSummaryModal({
           <div className="border-t border-carbon-700 pt-3">
             {isQa ? (
               <p className="rounded-control border border-fail/60 bg-fail/10 p-2.5 text-xs text-fail font-medium">
-                สำหรับฝ่าย QA — หากพบข้อบกพร่องให้กดคัดออกเพื่อส่งกลับ QC
+                สำหรับฝ่าย QA — สามารถเลือกส่งกลับให้ QC แก้ไขเฉพาะข้อที่ไม่ผ่าน (Rework) หรือคัดออก (Reject)
               </p>
             ) : (
               <div className="space-y-2">
@@ -337,20 +346,36 @@ export function InspectionSummaryModal({
 
           {isNotPassed ? (
             isQa ? (
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic("complete");
-                  setSubmittingAction("REJECT");
-                  onSubmit("REJECT");
-                }}
-                disabled={isSubmitting}
-                className="h-11 rounded-control bg-fail hover:bg-fail/90 px-5 text-sm font-bold text-white disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
-              >
-                {isSubmitting && submittingAction === "REJECT"
-                  ? "กำลังบันทึก…"
-                  : `${UNIT_ACTION_LABELS.REJECT} (Reject)`}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("complete");
+                    setSubmittingAction("REJECT");
+                    onSubmit("REJECT");
+                  }}
+                  disabled={isSubmitting}
+                  className="h-11 rounded-control border border-fail/60 bg-fail/10 hover:bg-fail/20 px-4 text-xs font-bold text-fail disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {isSubmitting && submittingAction === "REJECT"
+                    ? "กำลังบันทึก…"
+                    : `${UNIT_ACTION_LABELS.REJECT} (Reject)`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("complete");
+                    setSubmittingAction("REWORK");
+                    onSubmit("REWORK");
+                  }}
+                  disabled={isSubmitting}
+                  className="h-11 rounded-control app-primary-action bg-ember-500 hover:bg-ember-400 px-5 text-sm font-bold text-carbon-900 disabled:opacity-50 transition-all shadow-sm cursor-pointer"
+                >
+                  {isSubmitting && submittingAction === "REWORK"
+                    ? "กำลังบันทึก…"
+                    : "ส่งกลับให้ QC แก้ไข (Rework)"}
+                </button>
+              </>
             ) : (
               <>
                 <button

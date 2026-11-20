@@ -2,11 +2,13 @@ import "server-only";
 import { EncryptJWT, jwtDecrypt } from "jose";
 import { cookies, headers } from "next/headers";
 import { authPolicy } from "@/lib/config/auth";
+import { knownProgramRole } from "./roles";
+import type { ProgramRole } from "./types";
 
 /**
- * What the cookie carries. Datacenter users have no local record yet, so their name and roles
- * (synced from `role_prog` at login) ride in the encrypted cookie. The central `access_token`
- * is never stored here or sent to the browser (docs/04 §3.1 ข้อ 1).
+ * What the cookie carries. Datacenter users store their profile, ProgramPermission level (`programRole`),
+ * and fallback roles in the encrypted cookie. The central `access_token` is never stored here or sent
+ * to the browser (docs/04 §3.1 ข้อ 1).
  */
 export type SessionClaims = {
   id: string;
@@ -14,6 +16,9 @@ export type SessionClaims = {
   fullName?: string;
   email?: string;
   roles?: string[];
+  programRole?: ProgramRole;
+  /** True only when a signed-in DEV account impersonated another user; allows switching back safely. */
+  impersonatedByDev?: boolean;
   mustChangePassword?: boolean;
   /** LOCAL = field user (DEC-12): the DAL re-reads their record on every request. */
   source?: "LOCAL";
@@ -38,6 +43,8 @@ export async function createSession(user: SessionClaims) {
     name: user.fullName,
     email: user.email,
     roles: user.roles,
+    pr: user.programRole,
+    ...(user.impersonatedByDev ? { imp: 1 } : {}),
     mcp: user.mustChangePassword ? 1 : 0,
     src: user.source,
   })
@@ -75,6 +82,8 @@ export async function readSession(): Promise<SessionClaims | null> {
       fullName: typeof payload.name === "string" ? payload.name : undefined,
       email: typeof payload.email === "string" ? payload.email : undefined,
       roles: Array.isArray(payload.roles) ? (payload.roles as string[]) : undefined,
+      programRole: knownProgramRole(payload.pr),
+      ...(payload.imp === 1 ? { impersonatedByDev: true } : {}),
       mustChangePassword: payload.mcp === 1,
       source: payload.src === "LOCAL" ? "LOCAL" : undefined,
     };

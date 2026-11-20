@@ -1,17 +1,17 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/dal";
-import { devRoleAllowed } from "@/lib/auth/roles";
+import { canAccessPage } from "@/lib/auth/page-access";
 import { SettingsView } from "@/components/settings/SettingsView";
 
 export const metadata = { title: "การตั้งค่า และอุปกรณ์" };
 
 export default async function SettingsPage() {
   const user = await requireUser("/settings");
-  const isAdmin = user.roles.includes("ADMIN");
-  const isDevMode = devRoleAllowed();
+  const isDevMode = user.programRole === "DEV" || user.impersonatedByDev === true;
+  const canOpenSettings = canAccessPage(user.roles, "settings", user.programRole);
 
-  if (!isAdmin && !isDevMode) {
+  if (!canOpenSettings && !isDevMode) {
     notFound();
   }
 

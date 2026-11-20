@@ -37,7 +37,7 @@ export const mockUsers: MockUserSeed[] = [
     fullName: "วิภาวรรณ ศรีสุข",
     department: "QA",
     affiliation: "TRW",
-    roles: ["QA_HEAD", "QA_INSPECTOR", "MASTER_ADMIN"],
+    roles: ["QA_HEAD", "QA_INSPECTOR", "MASTERDATA_ADMIN"],
     password: MOCK_PASSWORD,
     mustChangePassword: false,
     isActive: true,

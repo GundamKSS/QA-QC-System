@@ -180,17 +180,48 @@ export function PlanDetailView({ planId, tab, opened, canEdit, canManageWork, is
           </div>
         )}
 
-        {plan.status === "QA_PENDING" && (
+        {(plan.status === "QA_PENDING" || plan.status === "QA_IN_PROGRESS") && (
           <div
             role="status"
-            className="rounded-panel border border-cyan-500/50 bg-cyan-500/10 p-4 text-sm text-cyan-200 flex items-center gap-3"
+            className={`rounded-panel border p-4 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+              plan.status === "QA_PENDING"
+                ? "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+                : "border-sky-600/40 bg-sky-500/10 text-ti-100"
+            }`}
           >
-            <svg className="w-5 h-5 text-cyan-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <span className="font-medium text-cyan-300">ส่งต่อให้ฝ่าย QA เรียบร้อยแล้ว</span> — แผนตรวจนี้อยู่ในคิวงานของฝ่าย QA เพื่อรอสุ่มตรวจตามเกณฑ์ AQL
+            <div className="flex items-center gap-3">
+              <svg
+                className={`w-5 h-5 shrink-0 ${plan.status === "QA_PENDING" ? "text-amber-600 dark:text-amber-400" : "text-sky-700 dark:text-sky-400"}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <span className={`font-semibold ${plan.status === "QA_PENDING" ? "text-amber-800 dark:text-amber-300" : "text-sky-800 dark:text-sky-300"}`}>
+                  {plan.status === "QA_IN_PROGRESS"
+                    ? "ทาง QA รับงานแล้ว — กำลังดำเนินการสุ่มตรวจ"
+                    : "กำลังรอทาง QA รับงาน"}
+                </span>{" "}
+                —{" "}
+                <span className="text-ti-200">
+                  {plan.status === "QA_IN_PROGRESS"
+                    ? "หัวหน้า QA กดรับงานและมอบหมายผู้ตรวจ QA ตามเกณฑ์ AQL แล้ว"
+                    : "ส่งผลตรวจ QC แล้ว รอหัวหน้าฝ่าย QA กดรับงานและมอบหมายผู้ตรวจ"}
+                </span>
+              </div>
             </div>
+            <Link
+              href={`/qa-queue?plan=${plan.id}`}
+              className={`self-start sm:self-center shrink-0 inline-flex items-center gap-1.5 rounded-control px-3.5 py-1.5 text-xs font-semibold text-white transition shadow-sm ${
+                plan.status === "QA_PENDING"
+                  ? "bg-amber-600 hover:bg-amber-500"
+                  : "bg-sky-700 hover:bg-sky-600"
+              }`}
+            >
+              <span>ไปหน้าคิวงาน QA →</span>
+            </Link>
           </div>
         )}
 

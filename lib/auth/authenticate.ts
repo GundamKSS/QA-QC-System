@@ -1,5 +1,7 @@
 import "server-only";
 import { authPolicy } from "@/lib/config/auth";
+import { dbConfigured } from "@/lib/db/config";
+import { getPool } from "@/lib/db/pool";
 import { createAttemptTracker, type AttemptTracker } from "./attempts";
 import { authenticateWithDatacenter } from "./datacenter-adapter";
 import { authenticateLocal } from "./local-auth";
@@ -7,6 +9,8 @@ import { getDummyPinHash, getLocalStore, getPinGuard, pinPepper } from "./local-
 import { isLocalCode } from "./local-users";
 import { normalizeEmployeeCode } from "./employee-code";
 import { authenticate as mockAuthenticate, mockAuthEnabled, type AuthResult } from "./mock-adapter";
+import { devRoleAllowed, knownProgramRole, knownRoles, resolveEffectiveRoles } from "./roles";
+import type { SessionUser } from "./types";
 
 const globalStore = globalThis as typeof globalThis & { __qcheckAttemptTracker?: AttemptTracker };
 
@@ -84,6 +88,49 @@ export async function authenticate(employeeCodeInput: string, password: string, 
     // The central system failed: not a wrong password, so don't count it toward the lockout.
     //    `finally` releases the slot without recording a failure.
     if (dcResult.kind === "error") {
+      // Offline fallback in local development for test demo accounts
+      if (devRoleAllowed() && rawUsername.toUpperCase().startsWith("DEMO_") && password === "123456" && dbConfigured()) {
+        try {
+          const pool = await getPool();
+          const res = await pool
+            .request()
+            .input("code", rawUsername.toUpperCase())
+            .query<{
+              id: string;
+              employee_code: string;
+              full_name: string;
+              email: string | null;
+              program_role: string | null;
+              role: string | null;
+            }>(
+              `SELECT CAST(u.id AS VARCHAR(20)) AS id, u.employee_code, u.full_name, u.email, u.program_role, r.role
+               FROM dbo.users u
+               LEFT JOIN dbo.user_roles r ON r.user_id = u.id
+               WHERE UPPER(u.employee_code) = @code AND u.is_active = 1`
+            );
+          if (res.recordset.length > 0) {
+            const first = res.recordset[0];
+            const programRole = knownProgramRole(first.program_role) ?? "USER";
+            const appRoles = knownRoles(res.recordset.map((r) => r.role).filter((r): r is string => Boolean(r)));
+            const roles = resolveEffectiveRoles(programRole, appRoles);
+            if (programRole === "DEV" || programRole === "ADMIN" || roles.length > 0) {
+              const demoUser: SessionUser = {
+                id: first.id,
+                employeeCode: first.employee_code,
+                fullName: first.full_name,
+                roles,
+                programRole,
+                mustChangePassword: false,
+                email: first.email || undefined,
+              };
+              ticket.settle(true);
+              return { kind: "success", user: demoUser };
+            }
+          }
+        } catch {
+          // fallback through to unavailable
+        }
+      }
       return { kind: "unavailable", message: dcResult.message, account };
     }
 

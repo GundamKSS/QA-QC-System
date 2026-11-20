@@ -363,8 +363,8 @@ export function createSqlInspectionStore(): InspectionStore {
         }
       }
 
-      // Quota and assignee assignment check: only applies to primary QC inspection call-in pool
-      if (input.role === "QC") {
+      // Quota and assignee assignment check: applies to both QC and QA work orders
+      if (input.role === "QC" || input.role === "QA") {
         if (quota.remaining <= 0) {
           return {
             kind: "quota_full",
@@ -383,6 +383,13 @@ export function createSqlInspectionStore(): InspectionStore {
               LEFT JOIN dbo.users u ON u.id = a.user_id
              WHERE a.work_order_id = @workOrderId
           `);
+
+        if (input.role === "QA" && allAssigneesRes.recordset.length === 0) {
+          return {
+            kind: "not_found",
+            message: "ใบงานสุ่มตรวจ QA นี้ยังไม่ได้จ่ายงานให้ผู้ตรวจ QA — กรุณาให้หัวหน้า QA จ่ายงานก่อนเริ่มตรวจ",
+          };
+        }
 
         if (allAssigneesRes.recordset.length > 0) {
           const isAssigned = allAssigneesRes.recordset.some(
@@ -788,24 +795,55 @@ export function createSqlInspectionStore(): InspectionStore {
           }
         }
 
-        // 4. Update work_orders.qty_done (for QC) or plan status (for QA)
+        // 4. Update work_orders.qty_done (for QC) or QA work_order + plan status (for QA)
         let woRow: { qty_done: number; qty_need: number };
         if (input.role === "QA") {
-          await new sql.Request(transaction)
-            .input("planId", sql.BigInt, input.planId)
-            .query(`
-              UPDATE dbo.plans
-                 SET status = CASE WHEN status = 'QA_PENDING' THEN 'QA_IN_PROGRESS' ELSE status END,
-                     updated_at = SYSUTCDATETIME()
-               WHERE id = @planId
-            `);
-
-          const woRes = await new sql.Request(transaction)
+          const updateQaWoRes = await new sql.Request(transaction)
             .input("workOrderId", sql.UniqueIdentifier, input.workOrderId)
             .query<{ qty_done: number; qty_need: number }>(`
-              SELECT qty_done, qty_need FROM dbo.work_orders WHERE id = @workOrderId
+              UPDATE dbo.work_orders
+                 SET qty_done = qty_done + 1, updated_at = SYSUTCDATETIME()
+              OUTPUT INSERTED.qty_done, INSERTED.qty_need
+               WHERE id = @workOrderId AND type = 'QA'
             `);
-          woRow = woRes.recordset[0] ?? { qty_done: 0, qty_need: 0 };
+
+          if (updateQaWoRes.recordset.length > 0) {
+            woRow = updateQaWoRes.recordset[0];
+          } else {
+            const woRes = await new sql.Request(transaction)
+              .input("workOrderId", sql.UniqueIdentifier, input.workOrderId)
+              .query<{ qty_done: number; qty_need: number }>(`
+                SELECT qty_done, qty_need FROM dbo.work_orders WHERE id = @workOrderId
+              `);
+            woRow = woRes.recordset[0] ?? { qty_done: 1, qty_need: 1 };
+          }
+
+          await new sql.Request(transaction)
+            .input("planId", sql.BigInt, input.planId)
+            .input("workOrderId", sql.UniqueIdentifier, input.workOrderId)
+            .input("inspectorId", sql.BigInt, Number(input.inspectorId))
+            .query(`
+              DECLARE @prev_status VARCHAR(16), @qa_req INT, @qa_done INT;
+              SELECT @prev_status = p.status,
+                     @qa_req = COALESCE(p.qa_required, (SELECT TOP 1 qty_need FROM dbo.work_orders WHERE id = @workOrderId), 1),
+                     @qa_done = (SELECT COUNT(*) FROM dbo.unit_inspections WHERE plan_id = @planId AND role = 'QA' AND status = 'COMPLETED')
+                FROM dbo.plans p
+               WHERE p.id = @planId;
+
+              IF @prev_status = 'QA_PENDING'
+              BEGIN
+                  UPDATE dbo.plans
+                     SET status = 'QA_IN_PROGRESS',
+                         qa_accepted_at = COALESCE(qa_accepted_at, SYSUTCDATETIME()),
+                         qa_accepted_by = COALESCE(qa_accepted_by, @inspectorId),
+                         updated_at = SYSUTCDATETIME(),
+                         updated_by = @inspectorId
+                   WHERE id = @planId;
+
+                  INSERT INTO dbo.plan_status_history (plan_id, from_status, to_status, by_user_id, reason)
+                  VALUES (@planId, 'QA_PENDING', 'QA_IN_PROGRESS', @inspectorId, N'QA เริ่มสุ่มตรวจเครื่องแรก');
+              END
+            `);
         } else {
           const updateWoRes = await new sql.Request(transaction)
             .input("workOrderId", sql.UniqueIdentifier, input.workOrderId)

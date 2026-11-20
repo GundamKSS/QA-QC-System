@@ -2,15 +2,20 @@ import type { Metadata } from "next";
 import { WorkspaceDrawing } from "@/components/dom/WorkspaceDrawing";
 import { HomeDashboard } from "@/components/home/HomeDashboard";
 import { InspectorHomeDashboard } from "@/components/home/InspectorHomeDashboard";
+import { MasterAdminHomeDashboard } from "@/components/home/MasterAdminHomeDashboard";
 import { ShellLink } from "@/components/shell/ShellLink";
 import { canOpenPlan, canSeeMaster, primaryRole } from "@/components/shell/nav";
 import { Suspense } from "react";
 import { JobsIcon, PlusIcon } from "@/components/dom/Icons";
 import { authPolicy } from "@/lib/config/auth";
-import { roleLabels } from "@/lib/config/experience";
+import { roleLabels, programRoleLabels } from "@/lib/config/experience";
 import { requirePageAccess } from "@/lib/auth/dal";
+import { canAccessPage } from "@/lib/auth/page-access";
+import { MASTERS } from "@/lib/master/registry";
 import { homeAccess } from "@/lib/plans/home";
 import { parseHomeQuery } from "@/lib/plans/home-query";
+
+const MASTER_CARDS = MASTERS.map(({ slug, label, description }) => ({ slug, label, description }));
 
 export const metadata: Metadata = {
   title: "ภาพรวมระบบการตรวจรับคุณภาพ",
@@ -34,7 +39,14 @@ async function HomeContent({ searchParams }: { searchParams: HomeSearch }) {
   const user = await requirePageAccess("home", authPolicy.homePath);
   const query = parseHomeQuery(await searchParams);
   const role = primaryRole(user.roles);
-  const roleDisplay = role ? roleLabels[role] : "ผู้ใช้งาน";
+  const roleDisplay =
+    user.programRole === "DEV"
+      ? programRoleLabels.DEV
+      : role
+        ? roleLabels[role]
+        : user.programRole
+          ? (programRoleLabels[user.programRole] ?? user.programRole)
+          : "ผู้ใช้งาน";
   // Plan rows link to plan pages, so only plan viewers get them; the dashboard roles see the totals.
   const { seesPlans, seesSummary } = homeAccess(user.roles);
   const isInspector = user.roles.includes("QC_INSPECTOR") || user.roles.includes("QA_INSPECTOR");
@@ -85,11 +97,11 @@ async function HomeContent({ searchParams }: { searchParams: HomeSearch }) {
           )}
           {isInspector && !canOpenPlan(user.roles) && (
           <ShellLink
-            href="/jobs"
+            href={user.roles.includes("QA_INSPECTOR") && !user.roles.includes("QC_INSPECTOR") ? "/qa-queue" : "/jobs"}
             className="flex items-center gap-2 px-4 py-2.5 rounded-control app-primary-action bg-ember-500 hover:bg-ember-400 active:bg-ember-600 text-carbon-950 font-medium text-sm transition-all duration-150"
           >
             <JobsIcon className="size-4" />
-            <span>งานของฉัน</span>
+            <span>{user.roles.includes("QA_INSPECTOR") && !user.roles.includes("QC_INSPECTOR") ? "คิวสุ่มตรวจ QA" : "งานของฉัน"}</span>
           </ShellLink>
           )}
         </div>
@@ -99,8 +111,28 @@ async function HomeContent({ searchParams }: { searchParams: HomeSearch }) {
         <HomeDashboard query={query} seesPlans={seesPlans} />
       ) : isInspector ? (
         <InspectorHomeDashboard />
+      ) : canSeeMaster(user.roles) ? (
+        <MasterAdminHomeDashboard
+          canEdit={canAccessPage(user.roles, "master-edit")}
+          masters={MASTER_CARDS}
+        />
       ) : (
-        <p className="app-panel rounded-panel border border-carbon-700/80 bg-carbon-800 p-5 text-sm text-ti-400">ใบงานที่ได้รับมอบหมายจะแสดงที่นี่เมื่อเปิดใช้งานโมดูลใบงาน</p>
+        <div className="app-panel rounded-panel border border-carbon-700/80 bg-carbon-800 p-5 space-y-3 text-sm text-ti-400">
+          <p>
+            ยินดีต้อนรับเข้าสู่ระบบ QCheck
+            {user.programRole === "ADMIN" && user.roles.length === 0
+              ? " — บัญชีของคุณมีสิทธิ์ Admin จากระบบกลาง สามารถจัดการผู้ใช้และกำหนดสิทธิ์ย่อยได้ทันที"
+              : " — กรุณาเลือกเมนูที่ต้องการจากแถบนำทาง"}
+          </p>
+          {canAccessPage(user.roles, "users", user.programRole) && (
+            <ShellLink
+              href="/admin/users"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-control bg-ember-500 hover:bg-ember-400 text-carbon-950 font-medium text-sm transition-colors"
+            >
+              ไปที่หน้าจัดการผู้ใช้และสิทธิ์ →
+            </ShellLink>
+          )}
+        </div>
       )}
     </div>
   );

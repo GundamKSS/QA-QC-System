@@ -11,6 +11,7 @@ import type { InspectionReportData, ReportDefectItem, ReportPhoto, ReportUnitIte
 
 type Props = {
   planId: number;
+  canViewPlan?: boolean;
 };
 
 type EvidenceModalState = {
@@ -33,7 +34,7 @@ function formatTopicHeader(itemSeq?: number | null, topicCode?: string | null, i
   return itemTitle ? `${prefix}: ${itemTitle}` : prefix;
 }
 
-export function InspectionReportView({ planId }: Props) {
+export function InspectionReportView({ planId, canViewPlan = true }: Props) {
   const { data, error, reload } = useApiRead<InspectionReportData>(`/api/plans/${planId}/report`);
   const [evidenceModal, setEvidenceModal] = useState<EvidenceModalState | null>(null);
   const [mediaFilter, setMediaFilter] = useState<"ALL" | "PHOTO" | "VIDEO">("ALL");
@@ -96,18 +97,22 @@ export function InspectionReportView({ planId }: Props) {
   });
 
   return (
-    <div className="font-sarabun min-w-0 w-full space-y-6 p-4 pb-12 sm:p-6 print:space-y-4 print:p-0">
+    <div className="report-official-document font-sarabun min-w-0 w-full space-y-6 p-4 pb-12 sm:p-6 print:space-y-4 print:p-0">
       {/* Screen Action Bar (Hidden when printing) */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-carbon-700/60 pb-4 print:hidden">
         <div className="flex flex-wrap items-center gap-2">
           <AppBack href="/reports">กลับไปรายการรายงาน</AppBack>
-          <span className="text-ti-500">|</span>
-          <Link
-            href={`/plans/${plan.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-carbon-700 bg-carbon-800/80 px-3 py-1.5 text-xs font-medium text-ti-300 transition-colors hover:border-carbon-600 hover:text-ti-100"
-          >
-            ดูรายละเอียดแผน →
-          </Link>
+          {canViewPlan && (
+            <>
+              <span className="text-ti-500">|</span>
+              <Link
+                href={`/plans/${plan.id}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-carbon-700 bg-carbon-800/80 px-3 py-1.5 text-xs font-medium text-ti-300 transition-colors hover:border-carbon-600 hover:text-ti-100"
+              >
+                ดูรายละเอียดแผน →
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -790,7 +795,7 @@ export function InspectionReportView({ planId }: Props) {
 
           return (
             <div className={`${printPreview ? "block" : "hidden"} print:block overflow-x-auto`}>
-              <div className="mx-auto min-w-[720px] max-w-[210mm] rounded-lg border border-slate-300 bg-white p-6 sm:p-8 text-slate-900 shadow-2xl print:min-w-0 print:max-w-none print:rounded-none print:border-none print:p-0 print:shadow-none">
+              <div className="report-official-document mx-auto min-w-[720px] max-w-[210mm] rounded-lg border border-slate-300 bg-white p-6 sm:p-8 text-slate-900 shadow-2xl print:min-w-0 print:max-w-none print:rounded-none print:border-none print:p-0 print:shadow-none">
                 {/* Official Letterhead & ISO Document Control Box */}
                 <header className="border-b-2 border-slate-900 pb-4">
                   <div className="flex items-start justify-between gap-6">
@@ -1302,7 +1307,7 @@ export function InspectionReportView({ planId }: Props) {
                 role="dialog"
                 aria-modal="true"
                 aria-label={evidenceModal.title}
-                className="app-theme-sand font-sarabun fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3 sm:p-6 backdrop-blur-sm print:hidden"
+                className="report-official-document app-theme-sand font-sarabun fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3 sm:p-6 backdrop-blur-sm print:hidden"
                 onClick={() => setEvidenceModal(null)}
               >
                 <div

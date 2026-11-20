@@ -193,6 +193,185 @@ export function evalUnitResult(
   };
 }
 
+export type StepMeasurementField = {
+  key: string;
+  label: string;
+  unit: string;
+  required: boolean;
+  placeholder: string;
+  presets?: readonly string[];
+};
+
+export type StepMeasurementConfig = {
+  kind: "BELT_TENSION" | "ELECTRICAL_OL" | "MAX_CURRENT" | "PRESSURE_START_STOP";
+  fields: readonly StepMeasurementField[];
+};
+
+/**
+ * Resolves numeric measurement fields embedded inside a PASS_FAIL checklist step
+ * (matching New Piston Checklist V.1 columns: ค่าความตึงสายพาน, ค่าOLที่ตั้งค่า, กระแสมอเตอร์สูงสุด, แรงดัน Stop / Start).
+ */
+export function getStepMeasurementConfig(item: InspectionItem): StepMeasurementConfig | null {
+  if (item.inputType !== "PASS_FAIL") return null;
+  const title = item.title;
+
+  // Step 16: ตรวจการตัด-ต่อแรงดัน (แรงดัน Stop / แรงดัน Start)
+  if (title.includes("ตัด-ต่อแรงดัน") || title.includes("ตัดต่อแรงดัน")) {
+    return {
+      kind: "PRESSURE_START_STOP",
+      fields: [
+        {
+          key: "stop",
+          label: "แรงดันตัด (Stop)",
+          unit: "bar",
+          required: false,
+          placeholder: "เช่น 8.0 หรือ 10.0",
+          presets: ["7", "8", "10", "12", "14.5"],
+        },
+        {
+          key: "start",
+          label: "แรงดันต่อ (Start)",
+          unit: "bar",
+          required: false,
+          placeholder: "เช่น 6.0 หรือ 8.0",
+          presets: ["4", "5", "6", "7", "8"],
+        },
+      ],
+    };
+  }
+
+  // Step 15: ตรวจกระแสและโหลดระหว่างอัดลม (กระแสมอเตอร์สูงสุด)
+  if (title.includes("กระแสและโหลด")) {
+    return {
+      kind: "MAX_CURRENT",
+      fields: [
+        {
+          key: "amp",
+          label: "กระแสมอเตอร์สูงสุด",
+          unit: "A",
+          required: false,
+          placeholder: "เช่น 4.5, 8.7, 14.2",
+        },
+      ],
+    };
+  }
+
+  // Step 13: ตรวจระบบไฟฟ้าและวงจรควบคุม (ค่า OL ที่ตั้งค่า)
+  if (title.includes("ระบบไฟฟ้าและวงจรควบคุม")) {
+    return {
+      kind: "ELECTRICAL_OL",
+      fields: [
+        {
+          key: "ol",
+          label: "ค่า OL ที่ตั้งค่า (ถ้ามีแมกเนติกส์)",
+          unit: "A",
+          required: false,
+          placeholder: "เว้นว่างถ้าไม่มีแมกเนติกส์",
+          presets: ["3.8", "6.8", "11", "15", "16", "20", "28"],
+        },
+      ],
+    };
+  }
+
+  // Step 10: ความถูกต้องสมบูรณ์ของระบบส่งกำลัง (ค่าความตึงสายพาน)
+  if (title.includes("ความถูกต้องสมบูรณ์ของระบบส่งกำลัง") || title === "ระบบส่งกำลัง") {
+    return {
+      kind: "BELT_TENSION",
+      fields: [
+        {
+          key: "belt",
+          label: "ค่าความตึงสายพาน (ถ้าวัดค่า)",
+          unit: "mm",
+          required: false,
+          placeholder: "ไม่บังคับ (เช่น 14.5)",
+        },
+      ],
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Parses `answer.value` into a key-value map for step measurement fields.
+ * Supports both single-field plain string and multi-field `stop=10 | start=8` format.
+ */
+export function parseStepMeasurements(
+  config: StepMeasurementConfig | null,
+  rawValue?: string | null,
+): Record<string, string> {
+  if (!config || !rawValue) return {};
+  const trimmed = rawValue.trim();
+  if (!trimmed) return {};
+
+  if (config.fields.length === 1 && !trimmed.includes("=")) {
+    return { [config.fields[0].key]: trimmed };
+  }
+
+  const out: Record<string, string> = {};
+  for (const part of trimmed.split("|")) {
+    const eqIdx = part.indexOf("=");
+    if (eqIdx > 0) {
+      const k = part.slice(0, eqIdx).trim();
+      const v = part.slice(eqIdx + 1).trim();
+      if (v) out[k] = v;
+    }
+  }
+  return out;
+}
+
+/**
+ * Formats a key-value map of step measurements back into `answer.value` string.
+ */
+export function formatStepMeasurements(
+  config: StepMeasurementConfig,
+  values: Record<string, string>,
+): string | null {
+  if (config.fields.length === 1) {
+    const v = (values[config.fields[0].key] ?? "").trim();
+    return v || null;
+  }
+  const parts: string[] = [];
+  for (const f of config.fields) {
+    const v = (values[f.key] ?? "").trim();
+    if (v) parts.push(`${f.key}=${v}`);
+  }
+  return parts.length > 0 ? parts.join(" | ") : null;
+}
+
+/**
+ * Formats a human-readable badge of recorded measurements for display in Summary / Reports.
+ */
+export function formatMeasurementSummaryBadge(
+  item: InspectionItem,
+  rawValue?: string | null,
+): string | null {
+  const config = getStepMeasurementConfig(item);
+  if (!config) {
+    if (rawValue && rawValue.trim()) {
+      return `${rawValue.trim()}${item.inputType === "NUMBER" ? " bar" : ""}`;
+    }
+    return null;
+  }
+  const parsed = parseStepMeasurements(config, rawValue);
+  const parts: string[] = [];
+  for (const f of config.fields) {
+    const v = parsed[f.key];
+    if (v) {
+      if (config.kind === "PRESSURE_START_STOP") {
+        parts.push(`${f.key === "stop" ? "Stop" : "Start"} ${v} ${f.unit}`);
+      } else if (config.kind === "MAX_CURRENT") {
+        parts.push(`${v} ${f.unit}`);
+      } else if (config.kind === "ELECTRICAL_OL") {
+        parts.push(`OL ${v} ${f.unit}`);
+      } else {
+        parts.push(`${v} ${f.unit}`);
+      }
+    }
+  }
+  return parts.length > 0 ? parts.join(" / ") : null;
+}
+
 /**
  * BR-05: Missing evidence check for a single item.
  *

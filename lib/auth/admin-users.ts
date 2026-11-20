@@ -1,7 +1,7 @@
 import "server-only";
 import { canManageLocalUsers, canUnlockLocalUser } from "./local-admin";
 import type { LocalUserDetail, LocalUserStore } from "./local-store";
-import type { Role } from "./types";
+import type { ProgramRole, Role } from "./types";
 
 /**
  * The field-user list for `GET /api/admin/users` (docs/12). The browser side (components/admin) imports only the
@@ -33,7 +33,7 @@ export type AdminUsersPayload = { canManage: boolean; users: AdminUserItem[] };
 
 const iso = (date: Date | null) => (date ? date.toISOString() : null);
 
-function toItem(actorRoles: readonly Role[], user: LocalUserDetail): AdminUserItem {
+function toItem(actorRoles: readonly Role[], user: LocalUserDetail, programRole?: ProgramRole): AdminUserItem {
   return {
     id: user.id,
     employeeCode: user.employeeCode,
@@ -46,14 +46,14 @@ function toItem(actorRoles: readonly Role[], user: LocalUserDetail): AdminUserIt
     hasPin: user.hasPin,
     pinLocked: user.pinLocked,
     mustChangePin: user.mustChangePin,
-    canUnlock: canUnlockLocalUser(actorRoles, user),
+    canUnlock: canUnlockLocalUser(actorRoles, user, programRole),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     lastLoginAt: iso(user.lastLoginAt),
   };
 }
 
-export async function loadLocalUsers(store: LocalUserStore, actorRoles: readonly Role[]): Promise<AdminUsersPayload> {
+export async function loadLocalUsers(store: LocalUserStore, actorRoles: readonly Role[], programRole?: ProgramRole): Promise<AdminUsersPayload> {
   const users = await store.list();
-  return { canManage: canManageLocalUsers(actorRoles), users: users.map((user) => toItem(actorRoles, user)) };
+  return { canManage: canManageLocalUsers(actorRoles, programRole), users: users.map((user) => toItem(actorRoles, user, programRole)) };
 }

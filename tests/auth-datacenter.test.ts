@@ -68,7 +68,7 @@ const SAMPLE_PROGRAM_003: DatacenterProgram = {
   program_code: "PRG003",
   program_name: "QCheck",
   url: "http://localhost:3000",
-  role_prog: "qc_inspector",
+  role_prog: "User",
   can_use: true,
   is_active: true,
   granted_at: "2026-10-19T10:00:00.000000",
@@ -128,7 +128,7 @@ describe("checkProgramPermission", () => {
     expect(result.allowed).toBe(true);
     if (result.allowed) {
       expect(result.program.program_code).toBe("PRG003");
-      expect(result.program.role_prog).toBe("qc_inspector");
+      expect(result.program.role_prog).toBe("User");
     }
   });
 
@@ -188,7 +188,8 @@ describe("authenticateWithDatacenter", () => {
       // The central token must never ride along to the session or the browser.
       expect(result.user).not.toHaveProperty("accessToken");
       expect(JSON.stringify(result.user)).not.toContain("TRW_TOKEN_2026");
-      expect(result.user.roles).toContain("QC_INSPECTOR");
+      expect(result.user.programRole).toBe("USER");
+      expect(result.user.roles).toEqual([]);
     }
   });
 
@@ -253,7 +254,8 @@ describe("unified authenticate service", () => {
     if (result.kind === "success") {
       expect(result.user.fullName).toBe("dev gundam");
       expect(result.user.employeeCode).toBe("dev");
-      expect(result.user.roles).toContain("QC_INSPECTOR");
+      expect(result.user.programRole).toBe("USER");
+      expect(result.user.roles).toEqual([]);
     }
   });
 });
@@ -299,50 +301,51 @@ function respondWith(program: Partial<DatacenterProgram>) {
   globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => data } as unknown as Response);
 }
 
-describe("role_prog mapping (FR-AUTH-04)", () => {
+describe("role_prog mapping (ProgramPermission: User / Admin / Dev)", () => {
   const originalFetch = globalThis.fetch;
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.unstubAllEnvs();
   });
 
-  it("reads several roles from a comma-separated string", async () => {
-    respondWith({ role_prog: " qa_head, QA_INSPECTOR ,master_admin" });
-    const result = await authenticateWithDatacenter("dev", "pw", "PRG003");
-    expect(result.kind === "success" && result.user.roles).toEqual(["MASTER_ADMIN", "QA_HEAD", "QA_INSPECTOR"]);
-  });
-
-  it("reads several roles from an array and drops unknown codes", async () => {
-    respondWith({ role_prog: ["QC_HEAD", "SUPERUSER", "QC_INSPECTOR"] });
-    const result = await authenticateWithDatacenter("dev", "pw", "PRG003");
+  it("parses User (case-insensitive) as programRole USER with empty initial app sub-roles", async () => {
+    respondWith({ role_prog: " User " });
+    const result = await authenticateWithDatacenter("trw01", "pw", "PRG003");
     expect(result.kind).toBe("success");
     if (result.kind === "success") {
-      expect(result.user.roles).toEqual(["QC_HEAD", "QC_INSPECTOR"]);
+      expect(result.user.programRole).toBe("USER");
+      expect(result.user.roles).toEqual([]);
+    }
+  });
+
+  it("picks highest privilege from an array and drops unknown codes", async () => {
+    respondWith({ role_prog: ["User", "SUPERUSER", "Admin"] });
+    const result = await authenticateWithDatacenter("trw02", "pw", "PRG003");
+    expect(result.kind).toBe("success");
+    if (result.kind === "success") {
+      expect(result.user.programRole).toBe("ADMIN");
+      expect(result.user.roles).toEqual([]);
       expect(result.unknownRoles).toEqual(["SUPERUSER"]);
     }
   });
 
-  it("ignores the top-level role and refuses when PRG003 has no known role", async () => {
+  it("ignores the top-level role and refuses when PRG003 has no recognized ProgramPermission level", async () => {
     respondWith({ role_prog: "superuser" });
     const result = await authenticateWithDatacenter("dev", "pw", "PRG003");
     expect(result.kind).toBe("forbidden");
     if (result.kind === "forbidden") expect(result.unknownRoles).toEqual(["SUPERUSER"]);
   });
 
-  it("grants every role for dev when QCHECK_ALLOW_DEV_ROLE=on (including in production)", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("QCHECK_ALLOW_DEV_ROLE", "on");
-    respondWith({ role_prog: "dev" });
-    const result = await authenticateWithDatacenter("dev", "pw", "PRG003");
-    expect(result.kind === "success" && result.user.roles).toHaveLength(9);
-  });
-
-  it("refuses dev in production when QCHECK_ALLOW_DEV_ROLE is off", async () => {
+  it("grants every QCheck role for Dev from ProgramPermission regardless of NODE_ENV", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("QCHECK_ALLOW_DEV_ROLE", "off");
-    respondWith({ role_prog: "dev" });
+    respondWith({ role_prog: "Dev" });
     const result = await authenticateWithDatacenter("dev", "pw", "PRG003");
-    expect(result.kind).toBe("forbidden");
+    expect(result.kind).toBe("success");
+    if (result.kind === "success") {
+      expect(result.user.programRole).toBe("DEV");
+      expect(result.user.roles).toHaveLength(9);
+    }
   });
 });
 
@@ -350,8 +353,8 @@ describe("central authentication boundaries", () => {
   const originalFetch = globalThis.fetch;
   afterEach(() => { globalThis.fetch = originalFetch; });
 
-  it("does not implicitly grant the development role", async () => {
-    respondWith({ role_prog: "dev" });
+  it("rejects legacy QCheck-only role codes when ProgramPermission lacks User/Admin/Dev", async () => {
+    respondWith({ role_prog: "QC_INSPECTOR" });
     expect((await authenticateWithDatacenter("fixture", "fixture-password")).kind).toBe("forbidden");
   });
 
@@ -386,7 +389,7 @@ describe("central authentication boundaries", () => {
 
   it("preserves username case through the login route while trimming surrounding spaces", async () => {
     process.env.SESSION_SECRET = "ianaW5lojvpJ-ewFY229wTaUgSXZ1FoPu8JyugNNXm0";
-    respondWith({ role_prog: ["QC_INSPECTOR"] });
+    respondWith({ role_prog: ["Admin"] });
     const request = new Request("http://localhost:3000/api/auth/login", {
       method: "POST",
       headers: { "content-type": "application/json", "sec-fetch-site": "same-origin" },
@@ -399,7 +402,26 @@ describe("central authentication boundaries", () => {
       expect(response.status).toBe(200);
       expect(result.status).toBe("success");
       expect(result.employeeCode).toBe("FixtureUser");
+      expect(result.next).toBe("/home");
       expect(JSON.parse(vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as string).username).toBe("FixtureUser");
+    } finally { log.mockRestore(); }
+  });
+
+  it("redirects USER without QCheck sub-roles to /no-access after login", async () => {
+    process.env.SESSION_SECRET = "ianaW5lojvpJ-ewFY229wTaUgSXZ1FoPu8JyugNNXm0";
+    respondWith({ role_prog: "User" });
+    const request = new Request("http://localhost:3000/api/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json", "sec-fetch-site": "same-origin" },
+      body: JSON.stringify({ employeeCode: "NewUser01", password: "fixture-password" }),
+    });
+    const log = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const response = await login(request);
+      const result = await response.json();
+      expect(response.status).toBe(200);
+      expect(result.status).toBe("success");
+      expect(result.next).toBe("/no-access");
     } finally { log.mockRestore(); }
   });
 });

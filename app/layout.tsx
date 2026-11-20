@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans_Thai_Looped, Sarabun } from "next/font/google";
 import { BfcacheGuard } from "@/components/dom/BfcacheGuard";
+import { ServiceWorkerRegister } from "@/components/dom/ServiceWorkerRegister";
 import { palette } from "@/lib/config/experience";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="th" className={`${plexThai.variable} ${sarabun.variable} ${plexMono.variable}`}>
       <body>
         <BfcacheGuard />
+        <ServiceWorkerRegister />
         {children}
       </body>
     </html>

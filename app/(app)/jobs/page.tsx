@@ -22,5 +22,5 @@ export default function JobsPage({ searchParams }: { searchParams: Promise<Searc
 async function Jobs({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const user = await requirePageAccess("jobs", "/jobs");
   const { view, notification } = await searchParams;
-  return <JobsView isHead={user.roles.includes("QC_HEAD")} view={jobsView(user.roles, view)} notification={typeof notification === "string" ? notification : null} />;
+  return <JobsView isHead={user.roles.includes("QC_HEAD") || user.roles.includes("ADMIN")} view={jobsView(user.roles, view)} notification={typeof notification === "string" ? notification : null} />;
 }

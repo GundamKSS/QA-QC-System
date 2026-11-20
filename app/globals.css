@@ -265,6 +265,12 @@
     );
     pointer-events: none;
   }
+
+  /* Official Document Typography — Pure Thai Sarabun for all document elements (screen & print) */
+  .report-official-document,
+  .report-official-document * {
+    font-family: var(--font-sarabun), "TH Sarabun New", "TH SarabunPSK", Sarabun, sans-serif !important;
+  }
 }
 
 @media print {

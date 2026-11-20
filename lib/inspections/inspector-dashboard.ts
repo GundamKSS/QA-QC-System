@@ -90,6 +90,7 @@ export type InspectorQuickAction =
       qtyDone: number;
       remainingQty: number;
       vendorName?: string | null;
+      role: "QC" | "QA";
       draftInspectionId?: string | null;
       draftSerialPump?: string | null;
     };
@@ -100,6 +101,8 @@ export type InspectorHomePayload = {
     fullName: string;
     employeeCode: string;
   };
+  side: "QC" | "QA";
+  jobsHref: "/jobs" | "/qa-queue";
   selectedMonth: string;
   availableMonths: { value: string; label: string }[];
   urgentStatus: InspectorUrgentStatus;
@@ -129,20 +132,26 @@ export async function loadInspectorDashboard(
       : currentYearMonth;
 
   const actorId = dbConfigured() ? await resolveActorId(user.id) : user.id;
+  const isQaOnly = user.roles.includes("QA_INSPECTOR") && !user.roles.includes("QC_INSPECTOR");
+  const isQcOnly = user.roles.includes("QC_INSPECTOR") && !user.roles.includes("QA_INSPECTOR");
+  const querySide: "QA" | "QC" | undefined = isQaOnly ? "QA" : isQcOnly ? "QC" : undefined;
+  const side: "QA" | "QC" = isQaOnly ? "QA" : "QC";
+  const jobsHref: "/qa-queue" | "/jobs" = isQaOnly ? "/qa-queue" : "/jobs";
 
   const planStore = getPlanStore();
   const inspectionStore = getInspectionStore();
 
   let reworks: PendingReworkItem[] = [];
   try {
-    reworks = await inspectionStore.getPendingReworks(actorId);
+    const rawReworks = await inspectionStore.getPendingReworks(actorId);
+    reworks = querySide ? rawReworks.filter((rw) => rw.role === querySide) : rawReworks;
   } catch {
     reworks = [];
   }
 
   const [activeJobs, allJobs] = await Promise.all([
-    planStore.jobs(actorId, { activeOnly: true }),
-    planStore.jobs(actorId),
+    planStore.jobs(actorId, { activeOnly: true, side: querySide }),
+    planStore.jobs(actorId, { side: querySide }),
   ]);
 
   const uniqueJobMap = new Map<string, typeof activeJobs[number]>();
@@ -264,6 +273,7 @@ export async function loadInspectorDashboard(
       qtyDone: mineDone,
       remainingQty: remaining,
       vendorName: job.vendorName,
+      role: job.type === "QA" ? "QA" : "QC",
       draftInspectionId: activeDraft?.inspectionId ?? null,
       draftSerialPump: activeDraft?.serialPump ?? null,
     });
@@ -277,6 +287,8 @@ export async function loadInspectorDashboard(
         fullName: user.fullName,
         employeeCode: user.employeeCode,
       },
+      side,
+      jobsHref,
       selectedMonth,
       availableMonths,
       urgentStatus: {

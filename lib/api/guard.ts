@@ -1,6 +1,7 @@
 import "server-only";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { canAccessPage, type AppPage } from "@/lib/auth/page-access";
+import { hasAppAccess } from "@/lib/auth/roles";
 import { isSameOriginRequest } from "@/lib/auth/same-origin";
 import type { SessionUser } from "@/lib/auth/types";
 import { authPolicy } from "@/lib/config/auth";
@@ -44,6 +45,15 @@ export async function guardApi(request: Request, options: ApiGuardOptions = {}):
   if (user.mustChangePassword && !options.allowPasswordChange) {
     return { response: apiError(403, apiMessages.passwordChange, { redirectTo: authPolicy.changePasswordPath }) };
   }
-  if (options.page && !canAccessPage(user.roles, options.page)) return { response: apiError(403, apiMessages.forbidden) };
+  if (!hasAppAccess(user)) {
+    return {
+      response: apiError(403, "บัญชีของคุณยังไม่ได้รับการกำหนดสิทธิ์ย่อยในระบบ QCheck กรุณาติดต่อ Admin หรือ Dev", {
+        redirectTo: authPolicy.noAccessPath,
+      }),
+    };
+  }
+  if (options.page && !canAccessPage(user.roles, options.page, user.programRole)) {
+    return { response: apiError(403, apiMessages.forbidden) };
+  }
   return { user };
 }

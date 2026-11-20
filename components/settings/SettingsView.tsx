@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AppBack } from "@/components/ui/AppBack";
 import { DevPersonaSection } from "./DevPersonaSection";
+import { SharedDeviceSection } from "./SharedDeviceSection";
 
 type Props = {
   isDevMode: boolean;
@@ -241,6 +242,9 @@ export function SettingsView({ isDevMode }: Props) {
           </div>
         )}
       </section>
+
+      {/* Shared Device Registration & Idle Timeout Policy */}
+      <SharedDeviceSection />
 
       {/* Storage & Network Section */}
       <section aria-labelledby="storage-heading" className="space-y-3 rounded-panel border border-carbon-700 bg-carbon-800 p-5">

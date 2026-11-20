@@ -51,7 +51,8 @@ const MODEL_SELECT = `
 
 const OPEN_PLAN = `
 SET XACT_ABORT ON;
-DECLARE @doc_id BIGINT, @reused BIT = 1, @dup_id BIGINT, @dup_no VARCHAR(16), @run INT, @plan_id BIGINT, @plan_no VARCHAR(16);
+DECLARE @doc_id BIGINT, @reused BIT = 1, @dup_id BIGINT, @dup_no VARCHAR(16), @run INT, @plan_id BIGINT, @plan_no VARCHAR(16),
+        @aql_level VARCHAR(10), @qa_required INT;
 
 SELECT @doc_id = id FROM dbo.receipt_docs WITH (UPDLOCK, HOLDLOCK)
  WHERE doc_type = @doc_type AND doc_no_normalized = @doc_no_n;
@@ -87,10 +88,24 @@ IF @run > 9999
     THROW 51090, 'Plan run number exceeded 9999 this month.', 1;
 SET @plan_no = CONCAT('QP-', @period, '-', RIGHT(CONCAT('0000', @run), 4));
 
+SELECT @aql_level = m.default_aql_level
+  FROM dbo.models m
+ WHERE m.id = @model_id;
+
+IF @aql_level IS NOT NULL
+BEGIN
+    SELECT TOP (1) @qa_required = CASE WHEN a.sample_size > @lot_qty THEN @lot_qty ELSE a.sample_size END
+      FROM dbo.aql_table a
+     WHERE a.level = @aql_level
+       AND a.is_active = 1
+       AND @lot_qty >= a.lot_min
+     ORDER BY CASE WHEN @lot_qty <= a.lot_max THEN 0 ELSE 1 END, a.lot_min DESC;
+END
+
 INSERT INTO dbo.plans (plan_no, receipt_doc_id, model_id, description, manufacturer, lot_qty, receipt_date, opened_by,
-                       qc_template_version_id, qa_template_version_id, qc_percent, qc_required, remarks, production_wo_no, created_by, updated_by)
+                       qc_template_version_id, qa_template_version_id, qc_percent, qc_required, aql_level, qa_required, remarks, production_wo_no, created_by, updated_by)
 SELECT @plan_no, @doc_id, m.id, @description, @manufacturer, @lot_qty, CONVERT(DATE, @receipt_date, 23), @by,
-       qct.current_version_id, qat.current_version_id, CAST(@qc_percent AS DECIMAL(5,2)), @qc_required, @remarks, @production_wo_no, @by, @by
+       qct.current_version_id, qat.current_version_id, CAST(@qc_percent AS DECIMAL(5,2)), @qc_required, @aql_level, @qa_required, @remarks, @production_wo_no, @by, @by
   FROM dbo.models m
   LEFT JOIN dbo.checklist_templates qct ON qct.id = m.qc_template_id
   LEFT JOIN dbo.checklist_templates qat ON qat.id = m.qa_template_id
@@ -117,8 +132,31 @@ UPDATE dbo.work_orders
 SELECT CAST(1 AS BIT) AS done;`;
 
 const SUBMIT_PLAN_TO_QA = `
+DECLARE @aql_level VARCHAR(10), @qa_required INT, @lot_qty INT, @plan_no VARCHAR(16), @next_seq INT;
+
+SELECT @lot_qty = p.lot_qty,
+       @plan_no = p.plan_no,
+       @aql_level = COALESCE(p.aql_level, m.default_aql_level)
+  FROM dbo.plans p
+  JOIN dbo.models m ON m.id = p.model_id
+ WHERE p.id = @id;
+
+IF @aql_level IS NOT NULL
+BEGIN
+    SELECT TOP (1) @qa_required = CASE WHEN a.sample_size > @lot_qty THEN @lot_qty ELSE a.sample_size END
+      FROM dbo.aql_table a
+     WHERE a.level = @aql_level
+       AND a.is_active = 1
+       AND @lot_qty >= a.lot_min
+     ORDER BY CASE WHEN @lot_qty <= a.lot_max THEN 0 ELSE 1 END, a.lot_min DESC;
+END
+
 UPDATE dbo.plans
-   SET status = 'QA_PENDING', updated_at = SYSUTCDATETIME(), updated_by = @by
+   SET status = 'QA_PENDING',
+       aql_level = COALESCE(aql_level, @aql_level),
+       qa_required = COALESCE(@qa_required, qa_required),
+       updated_at = SYSUTCDATETIME(),
+       updated_by = @by
  WHERE id = @id AND status = @from;
 IF @@ROWCOUNT = 0
 BEGIN
@@ -129,7 +167,27 @@ INSERT INTO dbo.plan_status_history (plan_id, from_status, to_status, by_user_id
 VALUES (@id, @from, 'QA_PENDING', @by, @reason);
 UPDATE dbo.work_orders
    SET status = 'CLOSED', updated_at = SYSUTCDATETIME(), updated_by = @by
- WHERE plan_id = @id AND status IN ('IN_PROGRESS', 'SUBMITTED');
+ WHERE plan_id = @id AND type <> 'QA' AND status IN ('IN_PROGRESS', 'SUBMITTED');
+
+-- สร้างใบงานสุ่มตรวจ QA อัตโนมัติภายใต้แผนตรวจเดียวกัน เมื่อมีเกณฑ์ qa_required
+IF @qa_required IS NOT NULL AND @qa_required >= 1
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM dbo.work_orders WHERE plan_id = @id AND type = 'QA' AND status <> 'CANCELLED')
+    BEGIN
+        SELECT @next_seq = ISNULL(MAX(seq), 0) + 1 FROM dbo.work_orders WHERE plan_id = @id;
+        INSERT INTO dbo.work_orders (plan_id, seq, wo_no, type, called_qty, called_date, qty_need, qty_done, status, remarks, created_by, updated_by)
+        VALUES (@id, @next_seq, CONCAT(@plan_no, '-QA'), 'QA', @lot_qty, CONVERT(DATE, DATEADD(HOUR, 7, SYSUTCDATETIME())), @qa_required, 0, 'IN_PROGRESS', N'ใบงานสุ่มตรวจ QA สร้างอัตโนมัติตามเกณฑ์ AQL', @by, @by);
+    END
+    ELSE
+    BEGIN
+        UPDATE dbo.work_orders
+           SET qty_need = @qa_required,
+               updated_at = SYSUTCDATETIME(),
+               updated_by = @by
+         WHERE plan_id = @id AND type = 'QA' AND status <> 'CANCELLED';
+    END
+END
+
 SELECT CAST(1 AS BIT) AS done;`;
 
 /** Vendor of a plan's receipt document (user 23 Oct 2026): any time unless the plan is cancelled; all its plans follow. */
@@ -216,8 +274,10 @@ function listWhere(filter: PlanListFilter): { clause: string; params: ListParam[
   return { clause: ` WHERE ${clauses.join(" AND ")}`, params };
 }
 
-/** Active users holding QC_INSPECTOR (docs/16 W2), with the work orders still in their hands. */
-const INSPECTORS = `
+/** Active users holding the inspector role of a side (docs/16 W2), with the work orders of that side still in their hands. */
+function inspectorsSql(side: "QC" | "QA") {
+  const roles = side === "QC" ? "'QC_INSPECTOR'" : "'QA_INSPECTOR'";
+  return `
   SELECT CAST(u.id AS VARCHAR(20)) AS id, u.employee_code AS code, u.full_name AS name,
          ISNULL(load.open_count, 0) AS open_count, ISNULL(load.open_units, 0) AS open_units,
          ISNULL(load.open_models, 0) AS open_models
@@ -230,17 +290,21 @@ const INSPECTORS = `
         OUTER APPLY (
           SELECT COUNT(*) AS qty FROM dbo.unit_inspections i
            WHERE i.work_order_id = w.id AND i.inspector_id = u.id
-             AND i.role = 'QC' AND i.status = 'COMPLETED'
+             AND i.role = '${side}' AND i.status = 'COMPLETED'
         ) done
         CROSS APPLY (SELECT CASE
-          WHEN w.type <> 'QC' OR w.qty_need <= w.qty_done THEN 0
+          WHEN w.type <> '${side}' OR w.qty_need <= w.qty_done THEN 0
           WHEN a.target_qty IS NULL THEN w.qty_need - w.qty_done
           WHEN a.target_qty <= done.qty THEN 0
           WHEN a.target_qty - done.qty > w.qty_need - w.qty_done THEN w.qty_need - w.qty_done
           ELSE a.target_qty - done.qty END AS units) remaining
        WHERE a.user_id = u.id AND w.status IN ('IN_PROGRESS', 'RETURNED')
     ) load
-   WHERE u.is_active = 1 AND EXISTS (SELECT 1 FROM dbo.user_roles r WHERE r.user_id = u.id AND r.role = 'QC_INSPECTOR')`;
+   WHERE u.is_active = 1 AND EXISTS (SELECT 1 FROM dbo.user_roles r WHERE r.user_id = u.id AND r.role IN (${roles}))`;
+}
+
+const INSPECTORS = inspectorsSql("QC");
+export const QA_INSPECTORS_SQL = inspectorsSql("QA");
 
 const WO_SELECT = `
   SELECT CAST(w.id AS VARCHAR(36)) AS id, CAST(w.plan_id AS VARCHAR(20)) AS plan_id, w.seq, w.wo_no, w.type, w.called_qty,
@@ -274,12 +338,12 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const USER_ID = /^\d{1,18}$/;
 
 /** Of `ids`, the ones that aren't active QC Inspectors right now (checked inside the caller's transaction). */
-async function unavailableInspectors(tx: sql.Transaction, ids: readonly string[]): Promise<string[]> {
+async function unavailableInspectors(tx: sql.Transaction, ids: readonly string[], side: "QC" | "QA" = "QC"): Promise<string[]> {
   const numeric = ids.filter((id) => USER_ID.test(id));
   if (numeric.length === 0) return [...ids];
   const request = new sql.Request(tx);
   numeric.forEach((id, index) => request.input(`u${index}`, sql.BigInt, id));
-  const result = await request.query<{ id: string }>(`${INSPECTORS} AND u.id IN (${numeric.map((_, index) => `@u${index}`).join(", ")})`);
+  const result = await request.query<{ id: string }>(`${side === "QA" ? QA_INSPECTORS_SQL : INSPECTORS} AND u.id IN (${numeric.map((_, index) => `@u${index}`).join(", ")})`);
   const ok = new Set(result.recordset.map((row) => row.id));
   return ids.filter((id) => !ok.has(id));
 }
@@ -717,9 +781,11 @@ export function createSqlPlanStore(): PlanStore {
       if (userId !== null && !USER_ID.test(userId)) return [];
       const pool = await getPool();
       const mine = userId === null ? "" : " AND EXISTS (SELECT 1 FROM dbo.work_order_assignees m WHERE m.work_order_id = w.id AND m.user_id = @user)";
+      const side = options?.side === "QA" ? "w.type = 'QA'" : options?.side === "QC" ? "w.type <> 'QA'" : "";
+      const sideClause = side ? ` AND ${side}` : "";
       const live = options?.activeOnly
-        ? `w.status IN ('IN_PROGRESS', 'RETURNED') AND p.status NOT IN ('CANCELLED', 'COMPLETED')${mine}`
-        : `w.status <> 'CANCELLED' AND p.status <> 'CANCELLED'${mine}`;
+        ? `w.status IN ('IN_PROGRESS', 'RETURNED') AND p.status NOT IN ('CANCELLED', 'COMPLETED')${sideClause}${mine}`
+        : `w.status <> 'CANCELLED' AND p.status <> 'CANCELLED'${sideClause}${mine}`;
       const request = () => (userId === null ? pool.request() : pool.request().input("user", sql.BigInt, userId));
       const rows = await request().query<WorkOrderRow & { plan_no: string; model_code: string; description: string | null; doc_type: DocType; doc_no: string; vendor_name: string | null }>(`
         ${WO_SELECT}, p.plan_no, m.code AS model_code, p.description, d.doc_type, d.doc_no, v.name AS vendor_name
@@ -792,8 +858,8 @@ export function createSqlPlanStore(): PlanStore {
       const tx = new sql.Transaction(pool);
       await tx.begin(sql.ISOLATION_LEVEL.READ_COMMITTED);
       try {
-        const locked = await new sql.Request(tx).input("id", sql.UniqueIdentifier, id).query<{ status: WorkOrderStatus; qty_done: number; plan_id: string; wo_no: string }>(
-          "SELECT status, qty_done, CAST(plan_id AS VARCHAR(20)) AS plan_id, wo_no FROM dbo.work_orders WITH (UPDLOCK, HOLDLOCK) WHERE id = @id",
+        const locked = await new sql.Request(tx).input("id", sql.UniqueIdentifier, id).query<{ status: WorkOrderStatus; qty_done: number; plan_id: string; wo_no: string; type: WorkOrderType }>(
+          "SELECT status, qty_done, CAST(plan_id AS VARCHAR(20)) AS plan_id, wo_no, type FROM dbo.work_orders WITH (UPDLOCK, HOLDLOCK) WHERE id = @id",
         );
         const wo = locked.recordset[0];
         if (!wo || workOrderBlock({ status: wo.status, qtyDone: wo.qty_done }, "assignees")) {
@@ -806,7 +872,7 @@ export function createSqlPlanStore(): PlanStore {
         const before = current.recordset.map((row) => row.user_id);
         // People already on the work order may stay even if deactivated since; newcomers must be active QC.
         const newcomers = change.assigneeIds.filter((userId) => !before.includes(userId));
-        const missing = newcomers.length > 0 ? await unavailableInspectors(tx, newcomers) : [];
+        const missing = newcomers.length > 0 ? await unavailableInspectors(tx, newcomers, wo.type === "QA" ? "QA" : "QC") : [];
         if (missing.length > 0) {
           await tx.rollback();
           return { kind: "assignees_unavailable", userIds: missing };

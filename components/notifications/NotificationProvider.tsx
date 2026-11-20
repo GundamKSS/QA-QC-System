@@ -4,11 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { NavIcon } from "@/components/shell/NavIcon";
-import { activeReadIds, notificationReadKey, parseReadIds } from "@/lib/notifications/read-state";
-import type { NotificationSnapshot, WorkNotification } from "@/lib/notifications/types";
+import { notificationReadKey, parseReadIds } from "@/lib/notifications/read-state";
+import { mergeActiveReadIds } from "@/lib/notifications/read-validation";
+import type { NotificationHistoryItem, NotificationReadInput, NotificationSnapshot, WorkNotification } from "@/lib/notifications/types";
 
 type NotificationContextValue = {
   items: WorkNotification[];
+  history: NotificationHistoryItem[];
+  synced: boolean;
   unreadCount: number;
   loading: boolean;
   error: string | null;
@@ -32,11 +35,37 @@ function saveReceipts(key: string, ids: ReadonlySet<string>) {
   try { window.localStorage.setItem(key, JSON.stringify([...ids])); } catch { /* Keep receipts in memory. */ }
 }
 
-/** One feed for the shell and Alerts page. No work details are stored on the device. */
+function toReadInput(item: WorkNotification): NotificationReadInput {
+  return {
+    id: item.id,
+    woNo: item.woNo,
+    kind: item.kind,
+    title: item.title,
+    body: item.body,
+    href: item.href,
+  };
+}
+
+function sendReadReceipts(entries: NotificationReadInput[]) {
+  if (entries.length === 0 || typeof navigator === "undefined" || !navigator.onLine) return;
+  void fetch("/api/notifications/read", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items: entries }),
+    keepalive: true,
+  }).catch(() => {
+    // Device-local receipts are already saved; server sync will retry on next action.
+  });
+}
+
+/** One feed for the shell and Alerts page, with cross-device read sync and local fallback. */
 export function NotificationProvider({ userId, children }: { userId: string; children: ReactNode }) {
   const pathname = usePathname();
   const key = notificationReadKey(userId);
   const [items, setItems] = useState<WorkNotification[]>([]);
+  const [history, setHistory] = useState<NotificationHistoryItem[]>([]);
+  const [synced, setSynced] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +102,13 @@ export function NotificationProvider({ userId, children }: { userId: string; chi
         setToast(null);
         throw new Error("บัญชีผู้ใช้เปลี่ยน กรุณาโหลดหน้าใหม่");
       }
-      const nextRead = activeReadIds(receipts.current, snapshot.items);
+      const nextRead = mergeActiveReadIds(snapshot.readIds, receipts.current, snapshot.items);
       receipts.current = nextRead;
       saveReceipts(key, nextRead);
       setReadIds(nextRead);
       setItems(snapshot.items);
+      if (Array.isArray(snapshot.history)) setHistory(snapshot.history);
+      setSynced(Boolean(snapshot.synced));
       setError(null);
 
       const fresh = snapshot.items.filter((item) => !nextRead.has(item.id) && !announced.current.has(item.id));
@@ -169,6 +200,17 @@ export function NotificationProvider({ userId, children }: { userId: string; chi
     setReadIds(next);
     saveReceipts(key, next);
     setToast((current) => current?.ids.length === 1 && current.ids[0] === id ? null : current);
+
+    const matched = items.find((item) => item.id === id);
+    const entry: NotificationReadInput = matched ? toReadInput(matched) : { id };
+    if (matched) {
+      const now = new Date().toISOString();
+      setHistory((prev) => [
+        { id: matched.id, woNo: matched.woNo, kind: matched.kind, title: matched.title, body: matched.body, href: matched.href, readAt: now },
+        ...prev.filter((row) => row.id !== matched.id),
+      ].slice(0, 50));
+    }
+    sendReadReceipts([entry]);
   };
   const markAllRead = () => {
     const next = new Set(items.map((item) => item.id));
@@ -176,9 +218,28 @@ export function NotificationProvider({ userId, children }: { userId: string; chi
     setReadIds(next);
     saveReceipts(key, next);
     setToast(null);
+
+    if (items.length > 0) {
+      const now = new Date().toISOString();
+      const entries = items.map(toReadInput);
+      const idsInBatch = new Set(items.map((item) => item.id));
+      setHistory((prev) => [
+        ...items.map((item) => ({
+          id: item.id,
+          woNo: item.woNo,
+          kind: item.kind,
+          title: item.title,
+          body: item.body,
+          href: item.href,
+          readAt: now,
+        })),
+        ...prev.filter((row) => !idsInBatch.has(row.id)),
+      ].slice(0, 50));
+      sendReadReceipts(entries);
+    }
   };
 
-  return <NotificationContext.Provider value={{ items, unreadCount: items.filter((item) => !readIds.has(item.id)).length, loading, error, refresh: () => { void load(); }, markRead, markAllRead, isRead: (id) => readIds.has(id) }}>
+  return <NotificationContext.Provider value={{ items, history, synced, unreadCount: items.filter((item) => !readIds.has(item.id)).length, loading, error, refresh: () => { void load(); }, markRead, markAllRead, isRead: (id) => readIds.has(id) }}>
     {children}
     <div className="fixed inset-x-4 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-50 md:inset-x-auto md:bottom-auto md:right-6 md:top-20 md:w-96 pointer-events-none" role="status" aria-live="polite" aria-atomic="true">
       {toast && <div className={`app-panel flex items-start gap-3 rounded-panel border border-ember-500/60 bg-carbon-800 p-4 shadow-xl pointer-events-auto transition-all duration-300 ease-out ${

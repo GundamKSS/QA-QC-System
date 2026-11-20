@@ -40,7 +40,7 @@
 | 6 | `POST /api/auth/login` · `POST /api/auth/logout` (ย้ายจาก `/auth/logout`) | `login`, route ออกจากระบบเดิม | ✅ เลือกทาง A (รอ hydrate) — ดู §6 · ลบ `login/actions.ts` แล้ว: **ไม่เหลือ Server Action ในโปรเจกต์** |
 | 7 | เก็บกวาด: README/docs/คอมเมนต์ให้ตรงกับของจริง, ตรวจลิงก์เอกสาร, ตรวจรวมสุดท้าย (§8) | | ✅ |
 
-`/api/notifications` (GET) มีอยู่ก่อนแล้ว คงเดิม · ขั้น 0 = โครงกลาง `lib/api/` (✅)
+`/api/notifications` (GET) และ `POST /api/notifications/read` (บันทึกสถานะอ่านแล้ว + ประวัติแจ้งเตือนข้ามอุปกรณ์ลง `dbo.notification_reads`) ✅ · `GET/POST /api/admin/devices` · `PATCH /api/admin/devices/[id]` · `POST /api/admin/devices/unbind` (ทะเบียนอุปกรณ์ส่วนกลาง + Idle Timeout FR-AUTH-05) ✅ · `GET /api/admin/audit` (Audit Log Viewer แบ่งหน้า + กรอง) ✅ · ขั้น 0 = โครงกลาง `lib/api/` (✅)
 
 **ฝั่งอ่าน (§9):** `GET /api/jobs` ✅ · `GET /api/history` ✅ · `GET /api/master` ✅ · `GET /api/plans` ✅ · `GET /api/home` ✅ · `GET /api/admin/users` ✅ · `GET /api/master/[table]` ✅ · `GET /api/plans/options` ✅ · `GET /api/plans/[id]/work-orders` ✅ · `GET /api/plans/[id]` ✅ · `GET /api/plans/[id]/work-order-list` ✅ (**10/10 — ครบทุกหน้า**) — endpoint อ่านที่เหลือและลำดับอยู่ในตารางของ §9
 

@@ -31,7 +31,7 @@ describe("getWorkNotifications", () => {
   it("makes no business-data queries for roles without jobs access or a forced password change", async () => {
     const store = { jobs: vi.fn(async (): Promise<JobCard[]> => []) };
     const resolveUserId = vi.fn(async () => "11");
-    for (const target of [{ ...user, roles: ["ADMIN"] as SessionUser["roles"] }, { ...user, mustChangePassword: true }]) {
+    for (const target of [{ ...user, roles: ["PM"] as SessionUser["roles"] }, { ...user, mustChangePassword: true }]) {
       expect(await getWorkNotifications(target, { store, resolveUserId })).toEqual({ userId: user.id, items: [], total: 0 });
     }
     expect(resolveUserId).not.toHaveBeenCalled();

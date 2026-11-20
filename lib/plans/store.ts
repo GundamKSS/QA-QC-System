@@ -278,7 +278,7 @@ export interface PlanStore {
   getWorkOrder(id: string): Promise<WorkOrder | null>;
   /** "งานของฉัน": open ones first, oldest call-in first. userId null = everyone's (QC Head, W6).
    * activeOnly returns all IN_PROGRESS / RETURNED work on live plans, without the regular list's 200-row cap. */
-  jobs(userId: string | null, options?: { activeOnly?: boolean }): Promise<JobCard[]>;
+  jobs(userId: string | null, options?: { activeOnly?: boolean; side?: "QC" | "QA" }): Promise<JobCard[]>;
   /** "ประวัติ" (docs/18): work orders no longer in anyone's hands — newest call-in first. userId null = everyone's. */
   jobHistory(filter: JobHistoryFilter): Promise<{ rows: JobCard[]; total: number }>;
   /** W4: replace the people (still 2–5, validated by the service) while the work order is open. */
@@ -629,7 +629,13 @@ export function createMemoryPlanStore(
     },
     async jobs(userId, options) {
       return workOrders
-        .filter((wo) => wo.status !== "CANCELLED" && (userId === null || wo.assigneeIds.includes(userId)))
+        .filter((wo) => {
+          if (wo.status === "CANCELLED") return false;
+          if (userId !== null && !wo.assigneeIds.includes(userId)) return false;
+          if (options?.side === "QA" && wo.type !== "QA") return false;
+          if (options?.side === "QC" && wo.type === "QA") return false;
+          return true;
+        })
         .filter((wo) => {
           if (!options?.activeOnly) return true;
           const plan = plans.find((item) => item.id === wo.planId);

@@ -42,10 +42,18 @@ describe("loadLocalUsers", () => {
     expect(payload.users.map((user) => [user.employeeCode, user.canUnlock])).toEqual([["F0001", true], ["F0002", false]]);
   });
 
-  it("gives no unlock right to a role that may not even open the page", async () => {
+  it("a QA Head manages nothing and may unlock only QA inspectors", async () => {
     const store = createMemoryLocalStore();
     seed(store);
     const payload = await loadLocalUsers(store, ["QA_HEAD"]);
+    expect(payload.canManage).toBe(false);
+    expect(payload.users.map((user) => [user.employeeCode, user.canUnlock])).toEqual([["F0001", false], ["F0002", true]]);
+  });
+
+  it("gives no unlock right to a role that may not even open the page", async () => {
+    const store = createMemoryLocalStore();
+    seed(store);
+    const payload = await loadLocalUsers(store, ["PM"]);
     expect(payload.users.some((user) => user.canUnlock)).toBe(false);
   });
 

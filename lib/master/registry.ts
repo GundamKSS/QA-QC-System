@@ -192,6 +192,34 @@ export const MASTERS: readonly MasterDef[] = [
     orderBy: "t.name",
     fields: [{ key: "name", label: "ชื่อ", kind: "text", max: 100, required: true }],
   },
+  {
+    slug: "aql-table",
+    table: "aql_table",
+    label: "ตารางสุ่มตรวจ AQL (AQL Table)",
+    singular: "เกณฑ์ AQL",
+    description: "ตารางมาตรฐานการคำนวณจำนวนสุ่มตรวจ QA ตามระดับ (ผ่อนคลาย / ปกติ / เคร่งครัด) และขนาดล็อต",
+    orderBy: "t.level, t.lot_min",
+    fields: [
+      {
+        key: "level",
+        label: "ระดับ AQL",
+        kind: "enum",
+        required: true,
+        default: "NORMAL",
+        options: [
+          { value: "REDUCED", label: "ผ่อนคลาย (Reduced)" },
+          { value: "NORMAL", label: "ปกติ (Normal)" },
+          { value: "TIGHTENED", label: "เคร่งครัด (Tightened)" },
+        ],
+      },
+      { key: "lot_min", label: "ขนาดล็อตเริ่มต้น", kind: "number", required: true, min: 1, maxValue: 1000000, default: 1 },
+      { key: "lot_max", label: "ขนาดล็อตสูงสุด", kind: "number", required: true, min: 1, maxValue: 1000000, default: 8 },
+      { key: "code_letter", label: "รหัสตัวอักษร (Code)", kind: "text", max: 2, required: true, help: "เช่น A, B, C, D, E, F, G, H, J, K" },
+      { key: "sample_size", label: "จำนวนที่ต้องตรวจ (เครื่อง)", kind: "number", required: true, min: 1, maxValue: 10000, default: 2 },
+      { key: "ac", label: "เกณฑ์รับ (Ac)", kind: "number", required: true, min: 0, maxValue: 1000, default: 0 },
+      { key: "re", label: "เกณฑ์ปฏิเสธ (Re)", kind: "number", required: true, min: 1, maxValue: 1000, default: 1 },
+    ],
+  },
 ];
 
 export function masterBySlug(slug: string): MasterDef | undefined {

@@ -40,7 +40,7 @@ export function AppSidebar({ user }: { user: SessionUser }) {
       </Link>
 
       <div className="app-rail-sections">
-        {sidebarSections(user.roles).map((section) => (
+        {sidebarSections(user.roles, user.programRole).map((section) => (
           <nav key={section.title} aria-label={section.title}>
             <ul>
               {section.items.map((item) => {

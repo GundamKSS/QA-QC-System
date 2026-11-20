@@ -2,15 +2,18 @@ import { randomInt } from "node:crypto";
 import { checkLocalRoles } from "./local-users";
 import type { LocalUserDetail, LocalUserStore } from "./local-store";
 import { hashPin, pinFormatError, verifyPin, type PinGuard } from "./pin";
-import type { Role } from "./types";
+import type { ProgramRole, Role } from "./types";
 import { authPolicy } from "@/lib/config/auth";
 
-/** Admin may manage every field user; a QC Head may only unlock QC inspectors' PINs (docs/12 I4). */
-export const canManageLocalUsers = (roles: readonly Role[]) => roles.includes("ADMIN");
+/** Super Admin (or ProgramPermission ADMIN/DEV) manages users & permissions; Head QC / Head QA may unlock their own inspectors' PINs (docs/12 I4). */
+export const canManageLocalUsers = (roles: readonly Role[], programRole?: ProgramRole) =>
+  programRole === "DEV" || programRole === "ADMIN" || roles.includes("ADMIN");
 
-export function canUnlockLocalUser(actorRoles: readonly Role[], target: Pick<LocalUserDetail, "roles">): boolean {
-  if (canManageLocalUsers(actorRoles)) return true;
-  return actorRoles.includes("QC_HEAD") && target.roles.includes("QC_INSPECTOR");
+export function canUnlockLocalUser(actorRoles: readonly Role[], target: Pick<LocalUserDetail, "roles">, programRole?: ProgramRole): boolean {
+  if (canManageLocalUsers(actorRoles, programRole)) return true;
+  if (actorRoles.includes("QC_HEAD") && target.roles.includes("QC_INSPECTOR")) return true;
+  if (actorRoles.includes("QA_HEAD") && target.roles.includes("QA_INSPECTOR")) return true;
+  return false;
 }
 
 export type AdminError =
@@ -26,7 +29,7 @@ export type AdminError =
   | "pin_wrong"
   | "pin_locked";
 
-export type AdminDeps = { store: LocalUserStore; pepper: string; guard: PinGuard; actor: { id: string; roles: readonly Role[] } };
+export type AdminDeps = { store: LocalUserStore; pepper: string; guard: PinGuard; actor: { id: string; roles: readonly Role[]; programRole?: ProgramRole } };
 export type Outcome<T = object> = ({ ok: true } & T) | { ok: false; error: AdminError; rejected?: string[] };
 
 /** A random PIN that passes the format rules (no repeats or straight runs). */
@@ -52,7 +55,7 @@ function profileOf(input: ProfileInput): { ok: true; profile: { fullName: string
 
 /** Creates a field user with the next F-code and a temporary PIN, shown to the Admin once. */
 export async function createLocalUser(deps: AdminDeps, input: ProfileInput & { roles: readonly string[] }): Promise<Outcome<{ user: LocalUserDetail; tempPin: string }>> {
-  if (!canManageLocalUsers(deps.actor.roles)) return { ok: false, error: "forbidden" };
+  if (!canManageLocalUsers(deps.actor.roles, deps.actor.programRole)) return { ok: false, error: "forbidden" };
   const parsed = profileOf(input);
   if (!parsed.ok) return parsed;
   const { roles, rejected } = checkLocalRoles(input.roles);
@@ -64,7 +67,7 @@ export async function createLocalUser(deps: AdminDeps, input: ProfileInput & { r
 }
 
 export async function updateLocalUser(deps: AdminDeps, id: string, input: ProfileInput & { roles: readonly string[] }): Promise<Outcome<{ before: Role[]; after: Role[] }>> {
-  if (!canManageLocalUsers(deps.actor.roles)) return { ok: false, error: "forbidden" };
+  if (!canManageLocalUsers(deps.actor.roles, deps.actor.programRole)) return { ok: false, error: "forbidden" };
   const current = await deps.store.findDetailById(id);
   if (!current) return { ok: false, error: "not_found" };
   const parsed = profileOf(input);
@@ -79,7 +82,7 @@ export async function updateLocalUser(deps: AdminDeps, id: string, input: Profil
 
 /** Issues a new temporary PIN (also unlocks): the user must change it at next login. */
 export async function resetLocalPin(deps: AdminDeps, id: string): Promise<Outcome<{ employeeCode: string; tempPin: string }>> {
-  if (!canManageLocalUsers(deps.actor.roles)) return { ok: false, error: "forbidden" };
+  if (!canManageLocalUsers(deps.actor.roles, deps.actor.programRole)) return { ok: false, error: "forbidden" };
   const user = await deps.store.findDetailById(id);
   if (!user) return { ok: false, error: "not_found" };
   const tempPin = generateTempPin();
@@ -92,14 +95,14 @@ export async function resetLocalPin(deps: AdminDeps, id: string): Promise<Outcom
 export async function unlockLocalPin(deps: AdminDeps, id: string): Promise<Outcome<{ employeeCode: string }>> {
   const user = await deps.store.findDetailById(id);
   if (!user) return { ok: false, error: "not_found" };
-  if (!canUnlockLocalUser(deps.actor.roles, user)) return { ok: false, error: "forbidden" };
+  if (!canUnlockLocalUser(deps.actor.roles, user, deps.actor.programRole)) return { ok: false, error: "forbidden" };
   await deps.store.unlockPin(id, deps.actor.id);
   deps.guard.unlockAccount(user.employeeCode);
   return { ok: true, employeeCode: user.employeeCode };
 }
 
 export async function setLocalActive(deps: AdminDeps, id: string, active: boolean): Promise<Outcome<{ employeeCode: string }>> {
-  if (!canManageLocalUsers(deps.actor.roles)) return { ok: false, error: "forbidden" };
+  if (!canManageLocalUsers(deps.actor.roles, deps.actor.programRole)) return { ok: false, error: "forbidden" };
   const user = await deps.store.findDetailById(id);
   if (!user) return { ok: false, error: "not_found" };
   await deps.store.setActive(id, active, deps.actor.id);

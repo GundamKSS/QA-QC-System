@@ -43,7 +43,7 @@ describe("GET /api/plans — access", () => {
     expect(touchedStore()).toBe(0);
   });
 
-  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PM", "MASTER_ADMIN", "PURCHASING", "MANAGEMENT"])("refuses %s: only QC Head, QA Head and Admin work with plans", async (role) => {
+  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PM", "MASTERDATA_ADMIN", "PURCHASING", "MANAGEMENT"])("refuses %s: only QC Head, QA Head and Admin work with plans", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(touchedStore()).toBe(0);

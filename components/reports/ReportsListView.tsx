@@ -55,7 +55,7 @@ export function ReportsListView() {
   const { data, loading, error, reload } = useApiRead<ReportsListResponse>(url);
 
   return (
-    <div className="min-w-0 w-full space-y-6 p-4 pb-12 sm:p-6">
+    <div className="report-official-document font-sarabun min-w-0 w-full space-y-6 p-4 pb-12 sm:p-6">
       <AppBack href="/home">กลับหน้าหลัก</AppBack>
 
       {/* Page Header */}

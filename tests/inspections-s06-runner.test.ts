@@ -10,10 +10,14 @@ import {
   areAllItemsDone,
   canJumpToStep,
   evalUnitResult,
+  formatMeasurementSummaryBadge,
+  formatStepMeasurements,
+  getStepMeasurementConfig,
   inferItemAnimationType,
   isItemDone,
   leaveBlockReason,
   maxUnlockedStepIndex,
+  parseStepMeasurements,
   stepAdvanceBlockReason,
 } from "@/lib/inspections/rules";
 import type { InspectionItem, ItemAnswer } from "@/lib/inspections/types";
@@ -379,5 +383,66 @@ describe("Screen S06 & S07 - Checklist Runner & Summary Rules", () => {
     expect(triggerHaptic("tap")).toBe(false);
 
     vi.unstubAllGlobals();
+  });
+
+  it("supports embedded numeric measurements on steps 10, 13, 15, and 16 (New Piston Checklist V.1 parity)", () => {
+    const step10: InspectionItem = {
+      id: 10,
+      seq: 10,
+      topicCode: "10",
+      title: "ความถูกต้องสมบูรณ์ของระบบส่งกำลัง",
+      inputType: "PASS_FAIL",
+      isRequired: true,
+      videoRule: "NONE",
+    };
+    const step13: InspectionItem = {
+      id: 13,
+      seq: 13,
+      topicCode: "13",
+      title: "ตรวจระบบไฟฟ้าและวงจรควบคุม",
+      inputType: "PASS_FAIL",
+      isRequired: true,
+      videoRule: "NONE",
+    };
+    const step15: InspectionItem = {
+      id: 15,
+      seq: 15,
+      topicCode: "15",
+      title: "ตรวจกระแสและโหลดระหว่างอัดลม",
+      inputType: "PASS_FAIL",
+      isRequired: true,
+      videoRule: "NONE",
+    };
+    const step16: InspectionItem = {
+      id: 16,
+      seq: 16,
+      topicCode: "16",
+      title: "ตรวจการตัด-ต่อแรงดัน",
+      inputType: "PASS_FAIL",
+      isRequired: true,
+      videoRule: "NONE",
+    };
+
+    expect(getStepMeasurementConfig(normalItem)).toBeNull();
+    expect(getStepMeasurementConfig(step10)?.kind).toBe("BELT_TENSION");
+    expect(getStepMeasurementConfig(step13)?.kind).toBe("ELECTRICAL_OL");
+    expect(getStepMeasurementConfig(step15)?.kind).toBe("MAX_CURRENT");
+
+    const cfg16 = getStepMeasurementConfig(step16);
+    expect(cfg16?.kind).toBe("PRESSURE_START_STOP");
+    expect(cfg16?.fields.map((f) => f.key)).toEqual(["stop", "start"]);
+
+    const formatted16 = formatStepMeasurements(cfg16!, { stop: "10", start: "8" });
+    expect(formatted16).toBe("stop=10 | start=8");
+    expect(parseStepMeasurements(cfg16, formatted16)).toEqual({ stop: "10", start: "8" });
+    expect(formatMeasurementSummaryBadge(step16, formatted16)).toBe("Stop 10 bar / Start 8 bar");
+
+    const cfg15 = getStepMeasurementConfig(step15)!;
+    const formatted15 = formatStepMeasurements(cfg15, { amp: "4.65" });
+    expect(formatted15).toBe("4.65");
+    expect(parseStepMeasurements(cfg15, formatted15)).toEqual({ amp: "4.65" });
+    expect(formatMeasurementSummaryBadge(step15, formatted15)).toBe("4.65 A");
+
+    expect(formatMeasurementSummaryBadge(step13, "11")).toBe("OL 11 A");
   });
 });

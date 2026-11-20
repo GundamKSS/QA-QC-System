@@ -42,7 +42,7 @@ describe("GET /api/plans/[id]/work-orders — access", () => {
     expect(mocks.loadWorkOrderForm).not.toHaveBeenCalled();
   });
 
-  it.each(["QA_HEAD", "QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING", "PM", "MANAGEMENT", "MASTER_ADMIN"])("refuses %s, who may not open work orders", async (role) => {
+  it.each(["QA_HEAD", "QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING", "PM", "MANAGEMENT", "MASTERDATA_ADMIN"])("refuses %s, who may not open work orders", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...head, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(mocks.loadWorkOrderForm).not.toHaveBeenCalled();

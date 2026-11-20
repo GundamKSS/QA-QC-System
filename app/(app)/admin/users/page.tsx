@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import { AppBack } from "@/components/ui/AppBack";
-import { UsersView } from "@/components/admin/UsersView";
+import { UsersManagementTabs } from "@/components/admin/UsersManagementTabs";
 import { authPolicy } from "@/lib/config/auth";
 import { roleLabels } from "@/lib/config/experience";
 import { requirePageAccess } from "@/lib/auth/dal";
 import { canManageLocalUsers } from "@/lib/auth/local-admin";
 import { dbConfigured } from "@/lib/db/config";
 
-export const metadata = { title: "ผู้ใช้หน้างาน" };
+export const metadata = { title: "ผู้ใช้และสิทธิ์" };
 
 export default function UsersPage() {
   return (
@@ -17,28 +17,28 @@ export default function UsersPage() {
   );
 }
 
-/** Checks the session and draws the header; the create form and the list are `UsersView`, which reads `GET /api/admin/users`. */
+/** Checks the session and draws a calm, centered header; Central permissions + Field PIN users live in `UsersManagementTabs`. */
 async function Users() {
   const actor = await requirePageAccess("users", "/admin/users");
-  const canManage = canManageLocalUsers(actor.roles);
+  const canManage = canManageLocalUsers(actor.roles, actor.programRole);
+  const canGrantDev = actor.programRole === "DEV";
   const fieldRoles = authPolicy.local.allowedRoles.map((value) => ({ value, label: roleLabels[value] ?? value }));
 
   return (
-    <div className="min-w-0 w-full space-y-6 p-4 sm:p-6">
-      <AppBack href="/home">กลับหน้าหลัก</AppBack>
-      <header className="space-y-1">
-        <h1 className="text-2xl text-ti-50">ผู้ใช้หน้างาน</h1>
-        <p className="text-sm text-ti-400">
-          พนักงานที่ไม่มีบัญชีระบบกลาง เข้าด้วยรหัส F… + PIN 6 หลัก · {canManage ? "Admin จัดการได้ทั้งหมด" : "หัวหน้า QC ปลดล็อก PIN ของ QC Inspector ได้"}
-        </p>
+    <div className="min-w-0 w-full max-w-5xl mx-auto space-y-5 px-4 py-5 sm:px-6 sm:py-7">
+      <div className="space-y-2">
+        <AppBack href="/home">กลับหน้าหลัก</AppBack>
+        <h1 className="text-2xl font-medium text-ti-50 tracking-tight">
+          {canManage ? "ผู้ใช้และสิทธิ์" : "ผู้ใช้หน้างาน"}
+        </h1>
         {!dbConfigured() && (
-          <p role="note" className="rounded-control border border-ember-500/50 bg-carbon-800 px-3 py-2 text-sm text-ember-400">
-            ยังไม่ได้ตั้งค่าฐานข้อมูล (DB_SERVER) — ข้อมูลอยู่ในหน่วยความจำและจะหายเมื่อรีสตาร์ทเซิร์ฟเวอร์
+          <p role="note" className="rounded-xl border border-ember-500/40 bg-carbon-800 px-3.5 py-2 text-xs text-ember-400">
+            โหมดทดสอบ (ไม่ได้เชื่อมต่อฐานข้อมูล)
           </p>
         )}
-      </header>
+      </div>
 
-      <UsersView canManage={canManage} fieldRoles={fieldRoles} />
+      <UsersManagementTabs canManage={canManage} canGrantDev={canGrantDev} fieldRoles={fieldRoles} />
     </div>
   );
 }

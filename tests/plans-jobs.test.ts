@@ -60,10 +60,12 @@ describe("jobsView", () => {
   });
 
   it("gives everyone else their own, whatever they ask for", () => {
-    for (const roles of [["QC_INSPECTOR"], ["ADMIN"], ["QA_HEAD"], ["QC_INSPECTOR", "QA_INSPECTOR"]] as const) {
+    for (const roles of [["QC_INSPECTOR"], ["QA_HEAD"], ["QC_INSPECTOR", "QA_INSPECTOR"]] as const) {
       expect(jobsView(roles, "all")).toBe("mine");
       expect(jobsView(roles, undefined)).toBe("mine");
     }
+    expect(jobsView(["ADMIN"], undefined)).toBe("all");
+    expect(jobsView(["ADMIN"], undefined, "QA")).toBe("all");
   });
 
   it("follows the QC Head role when it comes with others", () => {

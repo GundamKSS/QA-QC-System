@@ -480,15 +480,15 @@ export function DefectSelector({
   return (
     <section
       aria-labelledby={headingId}
-      className="space-y-3.5 rounded-2xl border border-fail/30 bg-fail/5 p-3 sm:p-4"
+      className="min-w-0 space-y-3.5 rounded-2xl border border-fail/30 bg-fail/5 p-2.5 sm:p-4 [overflow-wrap:anywhere]"
     >
       {/* Header: Title with Tooltip & Total Selected Counter */}
-      <div className="flex items-center justify-between gap-2">
-        <h3 id={headingId} className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-fail">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id={headingId} className="flex min-w-0 items-center gap-1.5 text-sm sm:text-base font-bold text-fail">
           <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full bg-fail text-white text-xs font-bold">
             !
           </span>
-          <span>อาการที่พบ (Defect) & ถ่ายรูปเฉพาะจุด</span>
+          <span className="min-w-0">อาการที่พบ · รูปเฉพาะจุด</span>
           <span aria-hidden="true" className="text-fail">*</span>
           <HelpTip label="คำแนะนำ Flow ตรวจ Defect">
             เลือกสิ่งที่พบ → เลือกจุดที่พบ (เช่น ถัง, ฐาน, แขนจับ) → ระบบจะบังคับเปิดกล้องถ่ายรูปเจาะจงจุดนั้นทันที และผูกรูปเข้ากับ Defect โดยตรง
@@ -497,7 +497,7 @@ export function DefectSelector({
         <span
           role="status"
           aria-atomic="true"
-          className="rounded-full border border-fail/40 bg-fail/15 px-3 py-1 text-xs font-bold text-fail"
+          className="shrink-0 rounded-full border border-fail/40 bg-fail/15 px-3 py-1 text-xs font-bold text-fail"
         >
           {selectedDefects.length} จุด · {totalPhotosCaptured} รูป
         </span>
@@ -566,7 +566,7 @@ export function DefectSelector({
 
       {/* 2. SELECTED DEFECTS DETAILS LIST: Spot Photo Evidence, Location & Disposition */}
       {selectedDefects.length > 0 && (
-        <div className="space-y-3 rounded-xl border border-fail/40 bg-carbon-900/95 p-3 shadow-xs">
+        <div className="min-w-0 space-y-3 rounded-xl border border-fail/40 bg-carbon-900/95 p-2 sm:p-3 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-xs font-bold text-fail">
               <span aria-hidden="true">✓</span> รายการที่เลือกบันทึก ({selectedDefects.length} จุด)
@@ -613,9 +613,9 @@ export function DefectSelector({
                       </span>
                     </summary>
 
-                    <div className="space-y-3.5 border-t border-carbon-700 px-3 py-3 min-w-0">
+                    <div className="space-y-3.5 border-t border-carbon-700 px-2 py-3 sm:px-3 min-w-0">
                       {/* --- SPOT-SPECIFIC MANDATORY PHOTO EVIDENCE SECTION --- */}
-                      <div className="space-y-2 rounded-xl border border-carbon-700 bg-carbon-900/90 p-3">
+                      <div className="min-w-0 space-y-2 rounded-xl border border-carbon-700 bg-carbon-900/90 p-2 sm:p-3">
                         <div className="flex items-center justify-between gap-2">
                           <span className="flex items-center gap-1.5 text-xs font-bold text-ti-100">
                             <span>📷 รูปหลักฐานเฉพาะจุด ({finding.part || "จุดนี้"})</span>
@@ -655,9 +655,10 @@ export function DefectSelector({
                                     type="button"
                                     onClick={() => handleRemoveSpotPhoto(finding, pIdx)}
                                     title="ลบรูปนี้"
-                                    className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-fail text-white text-[10px] font-bold flex items-center justify-center shadow-md hover:bg-fail/80"
+                                    aria-label={`ลบรูปหลักฐานที่ ${pIdx + 1} ของ ${finding.nameTh}`}
+                                    className="relative mt-1 flex min-h-11 w-full items-center justify-center rounded-lg bg-fail/15 text-xs font-bold text-fail hover:bg-fail/25 touch-manipulation"
                                   >
-                                    ✕
+                                    ลบรูป
                                   </button>
                                 </div>
                               ))}
@@ -667,7 +668,7 @@ export function DefectSelector({
                               <button
                                 type="button"
                                 onClick={() => handleOpenSpotCamera(finding, "add")}
-                                className="min-h-10 inline-flex items-center gap-1.5 rounded-lg border border-carbon-600 bg-carbon-800 px-3 text-xs font-semibold text-ti-200 hover:border-amber-400 hover:text-amber-300 transition-colors"
+                                className="min-h-11 inline-flex items-center gap-1.5 rounded-lg border border-carbon-600 bg-carbon-800 px-3 py-2 text-xs font-semibold text-ti-200 hover:border-amber-400 hover:text-amber-300 transition-colors"
                               >
                                 <span>📷</span>
                                 <span>ถ่ายรูปเพิ่มสำหรับจุดนี้</span>
@@ -732,7 +733,7 @@ export function DefectSelector({
                         open={Boolean(finding.locationNote)}
                         className="group/loc rounded-xl border border-carbon-700/70 bg-carbon-900/60 px-3 py-2 min-w-0 w-full"
                       >
-                        <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-ti-300 hover:text-ti-100 [&::-webkit-details-marker]:hidden">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-medium text-ti-300 hover:text-ti-100 [&::-webkit-details-marker]:hidden">
                           <span>
                             + ระบุทิศทาง / รายละเอียดเพิ่มเติม{" "}
                             <span className="text-ti-400">(ไม่บังคับ)</span>
@@ -756,7 +757,7 @@ export function DefectSelector({
                                   type="button"
                                   aria-pressed={active}
                                   onClick={() => handleToggleLocationPreset(finding, chip)}
-                                  className={`min-h-9 shrink-0 snap-start inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium touch-manipulation transition-all whitespace-nowrap cursor-pointer ${
+                                  className={`min-h-11 shrink-0 snap-start inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium touch-manipulation transition-all whitespace-nowrap cursor-pointer ${
                                     active
                                       ? "border-ember-500 bg-ember-500/15 text-ember-400 font-bold ring-1 ring-ember-500"
                                       : "border-carbon-600 bg-carbon-800 text-ti-100 hover:border-amber-400 hover:bg-carbon-700"
@@ -785,7 +786,8 @@ export function DefectSelector({
                               placeholder="เช่น รอยยาว 2 ซม. ใกล้วาล์ว…"
                               value={finding.locationNote ?? ""}
                               onChange={(e) => handleLocationNoteChange(finding, e.target.value)}
-                              className="min-h-10 w-full rounded-lg border border-carbon-600 bg-carbon-900 px-3 text-xs sm:text-sm text-ti-50 placeholder:text-ti-400"
+                              aria-label={`รายละเอียดเพิ่มเติมของ ${finding.nameTh}`}
+                              className="min-h-11 w-full min-w-0 rounded-lg border border-carbon-600 bg-carbon-900 px-3 text-base sm:text-sm text-ti-50 placeholder:text-ti-400"
                             />
                           </label>
                         </div>
@@ -825,13 +827,15 @@ export function DefectSelector({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ค้นหาอาการหรือชิ้นส่วน (เช่น ถัง, ฐาน, สีถลอก)..."
-              className="min-h-10 w-full rounded-xl border border-carbon-600 bg-carbon-900/90 px-3.5 text-xs sm:text-sm text-ti-50 placeholder:text-ti-400 focus:border-amber-400 focus:outline-none"
+              aria-label="ค้นหาอาการหรือชิ้นส่วน"
+              className="min-h-12 w-full min-w-0 rounded-xl border border-carbon-600 bg-carbon-900/90 pl-3.5 pr-12 text-base sm:text-sm text-ti-50 placeholder:text-ti-400 focus:border-amber-400 focus:outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-xs text-ti-400 hover:text-ti-100"
+                aria-label="ล้างคำค้นหา"
+                className="absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 items-center justify-center text-sm text-ti-400 hover:text-ti-100"
               >
                 ✕
               </button>
@@ -867,7 +871,7 @@ export function DefectSelector({
                   type="button"
                   aria-expanded={isExpanded}
                   onClick={() => toggleExpand(group.nameTh)}
-                  className="flex min-h-14 w-full items-center gap-3 px-3.5 py-3 text-left touch-manipulation cursor-pointer"
+                  className="flex min-h-14 w-full flex-wrap items-center gap-2 px-3 py-3 text-left touch-manipulation cursor-pointer sm:flex-nowrap sm:gap-3 sm:px-3.5"
                 >
                   <span
                     aria-hidden="true"
@@ -879,7 +883,7 @@ export function DefectSelector({
                   >
                     {hasSelection ? "✓" : "•"}
                   </span>
-                  <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="min-w-0 flex-1 basis-[calc(100%-2.5rem)] space-y-0.5 sm:basis-auto">
                     <span className="block text-sm font-semibold text-ti-50 wrap-break-word">
                       {group.nameTh}
                     </span>
@@ -895,7 +899,7 @@ export function DefectSelector({
                       )}
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="ml-7 flex shrink-0 items-center gap-2 sm:ml-0">
                     <span
                       className={`rounded-md border px-1.5 py-0.5 text-xs font-semibold ${
                         group.severity === "CRITICAL"
@@ -927,7 +931,7 @@ export function DefectSelector({
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       {allAvailableParts.map((partName) => {
                         const matchingVariant = group.variants.find((v) => v.part === partName);
                         const baseDefect = matchingVariant
@@ -941,7 +945,7 @@ export function DefectSelector({
                             type="button"
                             aria-pressed={checked}
                             onClick={() => handleSelectDefectWithPart(baseDefect, partName)}
-                            className={`min-h-11 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs sm:text-sm font-medium touch-manipulation transition-all cursor-pointer ${
+                            className={`min-h-11 min-w-0 inline-flex items-center gap-2 rounded-lg border px-2 py-2 text-left text-xs sm:px-3 sm:text-sm font-medium touch-manipulation transition-all cursor-pointer ${
                               checked
                                 ? "border-fail bg-fail/20 text-fail font-bold ring-1 ring-fail"
                                 : "border-carbon-600 bg-carbon-900 text-ti-100 hover:border-amber-400 hover:bg-carbon-700"
@@ -1013,7 +1017,8 @@ export function DefectSelector({
               <button
                 type="button"
                 onClick={() => setLightboxPhoto(null)}
-                className="size-10 rounded-xl bg-carbon-800 text-ti-300 flex items-center justify-center text-lg hover:bg-carbon-700"
+                aria-label="ปิดรูปขยาย"
+                className="size-11 shrink-0 rounded-xl bg-carbon-800 text-ti-300 flex items-center justify-center text-lg hover:bg-carbon-700"
               >
                 ✕
               </button>

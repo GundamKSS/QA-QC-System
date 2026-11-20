@@ -28,6 +28,7 @@ export function InspectorHomeDashboard({ initialMonth }: Props) {
     qtyNeed: number;
     qtyDone: number;
     vendorName?: string | null;
+    role?: "QC" | "QA";
   } | null>(null);
 
   if (!data && error) return <LoadError message={error} onRetry={reload} />;
@@ -37,6 +38,8 @@ export function InspectorHomeDashboard({ initialMonth }: Props) {
   if (!payload) return null;
 
   const { urgentStatus, monthlyPerformance, quickActions, availableMonths } = payload;
+  const jobsHref = payload.jobsHref || "/jobs";
+  const isQa = payload.side === "QA";
   const dimmed = loading ? "opacity-60" : "";
 
   return (
@@ -83,10 +86,10 @@ export function InspectorHomeDashboard({ initialMonth }: Props) {
             )}
           </div>
           <Link
-            href="/jobs"
+            href={jobsHref}
             className="text-xs text-ti-400 hover:text-ember-400 flex items-center gap-1 transition-colors"
           >
-            <span>เปิดหน้ารายการงาน</span>
+            <span>{isQa ? "เปิดคิวสุ่มตรวจ QA" : "เปิดหน้ารายการงาน"}</span>
             <ChevronRightIcon className="size-3.5" />
           </Link>
         </div>
@@ -227,7 +230,7 @@ export function InspectorHomeDashboard({ initialMonth }: Props) {
             งานค้างที่ต้องดำเนินการ ({quickActions.length})
           </h2>
           <Link
-            href="/jobs"
+            href={jobsHref}
             className="text-xs text-ti-400 hover:text-ember-400 flex items-center gap-1 transition-colors"
           >
             <span>ดูทั้งหมด</span>
@@ -256,6 +259,7 @@ export function InspectorHomeDashboard({ initialMonth }: Props) {
                       qtyNeed: act.qtyNeed,
                       qtyDone: act.qtyDone,
                       vendorName: act.vendorName,
+                      role: act.role,
                     });
                   }
                 }}

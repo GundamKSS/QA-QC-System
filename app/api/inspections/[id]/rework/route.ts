@@ -2,6 +2,7 @@ import { dbFailure } from "@/lib/api/db";
 import { guardApi } from "@/lib/api/guard";
 import { apiData, apiError, apiJson } from "@/lib/api/response";
 import { audit, auditContext } from "@/lib/auth/audit";
+import { canInspectSide } from "@/lib/auth/roles";
 import { actorIdOf, NO_ACCOUNT, revalidateInspections } from "@/lib/inspections/api";
 import { getInspectionStore } from "@/lib/inspections/runtime";
 import type { SubmitReworkInput } from "@/lib/inspections/types";
@@ -27,6 +28,12 @@ export async function GET(
     const details = await store.getReworkDetails(id);
     if (!details) {
       return apiError(404, "ไม่พบข้อมูลการตรวจเดิมหรือรายการไม่ได้อยู่ในสถานะส่งซ่อม (Rework)");
+    }
+    const side = details.inspection.role === "QA" ? "QA" : "QC";
+    const actorId = await actorIdOf(guard.user);
+    const isAssignedInspector = Boolean(actorId && details.inspection.inspectorId === actorId);
+    if (!canInspectSide(guard.user.roles, side, guard.user.programRole) && !isAssignedInspector) {
+      return apiError(403, side === "QA" ? "บัญชีนี้ไม่มีสิทธิ์เข้าถึงงานซ่อมฝั่ง QA" : "บัญชีนี้ไม่มีสิทธิ์เข้าถึงงานซ่อมฝั่ง QC");
     }
     return apiData(details);
   } catch (err) {
@@ -62,6 +69,14 @@ export async function POST(
     if (!actorId) return apiError(403, NO_ACCOUNT);
 
     const store = getInspectionStore();
+    const details = await store.getReworkDetails(id);
+    if (details) {
+      const side = details.inspection.role === "QA" ? "QA" : "QC";
+      const isAssignedInspector = details.inspection.inspectorId === actorId;
+      if (!canInspectSide(actor.roles, side, actor.programRole) && !isAssignedInspector) {
+        return apiError(403, side === "QA" ? "บัญชีนี้ไม่มีสิทธิ์บันทึกงานซ่อมฝั่ง QA" : "บัญชีนี้ไม่มีสิทธิ์บันทึกงานซ่อมฝั่ง QC");
+      }
+    }
     const outcome = await store.submitRework(
       {
         parentInspectionId: id,

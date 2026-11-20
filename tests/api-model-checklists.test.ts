@@ -22,7 +22,7 @@ const masterAdmin = {
   id: "5",
   employeeCode: "TRW0005",
   fullName: "ผู้ดูแลข้อมูลหลัก",
-  roles: ["MASTER_ADMIN"],
+  roles: ["MASTERDATA_ADMIN"],
   mustChangePassword: false,
 };
 

@@ -39,13 +39,13 @@ describe("GET /api/history — access", () => {
     expect(touchedStore()).toBe(0);
   });
 
-  it.each(["ADMIN", "PM", "MASTER_ADMIN", "PURCHASING", "MANAGEMENT"])("refuses %s: history belongs to the QC and QA roles", async (role) => {
+  it.each(["PM", "MASTERDATA_ADMIN", "PURCHASING", "MANAGEMENT"])("refuses %s: history belongs to the QC, QA and Super Admin roles", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(touchedStore()).toBe(0);
   });
 
-  it.each(["QC_HEAD", "QC_INSPECTOR", "QA_HEAD", "QA_INSPECTOR"])("lets %s read", async (role) => {
+  it.each(["QC_HEAD", "QC_INSPECTOR", "QA_HEAD", "QA_INSPECTOR", "ADMIN"])("lets %s read", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     expect((await get()).status).toBe(200);
   });

@@ -30,7 +30,7 @@ import { POST as toggle } from "@/app/api/master/[table]/[id]/active/route";
 
 type Handler = (request: Request, context: { params: Promise<{ table: string; id: string }> }) => Promise<Response>;
 
-const masterAdmin = { id: "5", employeeCode: "TRW0005", fullName: "ผู้ดูแลข้อมูลหลัก", roles: ["MASTER_ADMIN"], mustChangePassword: false };
+const masterAdmin = { id: "5", employeeCode: "TRW0005", fullName: "ผู้ดูแลข้อมูลหลัก", roles: ["MASTERDATA_ADMIN"], mustChangePassword: false };
 const trail = { ip: "10.0.0.5", userAgent: "test" };
 const values = { name: "Puma", brand_group: "PUMA" };
 const brands = expect.objectContaining({ slug: "brands", table: "brands" });
@@ -76,7 +76,7 @@ describe.each(everyRoute)("%s — access rules shared by every master route", (_
     for (const database of databaseCalls()) expect(database).not.toHaveBeenCalled();
   });
 
-  it.each(["QC_HEAD", "PM", "ADMIN"])("refuses %s: they may read master data but only Master Admin edits it", async (role) => {
+  it.each(["QC_HEAD", "QA_HEAD", "PM"])("refuses %s: they may read master data but only Master Admin or Super Admin edits it", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...masterAdmin, roles: [role] });
     expect((await call(handler, values, { method })).status).toBe(403);
     for (const database of databaseCalls()) expect(database).not.toHaveBeenCalled();

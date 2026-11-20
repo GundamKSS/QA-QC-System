@@ -1,5 +1,6 @@
 import { unstable_rethrow } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/dal";
+import { hasAppAccess } from "@/lib/auth/roles";
 import { getWorkNotifications } from "@/lib/notifications/service";
 
 const headers = { "Cache-Control": "private, no-store", Vary: "Cookie" };
@@ -10,6 +11,7 @@ export async function GET() {
     const user = await getCurrentUser();
     if (!user) return Response.json({ error: "unauthenticated" }, { status: 401, headers });
     if (user.mustChangePassword) return Response.json({ error: "password_change_required" }, { status: 403, headers });
+    if (!hasAppAccess(user)) return Response.json({ error: "forbidden" }, { status: 403, headers });
     return Response.json(await getWorkNotifications(user), { headers });
   } catch (error) {
     unstable_rethrow(error);

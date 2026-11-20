@@ -6,7 +6,7 @@ import { claimUnitApi } from "@/lib/inspections/client";
 import { enqueueOfflineClaim, useNetworkSync } from "@/lib/inspections/offline-sync";
 import { validateSerial } from "@/lib/inspections/rules";
 import type { InspectionQuota, StoredInspection } from "@/lib/inspections/store";
-import type { SerialEntryMode } from "@/lib/inspections/types";
+import type { InspectionRole, SerialEntryMode } from "@/lib/inspections/types";
 import { LiveQuotaBadge } from "./LiveQuotaBadge";
 import { SerialInputGroup } from "./SerialInputGroup";
 
@@ -19,6 +19,7 @@ export type WorkOrderInfo = {
   qtyNeed: number;
   qtyDone: number;
   vendorName?: string | null;
+  role?: InspectionRole;
 };
 
 type Props = {
@@ -123,6 +124,7 @@ export function StartInspectionModal({
       const res = await claimUnitApi({
         planId: workOrder.planId,
         workOrderId: workOrder.id,
+        role: workOrder.role ?? "QC",
         serialPump: validation.serial,
         serialMotor: serialMotor.trim() || null,
         serialEntryMode,

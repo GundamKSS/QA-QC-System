@@ -160,7 +160,7 @@ export async function loadPlanDetail(planId: number, canEdit: boolean): Promise<
     }
 
     const activeWorkOrders = workOrders.filter(
-      (wo) => wo.status !== "CANCELLED" && wo.status !== "FAILED",
+      (wo) => wo.type !== "QA" && wo.status !== "CANCELLED" && wo.status !== "FAILED",
     );
 
     const incompleteWorkOrders: IncompleteWorkOrder[] = [];

@@ -12,12 +12,18 @@ import { deleteSession, readSession } from "@/lib/auth/session";
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request.headers)) return new Response(null, { status: 403 });
 
+  const reason = new URL(request.url).searchParams.get("reason");
+  const isIdle = reason === "idle";
   const session = await readSession();
   await deleteSession();
   if (session) {
-    audit({ action: "logout", employeeCode: session.employeeCode, userId: session.id }, auditContext(request.headers));
+    audit(
+      { action: isIdle ? "logout.idle" : "logout", employeeCode: session.employeeCode, userId: session.id },
+      auditContext(request.headers),
+    );
   }
   // Relative Location: the browser resolves it against the host it used (LAN IP, proxy
   // hostname). `NextResponse.redirect` would need an absolute URL built from the bind address.
-  return new Response(null, { status: 303, headers: { Location: authPolicy.loginPath } });
+  const destination = isIdle ? `${authPolicy.loginPath}?idle=1` : authPolicy.loginPath;
+  return new Response(null, { status: 303, headers: { Location: destination } });
 }

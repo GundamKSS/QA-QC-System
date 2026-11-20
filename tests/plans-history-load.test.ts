@@ -54,11 +54,12 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("isHistoryHead", () => {
-  it("is QC Head and QA Head only", () => {
+  it("is QC Head, QA Head and Super Admin", () => {
     expect(isHistoryHead(["QC_HEAD"])).toBe(true);
     expect(isHistoryHead(["QA_HEAD"])).toBe(true);
+    expect(isHistoryHead(["ADMIN"])).toBe(true);
     expect(isHistoryHead(["QA_INSPECTOR", "QC_HEAD"])).toBe(true);
-    for (const role of ["QC_INSPECTOR", "QA_INSPECTOR", "ADMIN", "PM", "MASTER_ADMIN"] as const) expect(isHistoryHead([role])).toBe(false);
+    for (const role of ["QC_INSPECTOR", "QA_INSPECTOR", "PM", "MASTERDATA_ADMIN"] as const) expect(isHistoryHead([role])).toBe(false);
   });
 });
 

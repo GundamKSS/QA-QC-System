@@ -18,7 +18,7 @@ export const PLAN_STATUSES = [
 ] as const;
 export type PlanStatus = (typeof PLAN_STATUSES)[number];
 
-export type WorkOrderType = "QC" | "CALLIN_FIX";
+export type WorkOrderType = "QC" | "CALLIN_FIX" | "QA";
 
 export const DEFAULT_QC_PERCENT = 10;
 /** BR-02 (user 28 Oct 2026): lots up to this size inspect a fixed SMALL_LOT_QC units instead of the %. */
@@ -298,8 +298,8 @@ export const PLAN_STATUS_NAMES: Record<PlanStatus, string> = {
   ASSIGNED: "มอบหมายงานแล้ว",
   QC_IN_PROGRESS: "กำลังตรวจ QC",
   QC_REVIEW: "QC ครบ – รอหัวหน้าตรวจทาน",
-  QA_PENDING: "ส่งต่อ QA (รอตรวจ)",
-  QA_IN_PROGRESS: "QA กำลังตรวจ",
+  QA_PENDING: "รอฝ่าย QA รับงาน",
+  QA_IN_PROGRESS: "QA รับงานแล้ว / กำลังตรวจ",
   ON_HOLD: "QA พักล็อต",
   QA_LOT_REJECTED: "QA ตีกลับทั้งล็อต",
   REPORT_REVIEW: "รออนุมัติ Report",
@@ -352,7 +352,7 @@ export const WORK_ORDER_STATUS_LABELS: Record<WorkOrderStatus, string> = {
 };
 
 /** J3: "Rework" call-ins are called "เรียกเข้าแก้ไข" so they aren't confused with per-unit Rework sheets. */
-export const WORK_ORDER_TYPE_LABELS: Record<WorkOrderType, string> = { QC: "QC", CALLIN_FIX: "เรียกเข้าแก้ไข" };
+export const WORK_ORDER_TYPE_LABELS: Record<WorkOrderType, string> = { QC: "QC", CALLIN_FIX: "เรียกเข้าแก้ไข", QA: "QA" };
 
 /** Work orders still in an inspector's hands — they count toward the workload gauge (docs/16 §4.1). */
 export const OPEN_WORK_ORDER_STATUSES: readonly WorkOrderStatus[] = ["IN_PROGRESS", "RETURNED"];

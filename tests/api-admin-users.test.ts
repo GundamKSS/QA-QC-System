@@ -81,7 +81,7 @@ describe("GET /api/admin/users (list)", () => {
     expect(mocks.loadLocalUsers).not.toHaveBeenCalled();
   });
 
-  it.each(["QC_INSPECTOR", "QA_HEAD", "PM"])("refuses %s, who may not open the users page", async (role) => {
+  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PM"])("refuses %s, who may not open the users page", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...admin, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(mocks.loadLocalUsers).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe("GET /api/admin/users (list)", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(payload);
     expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(mocks.loadLocalUsers).toHaveBeenCalledWith("store", [role]);
+    expect(mocks.loadLocalUsers).toHaveBeenCalledWith("store", [role], undefined);
   });
 
   it("needs no PIN pepper (it only reads) and writes no audit row or cache refresh", async () => {

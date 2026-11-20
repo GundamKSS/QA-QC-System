@@ -6,9 +6,10 @@ import { audit, auditContext, auditedCode } from "@/lib/auth/audit";
 import { authenticate } from "@/lib/auth/authenticate";
 import { EMPLOYEE_CODE_MAX, normalizeEmployeeCode, PASSWORD_MAX, safeNextPath } from "@/lib/auth/employee-code";
 import { getLocalStore } from "@/lib/auth/local-runtime";
+import { hasAppAccess, resolveEffectiveRoles } from "@/lib/auth/roles";
 import { isSameOriginRequest } from "@/lib/auth/same-origin";
 import { createSession } from "@/lib/auth/session";
-import type { LoginState } from "@/lib/auth/types";
+import type { LoginState, SessionUser } from "@/lib/auth/types";
 import { authPolicy } from "@/lib/config/auth";
 import { dbConfigured } from "@/lib/db/config";
 import { syncUserOnLogin } from "@/lib/db/users";
@@ -46,27 +47,38 @@ export async function POST(request: Request) {
   const result = await authenticate(rawCode ?? employeeCode, password, { ip: context.ip });
 
   if (result.kind === "success") {
-    const { user } = result;
-    // Persist the user + role snapshot (DEC-09). Only for central logins and only when a DB is configured.
-    if (process.env.QCHECK_AUTH !== "mock" && user.source !== "LOCAL" && dbConfigured()) {
+    let sessionUser: SessionUser = result.user;
+    // Persist the user + ProgramPermission level, then read QCheck sub-roles from dbo.user_roles.
+    // Only for central logins and only when a DB is configured.
+    if (process.env.QCHECK_AUTH !== "mock" && sessionUser.source !== "LOCAL" && dbConfigured()) {
       try {
-        await syncUserOnLogin(user);
+        const synced = await syncUserOnLogin(sessionUser);
+        if (synced) {
+          sessionUser = {
+            ...sessionUser,
+            id: synced.id,
+            roles: resolveEffectiveRoles(sessionUser.programRole, synced.roles),
+          };
+        }
       } catch (error) {
         // The central system already vouched for this user and the session cookie carries their
-        // profile and roles, so a database outage must not lock office staff out. The snapshot is
-        // refreshed on their next login; the failure is logged and audited.
+        // profile and programRole, so a database outage must not lock office staff out.
         console.error("[db] user sync failed", error instanceof Error ? error.message : error);
-        audit({ action: "login.unavailable", employeeCode: user.employeeCode, userId: user.id, reason: "database user sync" }, context);
+        audit({ action: "login.unavailable", employeeCode: sessionUser.employeeCode, userId: sessionUser.id, reason: "database user sync" }, context);
       }
     }
-    if (user.source === "LOCAL") await getLocalStore().touchLogin(user.id).catch(() => {});
-    await createSession(user);
-    audit({ action: "login.success", employeeCode: user.employeeCode, userId: user.id }, context);
+    if (sessionUser.source === "LOCAL") await getLocalStore().touchLogin(sessionUser.id).catch(() => {});
+    await createSession(sessionUser);
+    audit({ action: "login.success", employeeCode: sessionUser.employeeCode, userId: sessionUser.id }, context);
     if (result.unknownRoles?.length) {
-      audit({ action: "login.unknown_role", employeeCode: user.employeeCode, userId: user.id, roles: result.unknownRoles }, context);
+      audit({ action: "login.unknown_role", employeeCode: sessionUser.employeeCode, userId: sessionUser.id, roles: result.unknownRoles }, context);
     }
-    const next = user.mustChangePassword ? authPolicy.changePasswordPath : safeNextPath(fields.get("next"), authPolicy.homePath);
-    return answer({ status: "success", employeeCode, next, fullName: user.fullName, at });
+    const next = sessionUser.mustChangePassword
+      ? authPolicy.changePasswordPath
+      : !hasAppAccess(sessionUser)
+        ? authPolicy.noAccessPath
+        : safeNextPath(fields.get("next"), authPolicy.homePath);
+    return answer({ status: "success", employeeCode, next, fullName: sessionUser.fullName, at });
   }
 
   const logged = { employeeCode: auditedCode(result.account, employeeCode), userId: result.account?.id };

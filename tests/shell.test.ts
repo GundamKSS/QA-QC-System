@@ -45,13 +45,13 @@ describe("app navigation", () => {
       expect(canSeeMaster([role])).toBe(false);
     }
     expect(canOpenPlan(["QC_HEAD"])).toBe(true);
-    expect(canOpenPlan(["QA_HEAD"])).toBe(true);
+    expect(canOpenPlan(["QA_HEAD"])).toBe(false);
     expect(canOpenPlan(["ADMIN"])).toBe(true);
-    for (const role of ["MASTER_ADMIN", "PURCHASING", "PM", "MANAGEMENT"] as const) expect(canOpenPlan([role])).toBe(false);
+    for (const role of ["MASTERDATA_ADMIN", "PURCHASING", "PM", "MANAGEMENT"] as const) expect(canOpenPlan([role])).toBe(false);
   });
 
   it("only enables destinations that have pages", () => {
-    for (const path of ["/home", "/more", "/alerts", "/admin/users", "/master", "/plans", "/plans/new", "/plans/12", "/plans/12?tab=history", "/plans/12/work-orders/new", "/jobs", "/scan", "/settings", "/qa-queue", "/reports"]) expect(isAvailable(path)).toBe(true);
+    for (const path of ["/home", "/more", "/alerts", "/admin/users", "/admin/audit", "/master", "/plans", "/plans/new", "/plans/12", "/plans/12?tab=history", "/plans/12/work-orders/new", "/jobs", "/scan", "/settings", "/qa-queue", "/reports"]) expect(isAvailable(path)).toBe(true);
     for (const path of ["/plans/plan-001", "/checklists"]) expect(isAvailable(path)).toBe(false);
   });
 

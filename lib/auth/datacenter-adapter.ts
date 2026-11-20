@@ -1,6 +1,6 @@
 import "server-only";
 import { authPolicy } from "@/lib/config/auth";
-import { devRoleAllowed, parseRoleProg } from "./roles";
+import { parseProgramRole, resolveEffectiveRoles } from "./roles";
 import type {
   DatacenterAuthResponse,
   DatacenterProgram,
@@ -150,23 +150,26 @@ export async function authenticateWithDatacenter(
       };
     }
 
-    // Roles come only from role_prog of this program — never from the top-level `role`.
-    const { roles, unknown } = parseRoleProg(permission.program.role_prog, { allowDev: devRoleAllowed() });
-    if (roles.length === 0) {
+    // ProgramPermission carries coarse levels only (User / Admin / Dev); granular sub-roles live in QCheck's DB.
+    const { programRole, unknown } = parseProgramRole(permission.program.role_prog);
+    if (!programRole) {
       return {
         kind: "forbidden",
-        reason: `บัญชีนี้ยังไม่ได้รับบทบาทใน QA & QC System (${targetProgramCode}) กรุณาติดต่อผู้ดูแลระบบ`,
+        reason: `บัญชีนี้ยังไม่ได้รับบทบาทระดับโปรแกรม (User / Admin / Dev) ใน QA & QC System (${targetProgramCode}) กรุณาติดต่อผู้ดูแลระบบ`,
         account,
         unknownRoles: unknown,
       };
     }
 
     // access_token stays here: it never reaches the session or the browser.
+    // For DEV, resolveEffectiveRoles immediately grants all QCheck roles; for USER/ADMIN,
+    // sub-roles are loaded from dbo.user_roles right after login.
     const user: SessionUser = {
       id: account.id,
       employeeCode: account.employeeCode,
       fullName: data.display_name || data.employee_no,
-      roles,
+      roles: resolveEffectiveRoles(programRole, []),
+      programRole,
       mustChangePassword: false,
       email: data.email || undefined,
     };

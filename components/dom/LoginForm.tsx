@@ -60,6 +60,7 @@ export function LoginForm() {
   const online = useOnline();
   const reducedMotion = useReducedMotion();
   const nextPath = useSearchParam("next");
+  const idleSignedOut = useSearchParam("idle") === "1";
   const ids = useId();
 
   const codeRef = useRef<HTMLInputElement>(null);
@@ -268,6 +269,12 @@ export function LoginForm() {
     >
       {/* Live regions stay mounted (never display:none) so screen readers announce changes. */}
       <div role="status">
+        {idleSignedOut && state.status === "idle" && (
+          <p className="mb-5 flex items-center gap-2 rounded-control border border-ember-500/40 bg-carbon-900/70 px-4 py-3 text-sm text-ti-200">
+            <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-ember-400" />
+            <span>ออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งานบนเครื่องส่วนกลาง กรุณาเข้าสู่ระบบใหม่</span>
+          </p>
+        )}
         {!online && (
           <p className="mb-5 flex items-center gap-2 rounded-control border border-carbon-600 bg-carbon-900/60 px-4 py-3 text-sm text-ti-200">
             <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-ti-500" />

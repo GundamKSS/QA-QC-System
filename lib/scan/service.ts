@@ -35,7 +35,11 @@ export type ScanLookupResult =
 export async function lookupScan(user: SessionUser, rawCode: string): Promise<ScanLookupResult> {
   const code = rawCode.trim();
   const isDevUser = user.id === "2" || user.employeeCode === "DEV" || user.employeeCode === "TRW0002";
-  const jobsPayload = await loadJobs(user, "mine");
+  const hasQa = user.roles.includes("QA_INSPECTOR") || user.roles.includes("QA_HEAD");
+  const hasQc = user.roles.includes("QC_INSPECTOR") || user.roles.includes("QC_HEAD");
+  const side: "QA" | "QC" | undefined = hasQa && !hasQc ? "QA" : hasQc && !hasQa ? "QC" : undefined;
+
+  const jobsPayload = await loadJobs(user, "mine", side);
   const me = jobsPayload.me;
 
   // Filter open jobs that this user is assigned to AND has NOT completed yet
@@ -87,9 +91,9 @@ export async function lookupScan(user: SessionUser, rawCode: string): Promise<Sc
     // Try finding an active open work order where user has quota remaining
     let matched = openJobs.find((job) => isMatchingJob(job));
 
-    // If not found in user's assigned active jobs, but user is QC_HEAD, check all jobs
-    if (!matched && !completedJob && user.roles.includes("QC_HEAD")) {
-      const allPayload = await loadJobs(user, "all");
+    // If not found in user's assigned active jobs, but user is QC_HEAD, QA_HEAD, or ADMIN, check all jobs for their side
+    if (!matched && !completedJob && (user.roles.includes("QC_HEAD") || user.roles.includes("QA_HEAD") || user.roles.includes("ADMIN"))) {
+      const allPayload = await loadJobs(user, "all", side);
       const allOpen = allPayload.jobs.filter(
         (j) => OPEN_WORK_ORDER_STATUSES.includes(j.status) && !isJobCompletedForUser(j, me),
       );

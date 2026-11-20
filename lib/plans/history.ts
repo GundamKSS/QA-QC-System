@@ -12,8 +12,9 @@ import type { JobCard } from "./store";
  * it reaches the database.
  */
 
-/** QC Head and QA Head see everyone's and can narrow to their own ("ของฉัน"), and can open the plan behind a work order. Everyone else sees their own only. */
-export const isHistoryHead = (roles: readonly Role[]) => roles.includes("QC_HEAD") || roles.includes("QA_HEAD");
+/** QC Head, QA Head and Super Admin see everyone's and can narrow to their own ("ของฉัน"), and can open the plan behind a work order. Everyone else sees their own only. */
+export const isHistoryHead = (roles: readonly Role[]) =>
+  roles.includes("QC_HEAD") || roles.includes("QA_HEAD") || roles.includes("ADMIN");
 
 /** A work order as the history screen draws it. Only what is drawn leaves the server (no remarks, plan number or employee codes). */
 export type HistoryItem = Pick<

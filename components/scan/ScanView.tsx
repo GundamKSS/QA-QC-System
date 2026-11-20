@@ -14,8 +14,12 @@ import type { ScanLookupResult } from "@/lib/scan/service";
 import type { SerialEntryMode } from "@/lib/inspections/types";
 import { playScanSuccessSound, triggerScanHaptic } from "@/lib/scan/feedback";
 
-export function ScanView() {
-  const { data: jobsPayload, loading: jobsLoading, error: jobsError, reload: reloadJobs } = useJobsData("mine", null);
+type ScanViewProps = {
+  side?: "QA" | "QC";
+};
+
+export function ScanView({ side }: ScanViewProps = {}) {
+  const { data: jobsPayload, loading: jobsLoading, error: jobsError, reload: reloadJobs } = useJobsData("mine", null, side);
 
   const [cameraOpen, setCameraOpen] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
@@ -102,6 +106,7 @@ export function ScanView() {
       qtyNeed: job.qtyNeed,
       qtyDone: job.qtyDone,
       vendorName: job.vendorName,
+      role: job.type === "QA" ? "QA" : "QC",
     });
     setSelectedSerial(serial);
   }

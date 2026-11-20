@@ -79,7 +79,7 @@ export function RunnerActionDock({
         {/* 1. Pass / NG / N/A Selection Grid (Always accessible on PASS_FAIL steps so reviewing earlier steps never wipes data blindly) */}
         {isPassFail && (
           <div className="space-y-1.5">
-            <p className="truncate text-center text-[11px] text-ti-400">
+            <p className="text-center text-xs leading-relaxed text-ti-400">
               {allDone
                 ? "ตรวจครบทุกข้อแล้ว · แตะปุ่มด้านล่างหากต้องการเปลี่ยนผลข้อนี้"
                 : isDone && isFail
@@ -153,7 +153,7 @@ export function RunnerActionDock({
           <button
             type="button"
             onClick={onSummary}
-            className={`${isPassFail ? "mt-2.5" : ""} h-12 w-full rounded-2xl bg-pass text-sm font-bold text-white shadow-md transition-all hover:opacity-90 flex items-center justify-center gap-2 animate-slide-up cursor-pointer`}
+            className={`${isPassFail ? "mt-2.5" : ""} min-h-12 w-full rounded-2xl bg-pass px-3 py-2 text-sm font-bold text-white shadow-md transition-all hover:opacity-90 flex items-center justify-center gap-2 animate-slide-up cursor-pointer`}
           >
             <span>ตรวจครบทุกหัวข้อแล้ว · ดูสรุปและบันทึกผล ✓</span>
           </button>

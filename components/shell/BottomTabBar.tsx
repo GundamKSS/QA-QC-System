@@ -2,14 +2,14 @@
 
 import { ShellLink } from "./ShellLink";
 import { usePathname } from "next/navigation";
-import type { Role } from "@/lib/auth/types";
+import type { ProgramRole, Role } from "@/lib/auth/types";
 import { bottomTabs, isActive } from "./nav";
 import { NavIcon } from "./NavIcon";
 import { useKeyboardOpen } from "@/lib/hooks/useBrowserState";
 import { NotificationBadge } from "@/components/notifications/NotificationBadge";
 
 /** Mobile (< 768 px) compact bottom tab bar (up to 6 tabs). */
-export function BottomTabBar({ roles }: { roles: Role[] }) {
+export function BottomTabBar({ roles, programRole }: { roles: Role[]; programRole?: ProgramRole }) {
   const pathname = usePathname();
   const keyboardOpen = useKeyboardOpen();
   // Hide bottom navigation during active checklist/rework runner sessions to prevent accidental exits and free thumb space.
@@ -18,10 +18,10 @@ export function BottomTabBar({ roles }: { roles: Role[] }) {
   return (
     <nav
       aria-label="เมนูหลัก"
-      className="app-navigation app-mobile-tabs md:hidden fixed bottom-0 inset-x-0 z-40 bg-carbon-950/95 backdrop-blur-md border-t border-carbon-700/80 pb-[env(safe-area-inset-bottom)] select-none shadow-lg"
+      className="app-navigation app-mobile-tabs md:hidden fixed bottom-0 inset-x-0 z-40 bg-carbon-900 backdrop-blur-md border-t border-carbon-700/80 pb-[env(safe-area-inset-bottom)] select-none shadow-lg"
     >
       <ul className="flex h-12 items-stretch px-0.5">
-        {bottomTabs(roles).map((tab) => {
+        {bottomTabs(roles, programRole).map((tab) => {
           const active = isActive(pathname, tab);
           return (
             <li key={tab.href} className="min-w-0 flex-1 basis-0">

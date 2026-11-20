@@ -23,7 +23,8 @@ function WorkOrderStatusBadge({ workOrder }: { workOrder: WorkOrderRow }) {
   const isComplete =
     workOrder.status === "SUBMITTED" ||
     (workOrder.status === "IN_PROGRESS" &&
-      workOrder.type === "QC" &&
+      (workOrder.type === "QC" || workOrder.type === "QA") &&
+      workOrder.qtyNeed > 0 &&
       workOrder.qtyDone >= workOrder.qtyNeed &&
       (workOrder.reworkCount ?? 0) === 0);
 
@@ -62,9 +63,10 @@ export function WorkOrdersTab({ plan, canManage, opened }: Props) {
 
   const { workOrders, inspectors } = data;
   const remaining = plan.lotQty - plan.lotCalledTotal;
-  const callIns = workOrders.filter((wo) => wo.status !== "CANCELLED").length;
+  const qcWorkOrders = workOrders.filter((wo) => wo.type !== "QA");
+  const callIns = qcWorkOrders.filter((wo) => wo.status !== "CANCELLED").length;
   const totalReworks = workOrders.reduce((sum, wo) => sum + (wo.reworkCount ?? 0), 0);
-  const nextSeq = Math.max(0, ...workOrders.map((wo) => wo.seq)) + 1;
+  const nextSeq = Math.max(0, ...qcWorkOrders.map((wo) => wo.seq)) + 1;
   const blocked = !canOpenWorkOrder(plan.status) ? "แผนนี้เสร็จ ยกเลิก หรือถูกพักล็อตแล้ว" : remaining <= 0 ? "ล็อตนี้เรียกเข้าครบแล้ว" : null;
   const justOpened = opened ? workOrders.find((wo) => wo.woNo === opened) : undefined;
 
@@ -149,7 +151,7 @@ export function WorkOrdersTab({ plan, canManage, opened }: Props) {
                         <span>{wo.qtyDone}</span>
                         {!isCancelled && wo.reworkCount > 0 && (
                           <span className="ml-2 inline-flex items-center rounded bg-fail/20 px-1.5 py-0.5 text-xs font-semibold text-fail border border-fail/40" title={`มีงานค้าง Rework ${wo.reworkCount} เครื่อง`}>
-                            ⚠️ แก้ {wo.reworkCount}
+                            แก้ {wo.reworkCount}
                           </span>
                         )}
                       </td>
@@ -188,7 +190,7 @@ export function WorkOrdersTab({ plan, canManage, opened }: Props) {
                     Need {wo.qtyNeed} · ตรวจแล้ว {wo.qtyDone}
                     {!isCancelled && wo.reworkCount > 0 && (
                       <span className="ml-2 inline-flex items-center rounded bg-fail/20 px-1.5 py-0.2 text-xs font-semibold text-fail border border-fail/40">
-                        ⚠️ ค้างแก้ {wo.reworkCount} เครื่อง
+                        ค้างแก้ {wo.reworkCount} เครื่อง
                       </span>
                     )}
                   </p>
@@ -207,6 +209,13 @@ export function WorkOrdersTab({ plan, canManage, opened }: Props) {
 
 function People({ workOrder }: { workOrder: WorkOrderRow }) {
   const isCancelled = workOrder.status === "CANCELLED";
+  if (workOrder.type === "QA" && workOrder.assignees.length === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 text-xs font-medium text-sky-300">
+        ฝ่าย QA (สุ่มตรวจตาม AQL)
+      </span>
+    );
+  }
   return (
     <ol className="space-y-1.5 text-xs">
       {workOrder.assignees.map((person) => {
@@ -238,6 +247,18 @@ function People({ workOrder }: { workOrder: WorkOrderRow }) {
 }
 
 function RowActions({ planId, workOrder, inspectors }: { planId: number; workOrder: WorkOrderRow; inspectors: Inspector[] }) {
+  if (workOrder.type === "QA") {
+    return (
+      <div className="flex justify-end">
+        <Link
+          href="/qa-queue"
+          className="inline-flex h-8 items-center rounded-control border border-sky-500/40 bg-sky-500/10 px-2.5 text-xs font-semibold text-sky-300 hover:bg-sky-500/20"
+        >
+          ไปหน้าคิว QA →
+        </Link>
+      </div>
+    );
+  }
   const isComplete =
     workOrder.status === "SUBMITTED" ||
     workOrder.status === "CLOSED" ||

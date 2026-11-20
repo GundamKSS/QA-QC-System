@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { LoadError } from "@/components/feedback/LoadError";
 import { useApiRead } from "@/lib/api/client";
@@ -83,7 +84,7 @@ export function InspectionsTab({ planId }: Props) {
             filter === "pass" ? "bg-pass/20 text-pass border-pass/40" : "bg-carbon-800 text-ti-400 border-carbon-700 hover:text-ti-200"
           }`}
         >
-          <span>✓ ผ่าน</span>
+          <span>ผ่าน</span>
           <span className="font-mono text-[11px] font-semibold">{summary.passCount}</span>
         </button>
         {summary.reworkCount > 0 && (
@@ -94,7 +95,7 @@ export function InspectionsTab({ planId }: Props) {
               filter === "rework" ? "bg-fail/20 text-fail border-fail/40" : "bg-carbon-800 text-fail border-carbon-700 hover:border-fail/30"
             }`}
           >
-            <span>⚠️ รอ Rework</span>
+            <span>รอ Rework</span>
             <span className="font-mono text-[11px] font-semibold">{summary.reworkCount}</span>
           </button>
         )}
@@ -134,10 +135,13 @@ export function InspectionsTab({ planId }: Props) {
                   <th scope="col" className="px-3 py-2.5 font-medium">ข้อบกพร่องที่พบ</th>
                   <th scope="col" className="px-3 py-2.5 font-medium">ผู้ตรวจ</th>
                   <th scope="col" className="px-3 py-2.5 font-medium">เวลาที่บันทึก</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium text-right">ดำเนินการ</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredInspections.map((item) => (
+                {filteredInspections.map((item) => {
+                  const needsRework = item.result === "NOT_PASSED" && item.failureDecision === "REWORK";
+                  return (
                   <tr key={item.id} className="border-t border-carbon-700 align-top text-ti-200 hover:bg-carbon-750 transition-colors">
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -180,8 +184,19 @@ export function InspectionsTab({ planId }: Props) {
                     <td className="px-3 py-2.5 text-xs text-ti-400">
                       {item.submittedAt ? when.format(new Date(item.submittedAt)) : dateText(item.startedAt)}
                     </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {needsRework && (
+                        <Link
+                          href={`/inspections/${item.id}/rework`}
+                          className="inline-flex h-8 items-center rounded-control bg-fail px-3 text-xs font-semibold text-carbon-900 hover:brightness-105"
+                        >
+                          ตรวจแก้เฉพาะข้อ
+                        </Link>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -221,6 +236,14 @@ export function InspectionsTab({ planId }: Props) {
                   <span>ผู้ตรวจ: {item.inspectorName}</span>
                   <span>{item.submittedAt ? when.format(new Date(item.submittedAt)) : dateText(item.startedAt)}</span>
                 </div>
+                {item.result === "NOT_PASSED" && item.failureDecision === "REWORK" && (
+                  <Link
+                    href={`/inspections/${item.id}/rework`}
+                    className="flex h-10 w-full items-center justify-center rounded-control bg-fail text-xs font-semibold text-carbon-900 hover:brightness-105"
+                  >
+                    ตรวจแก้เฉพาะข้อที่ไม่ผ่าน
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -243,14 +266,14 @@ function ResultBadge({
     return <span className="inline-block rounded-full border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">กำลังตรวจ...</span>;
   }
   if (result === "PASS") {
-    return <span className="inline-block rounded-full border border-pass/50 bg-pass/20 px-2 py-0.5 text-xs font-medium text-pass">✓ ผ่าน</span>;
+    return <span className="inline-block rounded-full border border-pass/50 bg-pass/20 px-2 py-0.5 text-xs font-medium text-pass">ผ่าน</span>;
   }
   if (result === "CONCESSION") {
-    return <span className="inline-block rounded-full border border-amber-500/50 bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300">⚠️ อนุโลม</span>;
+    return <span className="inline-block rounded-full border border-amber-500/50 bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300">อนุโลม</span>;
   }
   if (result === "NOT_PASSED") {
     if (decision === "REWORK") {
-      return <span className="inline-block rounded-full border border-fail/50 bg-fail/20 px-2 py-0.5 text-xs font-medium text-fail">⚠️ รอ Rework</span>;
+      return <span className="inline-block rounded-full border border-fail/50 bg-fail/20 px-2 py-0.5 text-xs font-medium text-fail">รอ Rework</span>;
     }
     if (decision === "REJECT") {
       return <span className="inline-block rounded-full border border-carbon-600 bg-carbon-700 px-2 py-0.5 text-xs text-ti-300">✕ Reject</span>;

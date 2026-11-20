@@ -1,13 +1,16 @@
 import { Suspense } from "react";
+import { JobsView } from "@/components/jobs/JobsView";
 import { requirePageAccess } from "@/lib/auth/dal";
-import { QaQueueView } from "@/components/qa-queue/QaQueueView";
+import { jobsView } from "@/lib/plans/jobs";
 
 export const metadata = {
   title: "คิวงานสุ่มตรวจ QA | QCheck",
-  description: "รายการล็อตที่รอ QA สุ่มตรวจรับรองคุณภาพตามเกณฑ์ AQL",
+  description: "งานสุ่มตรวจ QA ที่ได้รับมอบหมายและงานที่ต้องตรวจต่อตามเกณฑ์ AQL",
 };
 
-export default function QaQueuePage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export default function QaQueuePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   return (
     <Suspense
       fallback={
@@ -16,12 +19,23 @@ export default function QaQueuePage() {
         </div>
       }
     >
-      <QaQueueContent />
+      <QaQueueContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function QaQueueContent() {
-  await requirePageAccess("qa-queue");
-  return <QaQueueView />;
+async function QaQueueContent({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const user = await requirePageAccess("qa-queue", "/qa-queue");
+  const { view, notification } = await searchParams;
+  const isHead = user.roles.includes("QA_HEAD") || user.roles.includes("ADMIN");
+
+  return (
+    <JobsView
+      side="QA"
+      isHead={isHead}
+      view={jobsView(user.roles, view, "QA")}
+      notification={typeof notification === "string" ? notification : null}
+      baseUrl="/qa-queue"
+    />
+  );
 }

@@ -273,7 +273,7 @@ export const changePasswordCopy = {
 
 export const roleLabels: Record<string, string> = {
   ADMIN: "Admin",
-  MASTER_ADMIN: "Master Admin",
+  MASTERDATA_ADMIN: "Master Data Admin",
   QC_HEAD: "QC Head",
   QC_INSPECTOR: "QC Inspector",
   QA_HEAD: "QA Head",
@@ -283,4 +283,10 @@ export const roleLabels: Record<string, string> = {
   MANAGEMENT: "ผู้บริหาร",
   DEV: "Developer",
   dev: "Developer",
+};
+
+export const programRoleLabels: Record<string, string> = {
+  USER: "User (ผู้ใช้ทั่วไป)",
+  ADMIN: "Admin (ผู้ดูแลระบบ)",
+  DEV: "Dev (นักพัฒนา — เห็นทุกหน้า)",
 };

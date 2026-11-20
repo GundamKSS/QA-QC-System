@@ -1,7 +1,7 @@
 /** Roles from docs/02 §1 (one user can hold several — FR-AUTH-04). */
 export const ROLES = [
   "ADMIN",
-  "MASTER_ADMIN",
+  "MASTERDATA_ADMIN",
   "QC_HEAD",
   "QC_INSPECTOR",
   "QA_HEAD",
@@ -12,6 +12,11 @@ export const ROLES = [
 ] as const;
 
 export type Role = (typeof ROLES)[number];
+
+/** Coarse permission level coming from Datacenter ProgramPermission (`role_prog` of PRG003). */
+export const PROGRAM_ROLES = ["USER", "ADMIN", "DEV"] as const;
+
+export type ProgramRole = (typeof PROGRAM_ROLES)[number];
 
 export type Affiliation = "TRW" | "PUMA";
 
@@ -66,6 +71,10 @@ export type SessionUser = {
   employeeCode: string;
   fullName: string;
   roles: Role[];
+  /** Coarse permission level from Datacenter ProgramPermission (`USER` | `ADMIN` | `DEV`). Absent for LOCAL/mock. */
+  programRole?: ProgramRole;
+  /** True only when a DEV account is actively impersonating another user (stored inside encrypted JWE cookie). */
+  impersonatedByDev?: boolean;
   mustChangePassword: boolean;
   email?: string;
   /** Field staff (no central account) sign in with a PIN — DEC-12. Absent = CENTRAL. */

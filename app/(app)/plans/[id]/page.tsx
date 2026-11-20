@@ -23,13 +23,14 @@ async function Plan({ params, searchParams }: { params: Promise<{ id: string }>;
   const { id } = await params;
   if (!/^\d{1,12}$/.test(id)) notFound();
   const user = await requirePageAccess("plans", `/plans/${id}`);
+  const isQcHeadOrAdmin = user.roles.includes("QC_HEAD") || user.roles.includes("ADMIN");
   return (
     <PlanDetailView
       planId={Number(id)}
       {...parsePlanDetailQuery(await searchParams)}
       canEdit={canAccessPage(user.roles, "plan-open")}
       canManageWork={canAccessPage(user.roles, "work-order")}
-      isHead={user.roles.includes("QC_HEAD") || user.roles.includes("QA_HEAD")}
+      isHead={isQcHeadOrAdmin}
     />
   );
 }

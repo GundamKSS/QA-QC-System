@@ -18,7 +18,22 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (planId === null) return apiError(404, PLAN_NOT_FOUND);
   try {
     const result = await loadPlanDetail(planId, canAccessPage(guard.user.roles, "plan-open"));
-    return result.kind === "loaded" ? apiData(result.payload) : apiError(404, PLAN_NOT_FOUND);
+    if (result.kind !== "loaded") return apiError(404, PLAN_NOT_FOUND);
+
+    // ฝั่ง QA จะเห็นแผนได้เฉพาะเมื่อ Head QC ได้กดส่งต่องานมาให้ QA แล้วเท่านั้น (QA_PENDING, QA_IN_PROGRESS, COMPLETED)
+    const isQaOnly =
+      guard.user.roles.includes("QA_HEAD") &&
+      !guard.user.roles.includes("QC_HEAD") &&
+      !guard.user.roles.includes("ADMIN");
+    if (isQaOnly && result.payload?.plan?.status) {
+      const status = result.payload.plan.status;
+      const isSubmittedToQa = ["QA_PENDING", "QA_IN_PROGRESS", "COMPLETED", "ON_HOLD", "QA_LOT_REJECTED"].includes(status);
+      if (!isSubmittedToQa) {
+        return apiError(403, "แผนตรวจนี้ยังอยู่ในขั้นตอนของฝ่าย QC (ยังไม่ได้กดส่งต่องานมาให้ฝ่าย QA)");
+      }
+    }
+
+    return apiData(result.payload);
   } catch (error) {
     return dbFailure(error, "plan detail");
   }

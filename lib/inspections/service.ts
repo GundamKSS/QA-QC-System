@@ -157,6 +157,23 @@ export async function submitUnitInspection(
   const templateData = await store.getTemplate(input.planId, role);
   const items = templateData?.items ?? [];
 
+  // 1.5 Validate answer statuses before touching DB (avoids SQL CHECK constraint 503 on bad input)
+  const VALID_ITEM_STATUSES = new Set(["NORMAL", "FAIL", "NA"]);
+  const invalidStatusIds: number[] = [];
+  for (const [rawKey, ans] of Object.entries(input.answers)) {
+    if (ans?.status != null && !VALID_ITEM_STATUSES.has(ans.status)) {
+      const numericId = Number(rawKey);
+      if (Number.isFinite(numericId)) invalidStatusIds.push(numericId);
+    }
+  }
+  if (invalidStatusIds.length > 0) {
+    return {
+      kind: "incomplete",
+      message: "สถานะผลตรวจไม่ถูกต้อง (ต้องเป็น NORMAL, FAIL หรือ NA)",
+      missingItemIds: invalidStatusIds,
+    };
+  }
+
   // 2. Validate all required items are answered with adequate evidence
   const missing = unansweredRequiredItems(items, input.answers);
   if (missing.length > 0) {

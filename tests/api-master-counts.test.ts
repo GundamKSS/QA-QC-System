@@ -10,7 +10,7 @@ import { authPolicy } from "@/lib/config/auth";
 import { MASTER_NO_DATABASE } from "@/lib/master/counts";
 import { MASTERS } from "@/lib/master/registry";
 
-const masterAdmin = { id: "5", employeeCode: "TRW0005", fullName: "ผู้ดูแลข้อมูลหลัก", roles: ["MASTER_ADMIN"], mustChangePassword: false };
+const masterAdmin = { id: "5", employeeCode: "TRW0005", fullName: "ผู้ดูแลข้อมูลหลัก", roles: ["MASTERDATA_ADMIN"], mustChangePassword: false };
 const outage = Object.assign(new Error("raw"), { name: "ConnectionError", code: "ECONNREFUSED" });
 const get = () => GET(new Request("http://localhost:3000/api/master", { headers: { "sec-fetch-site": "same-origin" } }));
 
@@ -39,13 +39,13 @@ describe("GET /api/master — access", () => {
     expect(mocks.masterCounts).not.toHaveBeenCalled();
   });
 
-  it.each(["ADMIN", "QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING"])("refuses %s: master data is for the roles that see the page", async (role) => {
+  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING"])("refuses %s: master data is for the roles that see the page", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...masterAdmin, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(mocks.masterCounts).not.toHaveBeenCalled();
   });
 
-  it.each(["MASTER_ADMIN", "QC_HEAD", "QA_HEAD", "PM", "MANAGEMENT"])("lets %s read — viewing is wider than editing", async (role) => {
+  it.each(["MASTERDATA_ADMIN", "ADMIN", "QC_HEAD", "QA_HEAD", "PM", "MANAGEMENT"])("lets %s read — viewing is wider than editing", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...masterAdmin, roles: [role] });
     expect((await get()).status).toBe(200);
   });

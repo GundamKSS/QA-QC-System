@@ -12,11 +12,13 @@ export function workNotifications(jobs: readonly JobCard[]): WorkNotification[] 
       workOrderId: job.id,
       kind: job.status === "RETURNED" ? "returned" : "assigned",
       status: job.status,
-      title: job.status === "RETURNED" ? "งานถูกตีกลับให้แก้ไข" : "คุณมีงานที่ต้องทำ",
+      title: job.status === "RETURNED" ? "งานถูกตีกลับให้แก้ไข" : job.type === "QA" ? "คุณได้รับมอบหมายงานสุ่มตรวจ QA" : "คุณมีงานที่ต้องทำ",
       body: `${job.woNo} · ${job.modelCode} · ${job.type === "CALLIN_FIX" ? "เรียกเข้าแก้ไข — ไม่ต้องตรวจในแอป" : `ตรวจแล้ว ${job.qtyDone.toLocaleString("th-TH")} / ${job.qtyNeed.toLocaleString("th-TH")} เครื่อง`}`,
-      // QC Inspectors may open their jobs but cannot access plan details.
-      // A query change also refreshes the server-rendered list when a new alert arrives on /jobs.
-      href: `/jobs?view=mine&notification=${encodeURIComponent(`${job.id}:${job.status}`)}#work-order-${encodeURIComponent(job.id)}`,
+      // QC Inspectors open /jobs; QA Inspectors open /qa-queue.
+      href:
+        job.type === "QA"
+          ? `/qa-queue?plan=${job.planId}`
+          : `/jobs?view=mine&notification=${encodeURIComponent(`${job.id}:${job.status}`)}#work-order-${encodeURIComponent(job.id)}`,
       createdAt: job.createdAt.toISOString(),
       woNo: job.woNo,
       modelCode: job.modelCode,

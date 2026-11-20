@@ -38,13 +38,13 @@ describe("GET /api/jobs — access", () => {
     expect(touchedStore()).toBe(0);
   });
 
-  it.each(["QA_HEAD", "QA_INSPECTOR", "ADMIN", "PM", "MASTER_ADMIN", "PURCHASING", "MANAGEMENT"])("refuses %s: only QC Head and QC Inspector have work orders", async (role) => {
+  it.each(["PM", "MASTERDATA_ADMIN", "PURCHASING", "MANAGEMENT"])("refuses %s: only inspection and Super Admin roles have work orders", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(touchedStore()).toBe(0);
   });
 
-  it.each(["QC_HEAD", "QC_INSPECTOR"])("lets %s read", async (role) => {
+  it.each(["QC_HEAD", "QC_INSPECTOR", "QA_HEAD", "QA_INSPECTOR", "ADMIN"])("lets %s read", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     expect((await get()).status).toBe(200);
   });

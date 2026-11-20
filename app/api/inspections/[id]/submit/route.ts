@@ -3,6 +3,7 @@ import { dbFailure } from "@/lib/api/db";
 import { guardApi } from "@/lib/api/guard";
 import { apiError, apiJson } from "@/lib/api/response";
 import { audit, auditContext } from "@/lib/auth/audit";
+import { canInspectSide } from "@/lib/auth/roles";
 import { actorIdOf, NO_ACCOUNT, revalidateInspections } from "@/lib/inspections/api";
 import { getInspectionStore } from "@/lib/inspections/runtime";
 import { submitUnitInspection } from "@/lib/inspections/service";
@@ -61,6 +62,9 @@ export async function POST(
   }
 
   const role: InspectionRole = payload.role === "QA" ? "QA" : "QC";
+  if (!canInspectSide(actor.roles, role, actor.programRole)) {
+    return apiError(403, role === "QA" ? "บัญชีนี้ไม่มีสิทธิ์บันทึกผลตรวจฝั่ง QA" : "บัญชีนี้ไม่มีสิทธิ์บันทึกผลตรวจฝั่ง QC");
+  }
   const answers = (payload.answers && typeof payload.answers === "object"
     ? payload.answers
     : {}) as Record<number, ItemAnswer>;

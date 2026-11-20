@@ -76,7 +76,7 @@ describe("GET /api/home/inspector — access", () => {
     });
   });
 
-  it("refuses non-inspector roles like PURCHASING or MASTER_ADMIN with 403", async () => {
+  it("refuses non-inspector roles like PURCHASING or MASTERDATA_ADMIN with 403", async () => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcInspector, roles: ["PURCHASING"] });
     const response = await get();
     expect(response.status).toBe(403);
@@ -178,6 +178,88 @@ describe("GET /api/home/inspector — payload & metrics", () => {
       qtyNeed: 20,
       qtyDone: 5,
       remainingQty: 15,
+      role: "QC",
+    });
+    expect(body.side).toBe("QC");
+    expect(body.jobsHref).toBe("/jobs");
+  });
+
+  it("scopes jobs and links to QA queue for QA_INSPECTOR", async () => {
+    mocks.getCurrentUser.mockResolvedValue({
+      id: "15",
+      employeeCode: "DEMO_QA01",
+      fullName: "เดโม ผู้ตรวจ QA",
+      roles: ["QA_INSPECTOR"],
+      mustChangePassword: false,
+    });
+
+    mocks.getPendingReworks.mockResolvedValue([
+      {
+        id: "insp-qc-only",
+        workOrderId: "wo-qc",
+        woNo: "QP-2611-0001-1",
+        planId: 1,
+        planNo: "QP-2611-0001",
+        modelCode: "XM2525",
+        description: "ปั๊มลมลูกสูบ",
+        serialPump: "2611-0042",
+        roundNo: 2,
+        failedItemCount: 1,
+        defectNames: "รอยรั่วข้อต่อลม",
+        role: "QC",
+        submittedAt: "2026-11-05T10:00:00Z",
+        inspectorId: "15",
+        inspectorName: "เดโม ผู้ตรวจ QA",
+      },
+    ]);
+
+    mocks.jobs.mockResolvedValue([
+      {
+        id: "wo-qa-1",
+        planId: 9,
+        woNo: "QP-2611-0009-QA",
+        type: "QA",
+        calledQty: 50,
+        calledDate: "2026-11-18",
+        qtyNeed: 8,
+        qtyDone: 2,
+        status: "IN_PROGRESS",
+        modelCode: "XM2550",
+        description: "ปั๊มลมโรตารี่",
+        docType: "INV",
+        docNo: "INV-101",
+        vendorName: "PUMA TAIWAN",
+        assignees: [{ userId: "15", name: "เดโม ผู้ตรวจ QA", targetQty: 8, doneQty: 2 }],
+      },
+    ]);
+
+    const progressMap = new Map();
+    progressMap.set("wo-qa-1:15", { done: 2, passed: 2, reworkPending: 0, rejected: 0 });
+    mocks.getInspectorProgress.mockResolvedValue(progressMap);
+
+    const response = await get();
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(mocks.jobs).toHaveBeenCalledWith("15", { activeOnly: true, side: "QA" });
+    expect(mocks.jobs).toHaveBeenCalledWith("15", { side: "QA" });
+    expect(body.side).toBe("QA");
+    expect(body.jobsHref).toBe("/qa-queue");
+    expect(body.urgentStatus).toEqual({
+      reworkCount: 0, // QC rework filtered out
+      inProgressCount: 1,
+      notStartedCount: 0,
+      totalPendingUnits: 6,
+    });
+    expect(body.quickActions).toHaveLength(1);
+    expect(body.quickActions[0]).toMatchObject({
+      kind: "inspect",
+      id: "wo-qa-1",
+      woNo: "QP-2611-0009-QA",
+      role: "QA",
+      qtyNeed: 8,
+      qtyDone: 2,
+      remainingQty: 6,
     });
   });
 

@@ -27,7 +27,8 @@ async function PlanReportContent({
 }) {
   const { id } = await params;
   if (!/^\d{1,12}$/.test(id)) notFound();
-  await requirePageAccess("reports", `/plans/${id}/report`);
+  const user = await requirePageAccess("reports", `/plans/${id}/report`);
+  const canViewPlan = user.roles.some((r) => ["QC_HEAD", "QA_HEAD", "ADMIN"].includes(r));
 
-  return <InspectionReportView planId={Number(id)} />;
+  return <InspectionReportView planId={Number(id)} canViewPlan={canViewPlan} />;
 }

@@ -30,6 +30,11 @@ type AuditAction =
   | "plan.waiting_goods"
   | "plan.vendor"
   | "plan.submit_to_qa"
+  | "qa.set_aql_level"
+  | "qa.accept_plan"
+  | "qa.assign_inspectors"
+  | "qa.confirm_plan"
+  | "qa.return_unit_to_qc"
   /** Work orders (docs/16): opened with Need/type and people, people changed, cancelled with a reason. */
   | "work_order.open"
   | "work_order.assignees"
@@ -53,6 +58,13 @@ type AuditAction =
   | "login.unavailable"
   /** role_prog carried codes QCheck doesn't know; they were dropped. */
   | "login.unknown_role"
+  /** Shared device registration and lifecycle (FR-AUTH-05). */
+  | "device.register"
+  | "device.update"
+  | "device.activate"
+  | "device.deactivate"
+  | "device.unbind"
+  | "logout.idle"
   | "logout";
 
 /**

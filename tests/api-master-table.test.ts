@@ -9,7 +9,7 @@ import { authPolicy } from "@/lib/config/auth";
 import { MASTER_NO_DATABASE } from "@/lib/master/counts";
 import { masterBySlug } from "@/lib/master/registry";
 
-const masterAdmin = { id: "5", employeeCode: "TRW0005", fullName: "ผู้ดูแลข้อมูลหลัก", roles: ["MASTER_ADMIN"], mustChangePassword: false };
+const masterAdmin = { id: "5", employeeCode: "TRW0005", fullName: "ผู้ดูแลข้อมูลหลัก", roles: ["MASTERDATA_ADMIN"], mustChangePassword: false };
 const outage = Object.assign(new Error("raw"), { name: "ConnectionError", code: "ECONNREFUSED" });
 const payload = { rows: [{ id: 1 }], total: 1, page: 1, pageSize: 50, editing: null, options: null };
 const get = (table = "brands", query = "") =>
@@ -43,7 +43,7 @@ describe("GET /api/master/[table] — access", () => {
     expect(mocks.loadMasterTable).not.toHaveBeenCalled();
   });
 
-  it.each(["ADMIN", "QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING"])("refuses %s, who may not open the master pages", async (role) => {
+  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "PURCHASING"])("refuses %s, who may not open the master pages", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...masterAdmin, roles: [role] });
     expect((await get()).status).toBe(403);
     expect(mocks.loadMasterTable).not.toHaveBeenCalled();
@@ -56,7 +56,7 @@ describe("GET /api/master/[table] — access", () => {
     expect(mocks.loadMasterTable).not.toHaveBeenCalled();
   });
 
-  it.each(["MASTER_ADMIN", "QC_HEAD", "QA_HEAD", "PM", "MANAGEMENT"])("lets %s read", async (role) => {
+  it.each(["MASTERDATA_ADMIN", "ADMIN", "QC_HEAD", "QA_HEAD", "PM", "MANAGEMENT"])("lets %s read", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...masterAdmin, roles: [role] });
     expect((await get()).status).toBe(200);
   });

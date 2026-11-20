@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const guard = await guardApi(request, { page: "users", returnTo: "/admin/users" });
   if ("response" in guard) return guard.response;
   try {
-    return apiData(await loadLocalUsers(getLocalStore(), guard.user.roles));
+    return apiData(await loadLocalUsers(getLocalStore(), guard.user.roles, guard.user.programRole));
   } catch (error) {
     return dbFailure(error, "user admin list");
   }

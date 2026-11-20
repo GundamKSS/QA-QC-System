@@ -15,9 +15,16 @@ import type { JobCard } from "./store";
 
 export type JobsViewName = "all" | "mine";
 
-/** QC Head sees everyone's work orders unless they ask for their own (W6); anyone else only ever gets their own. */
-export function jobsView(roles: readonly Role[], requested: string | string[] | null | undefined): JobsViewName {
-  return roles.includes("QC_HEAD") && requested !== "mine" ? "all" : "mine";
+/** QC Head / QA Head / Super Admin sees everyone's work orders unless they ask for their own (W6); anyone else only ever gets their own. */
+export function jobsView(
+  roles: readonly Role[],
+  requested: string | string[] | null | undefined,
+  side?: "QC" | "QA",
+): JobsViewName {
+  if (side === "QA") {
+    return (roles.includes("QA_HEAD") || roles.includes("ADMIN")) && requested !== "mine" ? "all" : "mine";
+  }
+  return (roles.includes("QC_HEAD") || roles.includes("ADMIN")) && requested !== "mine" ? "all" : "mine";
 }
 
 /** A work order as the jobs screen draws it. Only what is drawn leaves the server (no remarks, plan number or employee codes). */
@@ -73,8 +80,12 @@ const toJobItem = (job: JobCard, reworkCount = 0, progress?: Map<string, Inspect
  * Work orders that are still in someone's hands first, then the recent finished ones. Work orders show up as
  * soon as a QC Head picks the person — no accept button (J4). Throws the database's own errors; the route turns them into a 503.
  */
-export async function loadJobs(user: SessionUser, requested: string | null): Promise<JobsPayload> {
-  const view = jobsView(user.roles, requested);
+export async function loadJobs(
+  user: SessionUser,
+  requested: string | null,
+  side?: "QC" | "QA",
+): Promise<JobsPayload> {
+  const view = jobsView(user.roles, requested, side);
   const all = view === "all";
   const me = dbConfigured() ? await resolveActorId(user.id) : user.id;
 
@@ -86,7 +97,10 @@ export async function loadJobs(user: SessionUser, requested: string | null): Pro
     const store = getPlanStore();
     const actorId = all ? null : me;
     // Every active notification must have a card to open, even beyond the history's 200-row limit.
-    const [active, recent] = await Promise.all([store.jobs(actorId, { activeOnly: true }), store.jobs(actorId)]);
+    const [active, recent] = await Promise.all([
+      store.jobs(actorId, side ? { activeOnly: true, side } : { activeOnly: true }),
+      side ? store.jobs(actorId, { side }) : store.jobs(actorId),
+    ]);
     jobs = [...active, ...recent.filter((job) => !OPEN_WORK_ORDER_STATUSES.includes(job.status))];
 
     try {
@@ -97,7 +111,12 @@ export async function loadJobs(user: SessionUser, requested: string | null): Pro
           ? inspectionStore.getInspectorProgress(jobs.map((j) => j.id))
           : Promise.resolve(undefined),
       ]);
-      reworks = reworkItems;
+      if (side) {
+        const jobIds = new Set(jobs.map((j) => j.id));
+        reworks = reworkItems.filter((rw) => jobIds.has(rw.workOrderId) || rw.role === side);
+      } else {
+        reworks = reworkItems;
+      }
       progress = inspectorProgress;
     } catch {
       reworks = [];

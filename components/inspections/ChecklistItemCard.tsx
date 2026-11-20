@@ -1,7 +1,13 @@
 "use client";
 
 import { triggerHaptic } from "@/lib/inspections/haptics";
-import { missingEvidenceForItem, syncDefectPhotos } from "@/lib/inspections/rules";
+import {
+  formatStepMeasurements,
+  getStepMeasurementConfig,
+  missingEvidenceForItem,
+  parseStepMeasurements,
+  syncDefectPhotos,
+} from "@/lib/inspections/rules";
 import type {
   InspectionItem,
   InspectionPhoto,
@@ -59,6 +65,9 @@ export function ChecklistItemCard({
     item.title.includes("ตัดต่อ") ||
     item.title.includes("แรงดัน");
 
+  const measurementConfig = getStepMeasurementConfig(item);
+  const measurementValues = parseStepMeasurements(measurementConfig, answer.value);
+
   const missingNotes = missingEvidenceForItem(item, answer);
   const requiresVideo =
     isFail &&
@@ -96,8 +105,18 @@ export function ChecklistItemCard({
     });
   }
 
+  function handleMeasurementFieldChange(fieldKey: string, fieldValue: string) {
+    if (!measurementConfig) return;
+    const nextMap = { ...measurementValues, [fieldKey]: fieldValue };
+    const formatted = formatStepMeasurements(measurementConfig, nextMap);
+    onAnswerChange({
+      ...answer,
+      value: formatted,
+    });
+  }
+
   return (
-    <div className="space-y-3.5">
+    <div className="min-w-0 space-y-3.5 [overflow-wrap:anywhere]">
       {/* 1. Minimalist Step Animation (Viewfinder + Vector Illustration) */}
       <StepMinimalAnimation
         item={item}
@@ -134,6 +153,109 @@ export function ChecklistItemCard({
         </div>
       )}
 
+      {/* 2.5 Embedded Numeric Measurement Inputs for PASS_FAIL steps (New Piston Checklist V.1 parity) */}
+      {measurementConfig && (
+        <div className="rounded-2xl border border-carbon-600/80 bg-carbon-900/70 p-3.5 space-y-3 shadow-xs">
+          <div
+            className={
+              measurementConfig.fields.length > 1
+                ? "grid grid-cols-1 sm:grid-cols-2 gap-3"
+                : "space-y-2"
+            }
+          >
+            {measurementConfig.fields.map((field) => {
+              const currentVal = measurementValues[field.key] ?? "";
+              const specPreset =
+                measurementConfig.kind === "PRESSURE_START_STOP"
+                  ? field.key === "stop" && pressureSpecs?.stop != null
+                    ? String(pressureSpecs.stop)
+                    : field.key === "start" && pressureSpecs?.start != null
+                      ? String(pressureSpecs.start)
+                      : null
+                  : null;
+              const allPresets = field.presets
+                ? specPreset && !field.presets.includes(specPreset)
+                  ? [specPreset, ...field.presets]
+                  : field.presets
+                : specPreset
+                  ? [specPreset]
+                  : [];
+
+              return (
+                <div key={field.key} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label
+                      htmlFor={`input-measure-${item.id}-${field.key}`}
+                      className="text-xs font-semibold text-ti-100"
+                    >
+                      {field.label}{" "}
+                      <span className="font-mono text-ti-400">({field.unit})</span>
+                    </label>
+                    {specPreset && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("tap");
+                          handleMeasurementFieldChange(field.key, specPreset);
+                        }}
+                        className="text-[11px] font-mono font-semibold text-ember-400 hover:text-ember-300 cursor-pointer"
+                      >
+                        ใช้ค่าสเปก ({specPreset} {field.unit})
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      id={`input-measure-${item.id}-${field.key}`}
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      value={currentVal}
+                      onChange={(e) => handleMeasurementFieldChange(field.key, e.target.value)}
+                      placeholder={field.placeholder}
+                      className="h-12 w-full min-w-0 rounded-xl border border-carbon-600 bg-carbon-800 pl-3.5 pr-12 font-mono text-base text-ti-50 placeholder:text-ti-500 focus:outline-none focus:ring-2 focus:ring-ember-500"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center font-mono text-xs text-ti-400">
+                      {field.unit}
+                    </span>
+                  </div>
+                  {allPresets.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {allPresets.map((preset) => {
+                        const isActive = currentVal === preset;
+                        const isSpec = preset === specPreset;
+                        return (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => {
+                              triggerHaptic("tap");
+                              handleMeasurementFieldChange(
+                                field.key,
+                                isActive ? "" : preset,
+                              );
+                            }}
+                            className={`min-h-11 rounded-lg border px-3 font-mono text-sm transition-colors cursor-pointer ${
+                              isActive
+                                ? "border-ember-500 bg-ember-500 text-white font-bold"
+                                : isSpec
+                                  ? "border-ember-500/60 bg-ember-500/15 text-ember-300 hover:bg-ember-500/25 font-semibold"
+                                  : "border-carbon-600 bg-carbon-800 text-ti-300 hover:border-carbon-500"
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 3. NUMBER Input + Quick Tap Presets */}
       {item.inputType === "NUMBER" && (
         <div className="space-y-2 pt-1">
@@ -155,7 +277,7 @@ export function ChecklistItemCard({
                       handleValueChange(preset);
                     }
                   }}
-                  className={`h-9 rounded-control border px-3 font-mono text-xs transition-colors cursor-pointer ${
+                  className={`min-h-11 rounded-control border px-3 font-mono text-sm transition-colors cursor-pointer ${
                     active
                       ? "border-ember-500 bg-ember-500 text-white font-bold"
                       : "border-carbon-600 bg-carbon-900 text-ti-200 hover:border-carbon-500"
@@ -190,7 +312,7 @@ export function ChecklistItemCard({
             value={answer.value ?? ""}
             onChange={(e) => handleValueChange(e.target.value)}
             placeholder="ระบุข้อสังเกต (ถ้ามี)..."
-            className="w-full rounded-control border border-carbon-600 bg-carbon-900 p-3 text-sm text-ti-50 focus:outline-none focus:ring-2 focus:ring-ember-500"
+            className="w-full min-w-0 rounded-control border border-carbon-600 bg-carbon-900 p-3 text-base sm:text-sm text-ti-50 focus:outline-none focus:ring-2 focus:ring-ember-500"
           />
         </div>
       )}

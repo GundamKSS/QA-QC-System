@@ -46,7 +46,7 @@ export async function adminContext(request: Request): Promise<AdminContext | { r
   if (!pepper) return { response: apiError(503, "ยังไม่ได้ตั้งค่า PIN_PEPPER บนเซิร์ฟเวอร์ — สร้างผู้ใช้หน้างานไม่ได้") };
   const { user } = guard;
   return {
-    deps: { store: getLocalStore(), guard: getPinGuard(), pepper, actor: { id: user.id, roles: user.roles } },
+    deps: { store: getLocalStore(), guard: getPinGuard(), pepper, actor: { id: user.id, roles: user.roles, programRole: user.programRole } },
     actor: { id: user.id, employeeCode: user.employeeCode },
     trail: auditContext(request.headers),
   };

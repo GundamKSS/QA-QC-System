@@ -193,4 +193,84 @@ describe("lookupScan — Service logic with quota check", () => {
       expect(result.availableJobs).toHaveLength(0);
     }
   });
+
+  it("scopes scan lookup to QA work orders for QA_INSPECTOR", async () => {
+    const qaInspector: SessionUser = {
+      id: "15",
+      employeeCode: "DEMO_QA01",
+      fullName: "เดโม ผู้ตรวจ QA",
+      roles: ["QA_INSPECTOR"],
+      mustChangePassword: false,
+    };
+
+    const qaJob: JobItem = {
+      ...sampleJob,
+      id: "job-qa-201",
+      woNo: "QP-2610-001-QA",
+      type: "QA",
+      assignees: [
+        {
+          userId: "15",
+          name: "เดโม ผู้ตรวจ QA",
+          targetQty: 5,
+          doneQty: 1,
+          reworkPending: 0,
+        },
+      ],
+    };
+
+    mocks.loadJobs.mockResolvedValue({
+      view: "mine",
+      me: "15",
+      jobs: [qaJob],
+      reworks: [],
+    });
+
+    const rawQr =
+      "5x3 HP 260L. (PP-23P) + MOTOR|FG1004-000675|WC:WMT-409|MODEL:PP-23P|FIC:FG-MT-00156|Date:2569/10/22|WO1274/69|SN69/00014-15";
+
+    const result = await lookupScan(qaInspector, rawQr);
+
+    expect(mocks.loadJobs).toHaveBeenCalledWith(qaInspector, "mine", "QA");
+    expect(result.kind).toBe("INTERNAL_PUMP");
+    if (result.kind === "INTERNAL_PUMP") {
+      expect(result.matchedJob?.id).toBe("job-qa-201");
+      expect(result.matchedJob?.type).toBe("QA");
+      expect(result.availableJobs).toHaveLength(1);
+    }
+  });
+
+  it("allows QA_HEAD to fall back to all QA work orders when not directly assigned", async () => {
+    const qaHead: SessionUser = {
+      id: "10",
+      employeeCode: "DEMO_QAHEAD",
+      fullName: "เดโม หัวหน้า QA",
+      roles: ["QA_HEAD"],
+      mustChangePassword: false,
+    };
+
+    const qaJob: JobItem = {
+      ...sampleJob,
+      id: "job-qa-202",
+      woNo: "QP-2610-001-QA",
+      type: "QA",
+      assignees: [{ userId: "15", name: "เดโม ผู้ตรวจ QA", targetQty: 5, doneQty: 1, reworkPending: 0 }],
+    };
+
+    mocks.loadJobs
+      .mockResolvedValueOnce({ view: "mine", me: "10", jobs: [], reworks: [] })
+      .mockResolvedValueOnce({ view: "all", me: "10", jobs: [qaJob], reworks: [] });
+
+    const rawQr =
+      "5x3 HP 260L. (PP-23P) + MOTOR|FG1004-000675|WC:WMT-409|MODEL:PP-23P|FIC:FG-MT-00156|Date:2569/10/22|WO1274/69|SN69/00014-15";
+
+    const result = await lookupScan(qaHead, rawQr);
+
+    expect(mocks.loadJobs).toHaveBeenNthCalledWith(1, qaHead, "mine", "QA");
+    expect(mocks.loadJobs).toHaveBeenNthCalledWith(2, qaHead, "all", "QA");
+    expect(result.kind).toBe("INTERNAL_PUMP");
+    if (result.kind === "INTERNAL_PUMP") {
+      expect(result.matchedJob?.id).toBe("job-qa-202");
+    }
+  });
 });

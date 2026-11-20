@@ -12,7 +12,7 @@ export const when = new Intl.DateTimeFormat("th-TH-u-ca-gregory", { dateStyle: "
 const PROGRESS_TONE: Record<Progress, string> = {
   NOT_STARTED: "border-ti-400/60 text-ti-50",
   IN_PROGRESS: "border-ember-500/60 text-ember-400",
-  AWAITING_CLOSE: "border-sky-400/50 text-sky-300",
+  AWAITING_CLOSE: "border-sky-600/40 text-sky-800 bg-sky-500/10 dark:text-sky-300 dark:border-sky-400/50",
   DONE: "border-carbon-600 text-ti-400",
   OVER: "border-pass/60 text-pass",
   UNDER: "border-fail/60 text-fail",

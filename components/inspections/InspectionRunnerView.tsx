@@ -226,7 +226,7 @@ export function InspectionRunnerView({
     } catch {
       // Ignore
     }
-    router.push("/jobs");
+    router.push(inspection?.role === "QA" ? "/qa-queue" : "/jobs");
   }
 
   async function handleReleaseClaim() {
@@ -235,7 +235,7 @@ export function InspectionRunnerView({
     try {
       await cancelClaimApi(inspection.id);
       handleClearDraft();
-      router.push("/jobs");
+      router.push(inspection.role === "QA" ? "/qa-queue" : "/jobs");
     } catch {
       setCancelling(false);
       setConfirmCancel(false);
@@ -334,6 +334,7 @@ export function InspectionRunnerView({
     if (!currentItem) return;
     const nextAnswer: ItemAnswer = {
       status: "NORMAL",
+      value: currentAnswer?.value ?? null,
       defects: [],
       photos: [],
       video: null,
@@ -418,7 +419,7 @@ export function InspectionRunnerView({
       if (res.status === "done") {
         handleClearDraft();
         setIsSummaryOpen(false);
-        router.push("/jobs");
+        router.push(inspection.role === "QA" ? "/qa-queue" : "/jobs");
       } else {
         setSubmitError(res.message || "ไม่สามารถบันทึกผลการตรวจได้");
       }
@@ -431,7 +432,7 @@ export function InspectionRunnerView({
 
   return (
     // A transformed page entrance would anchor fixed controls to the card instead of the viewport.
-    <div style={{ animation: "none" }} className="min-w-0 w-full max-w-xl mx-auto flex flex-col min-h-[calc(100dvh-8.5rem)] p-3 sm:p-5 pb-40 md:pb-36 gap-3">
+    <div style={{ animation: "none" }} className="min-w-0 w-full max-w-xl mx-auto flex flex-col min-h-[calc(100dvh-8.5rem)] p-2 sm:p-5 pb-[calc(13rem+env(safe-area-inset-bottom))] sm:pb-[calc(13rem+env(safe-area-inset-bottom))] gap-3">
       {/* Main Unified Inspection Card */}
       <div className="rounded-3xl border border-carbon-700 bg-carbon-800 p-4 sm:p-6 space-y-3 shadow-sm">
         {/* 1. Unified Work Order, Progress Counter & Serial Header */}

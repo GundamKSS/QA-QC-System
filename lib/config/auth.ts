@@ -29,13 +29,16 @@ export const authPolicy = {
   local: {
     /** Codes the central system never issues (it uses TRW####). F + at least 4 digits, e.g. F0001. */
     codePattern: /^F\d{4,}$/,
-    /** Field users may only ever hold these roles — never ADMIN, heads or MASTER_ADMIN. */
+    /** Field users may only ever hold these roles — never ADMIN, heads or MASTERDATA_ADMIN. */
     allowedRoles: ["QC_INSPECTOR", "QA_INSPECTOR"],
   },
   sessionCookie: "qcheck_session",
+  /** HttpOnly opaque device token bound by Admin for shared factory tablets/kiosks (FR-AUTH-05). */
+  deviceCookie: "qcheck_device",
   /** Where a signed-in user lands when no safe `next` is given. */
   homePath: "/home",
   changePasswordPath: "/change-password",
+  noAccessPath: "/no-access",
   loginPath: "/login",
   /** POST-only route handler (app/api/auth/logout/route.ts). */
   logoutPath: "/api/auth/logout",
@@ -48,4 +51,4 @@ export const authPolicy = {
 } as const;
 
 /** Never a post-login destination: `next` pointing here falls back to `homePath`. `/api` is endpoints, not pages. */
-export const authOnlyPaths = [authPolicy.loginPath, authPolicy.changePasswordPath, "/auth", "/api"] as const;
+export const authOnlyPaths = [authPolicy.loginPath, authPolicy.changePasswordPath, authPolicy.noAccessPath, "/auth", "/api"] as const;

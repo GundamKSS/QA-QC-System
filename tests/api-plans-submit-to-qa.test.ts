@@ -57,11 +57,10 @@ describe("POST /api/plans/[id]/submit-to-qa", () => {
     expect(res.status).toBe(401);
   });
 
-  it("refuses caller without QC_HEAD / QA_HEAD / ADMIN role (403)", async () => {
-    const res = await call("101", {}, qcInspector);
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.message).toBeTruthy();
+  it("refuses caller without QC_HEAD / ADMIN role (403)", async () => {
+    const qaHead = { id: "13", employeeCode: "TRW0013", fullName: "หัวหน้า QA", roles: ["QA_HEAD"], mustChangePassword: false };
+    expect((await call("101", {}, qcInspector)).status).toBe(403);
+    expect((await call("101", {}, qaHead)).status).toBe(403);
   });
 
   it("refuses malformed plan ID (404)", async () => {

@@ -23,10 +23,9 @@ export async function POST(
   const { user: actor } = guard;
   if (!planId) return apiError(404, PLAN_NOT_FOUND, { at });
 
-  // Only QC Head, QA Head or Admin may approve & submit to QA
+  // Only QC Head or Admin may approve & submit to QA (QC Head approves and hands over to QA)
   const isHead =
     actor.roles.includes("QC_HEAD") ||
-    actor.roles.includes("QA_HEAD") ||
     actor.roles.includes("ADMIN");
   if (!isHead) {
     return apiError(403, "เฉพาะ QC Head หรือผู้ดูแลระบบเท่านั้นที่มีสิทธิ์ตรวจทานและส่งต่อ QA", { at });

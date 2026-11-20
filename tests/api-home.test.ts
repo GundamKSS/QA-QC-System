@@ -39,7 +39,7 @@ describe("GET /api/home — access", () => {
     expect(touchedStore()).toBe(0);
   });
 
-  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "MASTER_ADMIN"])("refuses %s: the page shows them a note instead of plan numbers", async (role) => {
+  it.each(["QC_INSPECTOR", "QA_INSPECTOR", "MASTERDATA_ADMIN"])("refuses %s: the page shows them a note instead of plan numbers", async (role) => {
     mocks.getCurrentUser.mockResolvedValue({ ...qcHead, roles: [role] });
     const response = await get();
     expect(response.status).toBe(403);

@@ -18,5 +18,6 @@ export function revalidateInspections(planId?: number) {
   }
   revalidatePath("/plans");
   revalidatePath("/jobs");
+  revalidatePath("/qa-queue");
   revalidatePath("/home");
 }

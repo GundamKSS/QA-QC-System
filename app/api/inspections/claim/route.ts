@@ -3,6 +3,7 @@ import { dbFailure } from "@/lib/api/db";
 import { guardApi } from "@/lib/api/guard";
 import { apiError, apiJson } from "@/lib/api/response";
 import { audit, auditContext } from "@/lib/auth/audit";
+import { canInspectSide } from "@/lib/auth/roles";
 import { actorIdOf, NO_ACCOUNT, revalidateInspections } from "@/lib/inspections/api";
 import { getInspectionStore } from "@/lib/inspections/runtime";
 import { claimUnitInspection } from "@/lib/inspections/service";
@@ -34,6 +35,9 @@ export async function POST(request: Request) {
 
   const roleParam = fields.get("role");
   const role: InspectionRole = roleParam === "QA" ? "QA" : "QC";
+  if (!canInspectSide(actor.roles, role, actor.programRole)) {
+    return apiError(403, role === "QA" ? "บัญชีนี้ไม่มีสิทธิ์ตรวจฝั่ง QA" : "บัญชีนี้ไม่มีสิทธิ์ตรวจฝั่ง QC");
+  }
   const serialMotor = fields.get("serialMotor")?.trim() || null;
   const serialSupplier = fields.get("serialSupplier")?.trim() || null;
   const serialEntryMode = (fields.get("serialEntryMode") as SerialEntryMode) || "MANUAL";
